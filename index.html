@@ -4335,6 +4335,7 @@ function initPDJTools() {
 
 const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
+  initQrScannerScreen();
 
   const btnClose = document.getElementById("btn_qr_scan_close");
   if (btnClose) btnClose.onclick = closeQrScanModal;
@@ -5134,6 +5135,7 @@ function stopQrScannerCamera(){
     try{ v.pause(); }catch(_){}
     try{ v.srcObject = null; }catch(_){}
   }
+}
 
 function qrss_decodeCurrentFrame(highRes){
   try{
@@ -5176,7 +5178,7 @@ function qrss_decodeCurrentFrame(highRes){
   }
 }
 
-}
+
 
 function qrss_tick(ts){
   __qrss_raf = requestAnimationFrame(qrss_tick);
@@ -5310,12 +5312,13 @@ function initQrScannerScreen(){
   const btnClose = document.getElementById("qrss_btn_close");
   if (btnClose) btnClose.onclick = closeQrScannerScreen;
 
+  const btnSnap = document.getElementById("qrss_btn_snap");
   const btnCam = document.getElementById("qrss_btn_camera");
   if (btnCam) btnCam.onclick = startQrScannerCamera;
   if (btnSnap) btnSnap.onclick = () => { qrss_decodeCurrentFrame(true); };
 
   const btnPhoto = document.getElementById("qrss_btn_photo");
-  const btnSnap = document.getElementById("qrss_btn_snap");
+  
   const file = document.getElementById("qrss_file");
   if (btnPhoto && file){
     btnPhoto.onclick = () => { try{ file.value = ""; }catch(_){} file.click(); };
