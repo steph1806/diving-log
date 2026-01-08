@@ -4351,6 +4351,35 @@ function initPDJTools() {
 const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
 
+  /* A1 QR scanner full-screen buttons wiring */
+  const qrssBtnClose = document.getElementById("qrss_btn_close");
+  if (qrssBtnClose) qrssBtnClose.onclick = closeQrScannerScreen;
+
+  const qrssBtnCamera = document.getElementById("qrss_btn_camera");
+  if (qrssBtnCamera) qrssBtnCamera.onclick = () => { try{ qrss_setStatus("Demande accès caméra…"); }catch(_){} startQrScannerCamera(); };
+
+  const qrssBtnPhoto = document.getElementById("qrss_btn_photo");
+  const qrssFile = document.getElementById("qrss_file");
+  if (qrssBtnPhoto && qrssFile) {
+    qrssBtnPhoto.onclick = () => {
+      try { qrssFile.value = ""; } catch(_) {}
+      try { qrss_setStatus("📷 Choisis une image contenant le QR…"); } catch(_) {}
+      try { qrssFile.click(); } catch(e) {
+        try { qrss_setStatus("Erreur ouverture Photos (iOS). Essaie Safari plein écran."); } catch(_) {}
+        console.error("qrss photo click error", e);
+      }
+    };
+    const handler = () => {
+      const f = qrssFile.files && qrssFile.files[0];
+      if (f) qrss_decodeFromFile(f);
+    };
+    qrssFile.onchange = handler;
+    qrssFile.oninput = handler;
+  }
+
+  const qrssBtnSnap = document.getElementById("qrss_btn_snap");
+  if (qrssBtnSnap) qrssBtnSnap.onclick = () => { try{ qrss_decodeCurrentFrame(true); }catch(e){ console.error(e); } };
+
   const btnClose = document.getElementById("btn_qr_scan_close");
   if (btnClose) btnClose.onclick = closeQrScanModal;
 
