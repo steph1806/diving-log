@@ -3900,6 +3900,20 @@ let gaQrPages = [];
 let gaQrIndex = 0;
 let gaExportWired = false;
 
+// =====================================================
+// A1 LOCK: Export QR must be URL-only (camera native friendly).
+// Any attempt to render JSON in a QR is a hard error.
+// =====================================================
+function gaAssertQrUrlOnly(u){
+  if (typeof u !== "string") throw new Error("SECURITY: QR export must be a URL string");
+  const s = u.trim();
+  if (!s) throw new Error("SECURITY: QR export URL empty");
+  if (s[0] === "{" || s[0] === "[") throw new Error("SECURITY: QR export must not embed JSON");
+  if (!/^https?:\/\//i.test(s)) throw new Error("SECURITY: QR export must be an absolute URL");
+  if (!/[?#&]import=([^&]+)/.test(s)) throw new Error("SECURITY: QR export URL missing import= token");
+  return s;
+}
+
 function renderCurrentGaQr() {
   const status = document.getElementById("ga_export_qr_status");
   const img = document.getElementById("ga_export_qr_img");
@@ -3918,13 +3932,13 @@ function renderCurrentGaQr() {
 
   try {
     const page = gaQrPages[gaQrIndex];
-    const txt = (typeof page === "string") ? page : JSON.stringify(page);
+    const url = gaAssertQrUrlOnly(page);
     // Use remote image QR generator: no CDN JS, works in file:// and https
-    img.src = "https://api.qrserver.com/v1/create-qr-code/?size="+QR_IMG_SIZE+"x"+QR_IMG_SIZE+"&data=" + encodeURIComponent(txt);
-    if (status && !status.textContent) status.textContent = (typeof page === "string") ? "QR URL généré." : "QR généré.";
+    img.src = "https://api.qrserver.com/v1/create-qr-code/?size="+QR_IMG_SIZE+"x"+QR_IMG_SIZE+"&data=" + encodeURIComponent(url);
+    if (status) status.textContent = "QR URL généré.";
   } catch (e) {
     console.warn("QR render error:", e);
-    if (status) status.textContent = "Erreur génération QR (console).";
+    if (status) status.textContent = "Erreur génération QR (URL only).";
   }
 }
 
@@ -3993,6 +4007,7 @@ if (selMass) {
       const urls = [];
       for (let i = 0; i < pages.length; i++) {
         const u = await gaUploadQrPageAndMakeUrl(pages[i]);
+        gaAssertQrUrlOnly(u);
         urls.push(u);
       }
 
