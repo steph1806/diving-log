@@ -3986,17 +3986,25 @@ if (selMass) {
 
     try {
       // 1) Split payload for size safety (kept), then upload each page
-     const pages = splitPayloadForQr(payload);
-     status.textContent = (pages.length > 1)
-       ? ("QR DATA générés : " + pages.length + " (découpé).")
-       : "QR DATA généré.";
+      const pages = splitPayloadForQr(payload);
+      status.textContent = "⏳ Préparation QR (upload)...";
+      wrap.style.display = "none";
 
-     gaQrPages = pages;     // pages are OBJECTS (manifest), not URL strings
-     gaQrIndex = 0;
+      const urls = [];
+      for (let i = 0; i < pages.length; i++) {
+        const u = await gaUploadQrPageAndMakeUrl(pages[i]);
+        urls.push(u);
+      }
 
-     wrap.style.display = "block";
-     renderCurrentGaQr();
+      gaQrPages = urls;      // now pages are URL strings
+      gaQrIndex = 0;
 
+      status.textContent = (gaQrPages.length > 1)
+        ? ("QR URL générés : " + gaQrPages.length + " (découpé).")
+        : "QR URL généré.";
+
+      wrap.style.display = "block";
+      renderCurrentGaQr();
     } catch (e) {
       console.warn("QR URL export error:", e);
       status.textContent = "Erreur export QR (upload).";
@@ -4327,7 +4335,6 @@ function initPDJTools() {
 
 const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
-  initQrScannerScreen();
 
   const btnClose = document.getElementById("btn_qr_scan_close");
   if (btnClose) btnClose.onclick = closeQrScanModal;
@@ -4815,6 +4822,11 @@ function importBoatManifestToPDJ(manifest, forcedBoatId) {
 }
 
 function importDiverFromQrText(rawText) {
+  // SAFETY: never treat a URL as a diver/manifest payload in the in-app importer
+  if (typeof rawText === "string" && /^https?:\/\//i.test(rawText.trim())) {
+    throw new Error("QR URL non résolu");
+  }
+
   // 1) Try manifest first (bulk PDJ by boat)
   const pm = parseQrBoatManifestPayload(rawText);
   if (pm.ok) {
@@ -5127,7 +5139,6 @@ function stopQrScannerCamera(){
     try{ v.pause(); }catch(_){}
     try{ v.srcObject = null; }catch(_){}
   }
-}
 
 function qrss_decodeCurrentFrame(highRes){
   try{
@@ -5170,7 +5181,7 @@ function qrss_decodeCurrentFrame(highRes){
   }
 }
 
-
+}
 
 function qrss_tick(ts){
   __qrss_raf = requestAnimationFrame(qrss_tick);
@@ -5286,13 +5297,51 @@ async function qrss_decodeFromFile(file){
   }
 }
 
-function qrss_onDecoded(text){
+
+// =====================================================
+// QR scan resolver: URL (#import=ID) -> payload string
+// Ensures a URL is never treated as a diver payload.
+// =====================================================
+async function resolveScannedQrText(rawText){
+  if (typeof rawText !== "string") return null;
+  const s = rawText.trim();
+
+  // URL with #import=ID (or ?import= / &import=)
+  const m = s.match(/[?#&]import=([^&]+)/);
+  if (m && m[1]){
+    const id = decodeURIComponent(m[1] || "");
+    if (!id) return null;
+    try{
+      const r = await fetch(`/.netlify/functions/qr_get?id=${encodeURIComponent(id)}`, { method: "GET" });
+      const j = await r.json().catch(()=>null);
+      if (j && j.ok && j.body) return j.body;
+      return null;
+    }catch(e){
+      console.error("resolveScannedQrText: fetch failed", e);
+      return null;
+    }
+  }
+
+  // If it's any other URL, do NOT pass it to import (prevents URL->diver pollution)
+  if (/^https?:\/\//i.test(s)) return null;
+
+  // Non-URL text: direct payload (manifest JSON or single diver JSON)
+  return s;
+}
+
+
+async function qrss_onDecoded(text){
   // stop camera ASAP to avoid double triggers
   stopQrScannerCamera();
 
   qrss_setStatus("✅ QR détecté. Import…");
   try{
-    importDiverFromQrText(text);
+    const payload = await resolveScannedQrText(text);
+    if (!payload){
+      qrss_setStatus("❌ QR invalide (lien non reconnu ou import expiré).");
+      return;
+    }
+    importDiverFromQrText(payload);
     qrss_setStatus("✅ Import terminé.");
     setTimeout(closeQrScannerScreen, 450);
   }catch(err){
@@ -5300,17 +5349,17 @@ function qrss_onDecoded(text){
   }
 }
 
+
 function initQrScannerScreen(){
   const btnClose = document.getElementById("qrss_btn_close");
   if (btnClose) btnClose.onclick = closeQrScannerScreen;
 
-  const btnSnap = document.getElementById("qrss_btn_snap");
   const btnCam = document.getElementById("qrss_btn_camera");
   if (btnCam) btnCam.onclick = startQrScannerCamera;
   if (btnSnap) btnSnap.onclick = () => { qrss_decodeCurrentFrame(true); };
 
   const btnPhoto = document.getElementById("qrss_btn_photo");
-  
+  const btnSnap = document.getElementById("qrss_btn_snap");
   const file = document.getElementById("qrss_file");
   if (btnPhoto && file){
     btnPhoto.onclick = () => { try{ file.value = ""; }catch(_){} file.click(); };
