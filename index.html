@@ -4534,8 +4534,17 @@ function decodeQrFromImageFile(file) {
 
         const code = tryDecodeFromCtx(ctx, cw, ch);
         if (code && code.data) {
-          importDiverFromQrText(code.data);
-          setQrScanStatus("✅ QR détecté depuis la photo.");
+          // code.data peut être un JSON *ou* une URL #import=ID
+          (async () => {
+            try {
+              const payload = await resolveScannedQrText(code.data);
+              if (!payload) { setQrScanStatus("❌ QR invalide (lien non reconnu ou import expiré)."); return; }
+              importDiverFromQrText(payload);
+              setQrScanStatus("✅ Import terminé.");
+            } catch (e) {
+              setQrScanStatus("Erreur import: " + (e && e.message ? e.message : String(e)));
+            }
+          })();
           return;
         }
 
@@ -4562,8 +4571,18 @@ function decodeQrFromImageFile(file) {
 
           const code = tryDecodeFromCtx(ctx, cw, ch);
           if (code && code.data) {
-            importDiverFromQrText(code.data);
-            setQrScanStatus("✅ QR détecté depuis la photo.");
+            // code.data peut être un JSON *ou* une URL #import=ID
+            setQrScanStatus("✅ QR détecté. Import…");
+            (async () => {
+              try {
+                const payload = await resolveScannedQrText(code.data);
+                if (!payload) { setQrScanStatus("❌ QR invalide (lien non reconnu ou import expiré)."); return; }
+                importDiverFromQrText(payload);
+                setQrScanStatus("✅ Import terminé.");
+              } catch (e) {
+                setQrScanStatus("Erreur import: " + (e && e.message ? e.message : String(e)));
+              }
+            })();
           } else {
             setQrScanStatus("QR non détecté sur la photo. Conseil iPhone: utilise un *screenshot* du QR (pas une photo d'un écran), ou rapproche/zoome pour que le QR remplisse l'image.");
           }
@@ -4989,7 +5008,17 @@ async function startQrScanCamera() {
                 if (code && code.data) {
                   // stop first (avoid double imports)
                   stopQrScanCamera();
-                  importDiverFromQrText(code.data);
+                  setQrScanStatus("✅ QR détecté. Import…");
+                  (async () => {
+                    try {
+                      const payload = await resolveScannedQrText(code.data);
+                      if (!payload) { setQrScanStatus("❌ QR invalide (lien non reconnu ou import expiré)."); return; }
+                      importDiverFromQrText(payload);
+                      setQrScanStatus("✅ Import terminé.");
+                    } catch (e) {
+                      setQrScanStatus("Erreur import: " + (e && e.message ? e.message : String(e)));
+                    }
+                  })();
                   return;
                 }
               }
