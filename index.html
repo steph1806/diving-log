@@ -3986,25 +3986,17 @@ if (selMass) {
 
     try {
       // 1) Split payload for size safety (kept), then upload each page
-      const pages = splitPayloadForQr(payload);
-      status.textContent = "⏳ Préparation QR (upload)...";
-      wrap.style.display = "none";
+     const pages = splitPayloadForQr(payload);
+     status.textContent = (pages.length > 1)
+       ? ("QR DATA générés : " + pages.length + " (découpé).")
+       : "QR DATA généré.";
 
-      const urls = [];
-      for (let i = 0; i < pages.length; i++) {
-        const u = await gaUploadQrPageAndMakeUrl(pages[i]);
-        urls.push(u);
-      }
+     gaQrPages = pages;     // pages are OBJECTS (manifest), not URL strings
+     gaQrIndex = 0;
 
-      gaQrPages = urls;      // now pages are URL strings
-      gaQrIndex = 0;
+     wrap.style.display = "block";
+     renderCurrentGaQr();
 
-      status.textContent = (gaQrPages.length > 1)
-        ? ("QR URL générés : " + gaQrPages.length + " (découpé).")
-        : "QR URL généré.";
-
-      wrap.style.display = "block";
-      renderCurrentGaQr();
     } catch (e) {
       console.warn("QR URL export error:", e);
       status.textContent = "Erreur export QR (upload).";
