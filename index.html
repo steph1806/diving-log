@@ -5184,6 +5184,8 @@ function stopQrScannerCamera(){
     try{ v.srcObject = null; }catch(_){}
   }
 
+}
+
 function qrss_decodeCurrentFrame(highRes){
   try{
     const v = document.getElementById("qrss_video");
@@ -5225,7 +5227,7 @@ function qrss_decodeCurrentFrame(highRes){
   }
 }
 
-}
+
 
 function qrss_tick(ts){
   __qrss_raf = requestAnimationFrame(qrss_tick);
