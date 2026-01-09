@@ -2387,7 +2387,7 @@
       <div class="pdj-row">
         <button type="button" class="btn pdj-chip" id="pdj_view_all">Tous</button>
         <button type="button" class="btn pdj-chip" id="pdj_view_fav">Favoris</button>
-        <input type="text" id="pdj_search" list="pdj_search_list" class="pdj-search" placeholder="Rechercher…">
+        <input type="text" id="pdj_search" class="pdj-search" placeholder="Rechercher…">
         <datalist id="pdj_search_list"></datalist>
 <select id="pdj_filter_apt" class="pdj-select" title="Filtrer par aptitude">
           <option value="">Aptitude : toutes</option>
@@ -3454,6 +3454,9 @@ function populateAddDiverCertSelect() {
   // A diver is considered "locked" if getCurrentGroupOfDiver(diver.name) returns a group.
   // ==========================
 
+  // Selected diver id for edit workflow (datalist -> form -> save)
+  let editDiverSelectedId = null;
+
   function setEditDiverStatus(msg) {
     const el = document.getElementById("edit-diver-status");
     if (el) el.textContent = msg || "";
@@ -3572,6 +3575,9 @@ function getDiverById(diverId) {
   function fillEditFormFromDiver(diver) {
     if (!diver) return;
 
+    // remember current selection for save
+    editDiverSelectedId = diver.id || null;
+
     if (isDiverLockedForEdit(diver.name)) {
       setEditDiverStatus("Plongeur déjà affecté à un groupe : modification verrouillée.");
       return;
@@ -3622,13 +3628,13 @@ function getDiverById(diverId) {
   }
 
   function editDiverInLibraryFromForm() {
-    const selEl = document.getElementById("edit_diver_select");
-    if (!selEl || !selEl.value) {
-      setEditDiverStatus("Sélectionne un plongeur.");
+    // The UI uses an <input list="diver_list"> (autocomplete), so we keep the selected diver id in memory.
+    if (!editDiverSelectedId) {
+      setEditDiverStatus("Sélectionne un plongeur (via la recherche/autocomplete)." );
       return;
     }
 
-    const diver = getDiverById(selEl.value);
+    const diver = getDiverById(editDiverSelectedId);
     if (!diver) {
       setEditDiverStatus("Plongeur introuvable.");
       return;
@@ -4183,6 +4189,13 @@ function initPDJTools() {
   const btnRem = document.getElementById("pdj_bulk_remove");
   const inpSearch = document.getElementById("pdj_search");
 
+  // iOS/Safari: datalist updates can freeze UI during fast backspace.
+  // We disable datalist for PDJ search (filtering still works).
+  try {
+    if (inpSearch) inpSearch.removeAttribute('list');
+  } catch(_) {}
+
+
 
   // Preserve current checkbox selections when switching view/filter (so "Tous" doesn't drop current picks)
   function persistPDJSelectionFromDOM() {
@@ -4234,7 +4247,7 @@ function initPDJTools() {
     if (v === "ALL") {
       pdjSearchQuery = "";
       if (inpSearch) inpSearch.value = "";
-      refreshPDJSearchDatalist("");
+      /*datalist disabled*/;
     }
     // "Tous" = reset des filtres d’affichage (vue + aptitude)
     if (v === "ALL") {
@@ -4268,25 +4281,37 @@ function initPDJTools() {
     };
   }
   if (inpSearch) {
-    let __pdjSearchRaf = 0;
+    let __pdjSearchTimer = 0;
+
     inpSearch.addEventListener("input", function () {
       // IMPORTANT: ne pas persister la sélection ici (risque de re-render/lag sur iPhone)
-      const q = String(inpSearch.value || "");
-      pdjSearchQuery = q.trim();
+      const raw = String(inpSearch.value || "");
+      const q = raw.trim();
+      pdjSearchQuery = q;
 
-      // Si l’utilisateur efface tout → équivalent à "Tous" (reset filters + pas de freeze)
+      if (__pdjSearchTimer) clearTimeout(__pdjSearchTimer);
+
+      // Si l’utilisateur efface tout : reset SANS persistPDJSelectionFromDOM (sinon freeze iPhone)
       if (!pdjSearchQuery) {
-        setView("ALL");
+        pdjView = "ALL";
+        pdjAptFilter = "";
+        if (selApt) selApt.value = "";
+        /*datalist disabled*/
+        __pdjSearchTimer = setTimeout(() => {
+          renderPlongeursDuJourSelector();
+          refreshActive();
+        }, 0);
         return;
       }
 
-      refreshPDJSearchDatalist(q);
+      // Datalist: limiter les updates (Safari/iOS peut freezer si on reconstruit à chaque frappe)
+      if (pdjSearchQuery.length >= 2) refreshPDJSearchDatalist(pdjSearchQuery);
+      else /*datalist disabled*/;
 
-      // Debounce via rAF pour éviter de bloquer au backspace
-      if (__pdjSearchRaf) cancelAnimationFrame(__pdjSearchRaf);
-      __pdjSearchRaf = requestAnimationFrame(() => {
+      // Debounce (120ms) pour éviter de rerender à chaque backspace / frappe rapide
+      __pdjSearchTimer = setTimeout(() => {
         renderPlongeursDuJourSelector();
-      });
+      }, 200);
     });
   }
 
@@ -4350,35 +4375,6 @@ function initPDJTools() {
 
 const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
-
-  /* A1 QR scanner full-screen buttons wiring */
-  const qrssBtnClose = document.getElementById("qrss_btn_close");
-  if (qrssBtnClose) qrssBtnClose.onclick = closeQrScannerScreen;
-
-  const qrssBtnCamera = document.getElementById("qrss_btn_camera");
-  if (qrssBtnCamera) qrssBtnCamera.onclick = () => { try{ qrss_setStatus("Demande accès caméra…"); }catch(_){} startQrScannerCamera(); };
-
-  const qrssBtnPhoto = document.getElementById("qrss_btn_photo");
-  const qrssFile = document.getElementById("qrss_file");
-  if (qrssBtnPhoto && qrssFile) {
-    qrssBtnPhoto.onclick = () => {
-      try { qrssFile.value = ""; } catch(_) {}
-      try { qrss_setStatus("📷 Choisis une image contenant le QR…"); } catch(_) {}
-      try { qrssFile.click(); } catch(e) {
-        try { qrss_setStatus("Erreur ouverture Photos (iOS). Essaie Safari plein écran."); } catch(_) {}
-        console.error("qrss photo click error", e);
-      }
-    };
-    const handler = () => {
-      const f = qrssFile.files && qrssFile.files[0];
-      if (f) qrss_decodeFromFile(f);
-    };
-    qrssFile.onchange = handler;
-    qrssFile.oninput = handler;
-  }
-
-  const qrssBtnSnap = document.getElementById("qrss_btn_snap");
-  if (qrssBtnSnap) qrssBtnSnap.onclick = () => { try{ qrss_decodeCurrentFrame(true); }catch(e){ console.error(e); } };
 
   const btnClose = document.getElementById("btn_qr_scan_close");
   if (btnClose) btnClose.onclick = closeQrScanModal;
@@ -10870,6 +10866,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (editSearchEl) {
       editSearchEl.addEventListener("input", function () {
+        // typing changes selection; avoid saving to a stale diver id
+        editDiverSelectedId = null;
+        setEditDiverStatus("");
         refreshEditDiverDatalist(editSearchEl.value);
       });
     }
@@ -11717,6 +11716,5 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
 </body>
 </html>
-
 
 
