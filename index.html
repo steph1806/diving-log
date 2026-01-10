@@ -11576,10 +11576,27 @@ const btnSave = document.getElementById("btnCenterSetupSave");
     const t = document.getElementById("center_id_manual_toggle");
     const id = (t && t.checked) ? idRaw : idRaw; // locked mode still uses the displayed generated id
 
-    if (!name) { alert("Nom du centre requis."); return; }
-    if (!id) { alert("ID centre manquant."); return; }
+    if (!name) {
+      alert("Nom du centre requis.");
+      return;
+    }
 
-    saveCenterCfg({ name, id, boatsN });
+    if (!boatsN || boatsN <= 0) {
+      alert("Nombre de bateaux requis.");
+      return;
+    }
+
+    if (!id) {
+      alert("ID centre (token) requis.");
+      return;
+    }
+
+    saveCenterCfg({
+      name,
+      id,
+      boatsN
+    });
+
     closeCenterSetupModal();
     refreshCenterDisplay();
 
