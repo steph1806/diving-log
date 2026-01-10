@@ -2113,10 +2113,10 @@
     <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
       <div class="field" style="flex:2; min-width:220px;">
         <label for="center_id_input">ID centre (généré / import)</label>
-        <input id="center_id_input" type="text" placeholder="CXXXXXXXXXXXX" style="opacity:0.95; background:#f6f8ff;"/>
-        <label style="margin-top:6px; display:flex; gap:8px; align-items:center; font-size:14px;">
-          <input type="checkbox" id="center_id_manual_toggle">
-          Utiliser un ID existant (pairing Mac / mobile)
+        <input id="center_id_input" type="text" readonly style="opacity:0.9; background:#f6f8ff;"/>
+        <label style="display:flex; gap:10px; align-items:center; margin-top:8px; opacity:0.92; font-size:14px;">
+          <input id="center_id_manual_toggle" type="checkbox" style="transform:scale(1.05);"/>
+          <span>Utiliser un ID existant (pairing Mac / mobile)</span>
         </label>
       </div>
       <div class="field" style="flex:1; min-width:140px;">
@@ -2862,26 +2862,10 @@
     if (boatsEl) boatsEl.value = String(cfg.boatsN || 1);
     const cid = (forceNewId ? "" : (cfg.id || ""));
     if (idEl) idEl.value = cid ? cid : genCenterId();
-
-    // Pairing mode: allow manual centerId input only if user explicitly enables it
-    const toggle = document.getElementById("center_id_manual_toggle");
-    if (toggle && idEl) {
-      // default: locked (generated id shown)
-      toggle.checked = false;
-      idEl.readOnly = true;
-      idEl.style.background = "#f6f8ff";
-
-      toggle.onchange = () => {
-        const manual = !!toggle.checked;
-        idEl.readOnly = !manual;
-        idEl.style.background = manual ? "#fff" : "#f6f8ff";
-        // if user disables manual and field is empty, restore a generated id
-        if (!manual && !String(idEl.value || "").trim()) {
-          idEl.value = genCenterId();
-        }
-      };
-    }
-
+    // Default: locked (generated). User can unlock to paste an existing ID for pairing.
+    const t = document.getElementById("center_id_manual_toggle");
+    if (t) t.checked = false;
+    if (idEl) { idEl.readOnly = true; idEl.style.opacity="0.9"; idEl.style.background="#f6f8ff"; }
 
     overlay.style.display = "flex";
   }
@@ -11556,7 +11540,26 @@ document.addEventListener("DOMContentLoaded", ()=> {
   const btnRegen = document.getElementById("btnCenterIdRegen");
   if (btnRegen) btnRegen.addEventListener("click", () => { openCenterSetupModal(true); });
 
-  const btnSave = document.getElementById("btnCenterSetupSave");
+  
+  // Manual centerId pairing (Mac <-> mobile)
+  const __centerIdToggle = document.getElementById("center_id_manual_toggle");
+  const __centerIdInput = document.getElementById("center_id_input");
+  const __applyCenterIdToggle = () => {
+    if (!__centerIdToggle || !__centerIdInput) return;
+    const on = !!__centerIdToggle.checked;
+    __centerIdInput.readOnly = !on;
+    // iOS UX: ensure focus is possible and the user sees it's editable
+    __centerIdInput.style.opacity = on ? "1" : "0.9";
+    __centerIdInput.style.background = on ? "#ffffff" : "#f6f8ff";
+  };
+  if (__centerIdToggle) {
+    __centerIdToggle.addEventListener("change", __applyCenterIdToggle);
+    __centerIdToggle.addEventListener("click", __applyCenterIdToggle);
+    __centerIdToggle.addEventListener("touchend", __applyCenterIdToggle);
+    // init state
+    __applyCenterIdToggle();
+  }
+const btnSave = document.getElementById("btnCenterSetupSave");
   if (btnSave) btnSave.addEventListener("click", () => {
     const nameEl = document.getElementById("center_name_input");
     const boatsEl = document.getElementById("center_boats_input");
@@ -11564,7 +11567,9 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
     const name = (nameEl && nameEl.value) ? String(nameEl.value).trim() : "";
     const boatsN = boatsEl && boatsEl.value ? Number(boatsEl.value) : 1;
-    const id = (idEl && idEl.value) ? String(idEl.value).trim() : "";
+    const idRaw = (idEl && idEl.value) ? String(idEl.value).trim() : "";
+    const t = document.getElementById("center_id_manual_toggle");
+    const id = (t && t.checked) ? idRaw : idRaw; // locked mode still uses the displayed generated id
 
     if (!name) { alert("Nom du centre requis."); return; }
     if (!id) { alert("ID centre manquant."); return; }
