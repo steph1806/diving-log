@@ -1789,21 +1789,16 @@
   inset:0;
   background:rgba(0,0,0,0.35);
   display:flex;
-  align-items:flex-start;            /* FIX: allow top anchoring on small screens */
+  align-items:center;
   justify-content:center;
   z-index:9999;
   padding:16px;
-  overflow:auto;                     /* FIX: allow scrolling when modal taller than viewport */
-  -webkit-overflow-scrolling:touch;  /* iOS smooth scroll */
 }
 .modal-card{
   background:#fff;
   border-radius:14px;
   box-shadow:0 12px 30px rgba(0,0,0,0.18);
   border:1px solid #cfe0ff;
-  max-height:calc(100vh - 32px);     /* FIX: keep inside viewport */
-  overflow:auto;                     /* FIX: internal scroll if needed */
-  -webkit-overflow-scrolling:touch;
 }
 
 /* =========================================
@@ -2117,12 +2112,8 @@
 
     <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
       <div class="field" style="flex:2; min-width:220px;">
-        <label for="center_id_input">ID centre (généré / import)</label>
+        <label for="center_id_input">ID centre (généré)</label>
         <input id="center_id_input" type="text" readonly style="opacity:0.9; background:#f6f8ff;"/>
-        <label style="display:flex; gap:10px; align-items:center; margin-top:8px; opacity:0.92; font-size:14px;">
-          <input id="center_id_manual_toggle" type="checkbox" style="transform:scale(1.05);"/>
-          <span>Utiliser un ID existant (pairing Mac / mobile)</span>
-        </label>
       </div>
       <div class="field" style="flex:1; min-width:140px;">
         <label>&nbsp;</label>
@@ -2396,7 +2387,7 @@
       <div class="pdj-row">
         <button type="button" class="btn pdj-chip" id="pdj_view_all">Tous</button>
         <button type="button" class="btn pdj-chip" id="pdj_view_fav">Favoris</button>
-        <input type="text" id="pdj_search" list="pdj_search_list" class="pdj-search" placeholder="Rechercher…">
+        <input type="text" id="pdj_search" class="pdj-search" placeholder="Rechercher…">
         <datalist id="pdj_search_list"></datalist>
 <select id="pdj_filter_apt" class="pdj-select" title="Filtrer par aptitude">
           <option value="">Aptitude : toutes</option>
@@ -2867,10 +2858,6 @@
     if (boatsEl) boatsEl.value = String(cfg.boatsN || 1);
     const cid = (forceNewId ? "" : (cfg.id || ""));
     if (idEl) idEl.value = cid ? cid : genCenterId();
-    // Default: locked (generated). User can unlock to paste an existing ID for pairing.
-    const t = document.getElementById("center_id_manual_toggle");
-    if (t) t.checked = false;
-    if (idEl) { idEl.readOnly = true; idEl.style.opacity="0.9"; idEl.style.background="#f6f8ff"; }
 
     overlay.style.display = "flex";
   }
@@ -3467,6 +3454,9 @@ function populateAddDiverCertSelect() {
   // A diver is considered "locked" if getCurrentGroupOfDiver(diver.name) returns a group.
   // ==========================
 
+  // Selected diver id for edit workflow (datalist -> form -> save)
+  let editDiverSelectedId = null;
+
   function setEditDiverStatus(msg) {
     const el = document.getElementById("edit-diver-status");
     if (el) el.textContent = msg || "";
@@ -3585,6 +3575,9 @@ function getDiverById(diverId) {
   function fillEditFormFromDiver(diver) {
     if (!diver) return;
 
+    // remember current selection for save
+    editDiverSelectedId = diver.id || null;
+
     if (isDiverLockedForEdit(diver.name)) {
       setEditDiverStatus("Plongeur déjà affecté à un groupe : modification verrouillée.");
       return;
@@ -3635,13 +3628,13 @@ function getDiverById(diverId) {
   }
 
   function editDiverInLibraryFromForm() {
-    const selEl = document.getElementById("edit_diver_select");
-    if (!selEl || !selEl.value) {
-      setEditDiverStatus("Sélectionne un plongeur.");
+    // The UI uses an <input list="diver_list"> (autocomplete), so we keep the selected diver id in memory.
+    if (!editDiverSelectedId) {
+      setEditDiverStatus("Sélectionne un plongeur (via la recherche/autocomplete)." );
       return;
     }
 
-    const diver = getDiverById(selEl.value);
+    const diver = getDiverById(editDiverSelectedId);
     if (!diver) {
       setEditDiverStatus("Plongeur introuvable.");
       return;
@@ -3913,6 +3906,20 @@ let gaQrPages = [];
 let gaQrIndex = 0;
 let gaExportWired = false;
 
+// =====================================================
+// A1 LOCK: Export QR must be URL-only (camera native friendly).
+// Any attempt to render JSON in a QR is a hard error.
+// =====================================================
+function gaAssertQrUrlOnly(u){
+  if (typeof u !== "string") throw new Error("SECURITY: QR export must be a URL string");
+  const s = u.trim();
+  if (!s) throw new Error("SECURITY: QR export URL empty");
+  if (s[0] === "{" || s[0] === "[") throw new Error("SECURITY: QR export must not embed JSON");
+  if (!/^https?:\/\//i.test(s)) throw new Error("SECURITY: QR export must be an absolute URL");
+  if (!/[?#&]import=([^&]+)/.test(s)) throw new Error("SECURITY: QR export URL missing import= token");
+  return s;
+}
+
 function renderCurrentGaQr() {
   const status = document.getElementById("ga_export_qr_status");
   const img = document.getElementById("ga_export_qr_img");
@@ -3931,13 +3938,13 @@ function renderCurrentGaQr() {
 
   try {
     const page = gaQrPages[gaQrIndex];
-    const txt = (typeof page === "string") ? page : JSON.stringify(page);
+    const url = gaAssertQrUrlOnly(page);
     // Use remote image QR generator: no CDN JS, works in file:// and https
-    img.src = "https://api.qrserver.com/v1/create-qr-code/?size="+QR_IMG_SIZE+"x"+QR_IMG_SIZE+"&data=" + encodeURIComponent(txt);
-    if (status && !status.textContent) status.textContent = (typeof page === "string") ? "QR URL généré." : "QR généré.";
+    img.src = "https://api.qrserver.com/v1/create-qr-code/?size="+QR_IMG_SIZE+"x"+QR_IMG_SIZE+"&data=" + encodeURIComponent(url);
+    if (status) status.textContent = "QR URL généré.";
   } catch (e) {
     console.warn("QR render error:", e);
-    if (status) status.textContent = "Erreur génération QR (console).";
+    if (status) status.textContent = "Erreur génération QR (URL only).";
   }
 }
 
@@ -4006,6 +4013,7 @@ if (selMass) {
       const urls = [];
       for (let i = 0; i < pages.length; i++) {
         const u = await gaUploadQrPageAndMakeUrl(pages[i]);
+        gaAssertQrUrlOnly(u);
         urls.push(u);
       }
 
@@ -4181,6 +4189,13 @@ function initPDJTools() {
   const btnRem = document.getElementById("pdj_bulk_remove");
   const inpSearch = document.getElementById("pdj_search");
 
+  // iOS/Safari: datalist updates can freeze UI during fast backspace.
+  // We disable datalist for PDJ search (filtering still works).
+  try {
+    if (inpSearch) inpSearch.removeAttribute('list');
+  } catch(_) {}
+
+
 
   // Preserve current checkbox selections when switching view/filter (so "Tous" doesn't drop current picks)
   function persistPDJSelectionFromDOM() {
@@ -4232,7 +4247,7 @@ function initPDJTools() {
     if (v === "ALL") {
       pdjSearchQuery = "";
       if (inpSearch) inpSearch.value = "";
-      refreshPDJSearchDatalist("");
+      /*datalist disabled*/;
     }
     // "Tous" = reset des filtres d’affichage (vue + aptitude)
     if (v === "ALL") {
@@ -4266,25 +4281,37 @@ function initPDJTools() {
     };
   }
   if (inpSearch) {
-    let __pdjSearchRaf = 0;
+    let __pdjSearchTimer = 0;
+
     inpSearch.addEventListener("input", function () {
       // IMPORTANT: ne pas persister la sélection ici (risque de re-render/lag sur iPhone)
-      const q = String(inpSearch.value || "");
-      pdjSearchQuery = q.trim();
+      const raw = String(inpSearch.value || "");
+      const q = raw.trim();
+      pdjSearchQuery = q;
 
-      // Si l’utilisateur efface tout → équivalent à "Tous" (reset filters + pas de freeze)
+      if (__pdjSearchTimer) clearTimeout(__pdjSearchTimer);
+
+      // Si l’utilisateur efface tout : reset SANS persistPDJSelectionFromDOM (sinon freeze iPhone)
       if (!pdjSearchQuery) {
-        setView("ALL");
+        pdjView = "ALL";
+        pdjAptFilter = "";
+        if (selApt) selApt.value = "";
+        /*datalist disabled*/
+        __pdjSearchTimer = setTimeout(() => {
+          renderPlongeursDuJourSelector();
+          refreshActive();
+        }, 0);
         return;
       }
 
-      refreshPDJSearchDatalist(q);
+      // Datalist: limiter les updates (Safari/iOS peut freezer si on reconstruit à chaque frappe)
+      if (pdjSearchQuery.length >= 2) refreshPDJSearchDatalist(pdjSearchQuery);
+      else /*datalist disabled*/;
 
-      // Debounce via rAF pour éviter de bloquer au backspace
-      if (__pdjSearchRaf) cancelAnimationFrame(__pdjSearchRaf);
-      __pdjSearchRaf = requestAnimationFrame(() => {
+      // Debounce (120ms) pour éviter de rerender à chaque backspace / frappe rapide
+      __pdjSearchTimer = setTimeout(() => {
         renderPlongeursDuJourSelector();
-      });
+      }, 200);
     });
   }
 
@@ -4547,8 +4574,17 @@ function decodeQrFromImageFile(file) {
 
         const code = tryDecodeFromCtx(ctx, cw, ch);
         if (code && code.data) {
-          importDiverFromQrText(code.data);
-          setQrScanStatus("✅ QR détecté depuis la photo.");
+          // code.data peut être un JSON *ou* une URL #import=ID
+          (async () => {
+            try {
+              const payload = await resolveScannedQrText(code.data);
+              if (!payload) { setQrScanStatus("❌ QR invalide (lien non reconnu ou import expiré)."); return; }
+              importDiverFromQrText(payload);
+              setQrScanStatus("✅ Import terminé.");
+            } catch (e) {
+              setQrScanStatus("Erreur import: " + (e && e.message ? e.message : String(e)));
+            }
+          })();
           return;
         }
 
@@ -4575,8 +4611,18 @@ function decodeQrFromImageFile(file) {
 
           const code = tryDecodeFromCtx(ctx, cw, ch);
           if (code && code.data) {
-            importDiverFromQrText(code.data);
-            setQrScanStatus("✅ QR détecté depuis la photo.");
+            // code.data peut être un JSON *ou* une URL #import=ID
+            setQrScanStatus("✅ QR détecté. Import…");
+            (async () => {
+              try {
+                const payload = await resolveScannedQrText(code.data);
+                if (!payload) { setQrScanStatus("❌ QR invalide (lien non reconnu ou import expiré)."); return; }
+                importDiverFromQrText(payload);
+                setQrScanStatus("✅ Import terminé.");
+              } catch (e) {
+                setQrScanStatus("Erreur import: " + (e && e.message ? e.message : String(e)));
+              }
+            })();
           } else {
             setQrScanStatus("QR non détecté sur la photo. Conseil iPhone: utilise un *screenshot* du QR (pas une photo d'un écran), ou rapproche/zoome pour que le QR remplisse l'image.");
           }
@@ -5002,7 +5048,17 @@ async function startQrScanCamera() {
                 if (code && code.data) {
                   // stop first (avoid double imports)
                   stopQrScanCamera();
-                  importDiverFromQrText(code.data);
+                  setQrScanStatus("✅ QR détecté. Import…");
+                  (async () => {
+                    try {
+                      const payload = await resolveScannedQrText(code.data);
+                      if (!payload) { setQrScanStatus("❌ QR invalide (lien non reconnu ou import expiré)."); return; }
+                      importDiverFromQrText(payload);
+                      setQrScanStatus("✅ Import terminé.");
+                    } catch (e) {
+                      setQrScanStatus("Erreur import: " + (e && e.message ? e.message : String(e)));
+                    }
+                  })();
                   return;
                 }
               }
@@ -5153,6 +5209,8 @@ function stopQrScannerCamera(){
     try{ v.srcObject = null; }catch(_){}
   }
 
+}
+
 function qrss_decodeCurrentFrame(highRes){
   try{
     const v = document.getElementById("qrss_video");
@@ -5194,7 +5252,7 @@ function qrss_decodeCurrentFrame(highRes){
   }
 }
 
-}
+
 
 function qrss_tick(ts){
   __qrss_raf = requestAnimationFrame(qrss_tick);
@@ -5364,16 +5422,18 @@ async function qrss_onDecoded(text){
 
 
 function initQrScannerScreen(){
+  const scr = document.getElementById("qr_scanner_screen");
+
   const btnClose = document.getElementById("qrss_btn_close");
-  if (btnClose) btnClose.onclick = closeQrScannerScreen;
-
-  const btnCam = document.getElementById("qrss_btn_camera");
-  if (btnCam) btnCam.onclick = startQrScannerCamera;
-  if (btnSnap) btnSnap.onclick = () => { qrss_decodeCurrentFrame(true); };
-
+  const btnCam   = document.getElementById("qrss_btn_camera");
   const btnPhoto = document.getElementById("qrss_btn_photo");
-  const btnSnap = document.getElementById("qrss_btn_snap");
-  const file = document.getElementById("qrss_file");
+  const btnSnap  = document.getElementById("qrss_btn_snap");
+  const file     = document.getElementById("qrss_file");
+
+  if (btnClose) btnClose.onclick = closeQrScannerScreen;
+  if (btnCam)   btnCam.onclick   = startQrScannerCamera;
+  if (btnSnap)  btnSnap.onclick  = () => { qrss_decodeCurrentFrame(true); };
+
   if (btnPhoto && file){
     btnPhoto.onclick = () => { try{ file.value = ""; }catch(_){} file.click(); };
     const handler = () => {
@@ -5381,17 +5441,17 @@ function initQrScannerScreen(){
       if (f) qrss_decodeFromFile(f);
     };
     file.onchange = handler;
-    file.oninput = handler;
+    file.oninput  = handler;
   }
 
   // close on background click (but not inside card)
-  const scr = document.getElementById("qr_scanner_screen");
   if (scr){
     scr.addEventListener("click", (ev)=>{
       if (ev && ev.target === scr) closeQrScannerScreen();
     });
   }
 }
+
 
 
 function buildAptitudeFilterOptions() {
@@ -10808,6 +10868,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (editSearchEl) {
       editSearchEl.addEventListener("input", function () {
+        // typing changes selection; avoid saving to a stale diver id
+        editDiverSelectedId = null;
+        setEditDiverStatus("");
         refreshEditDiverDatalist(editSearchEl.value);
       });
     }
@@ -11545,26 +11608,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
   const btnRegen = document.getElementById("btnCenterIdRegen");
   if (btnRegen) btnRegen.addEventListener("click", () => { openCenterSetupModal(true); });
 
-  
-  // Manual centerId pairing (Mac <-> mobile)
-  const __centerIdToggle = document.getElementById("center_id_manual_toggle");
-  const __centerIdInput = document.getElementById("center_id_input");
-  const __applyCenterIdToggle = () => {
-    if (!__centerIdToggle || !__centerIdInput) return;
-    const on = !!__centerIdToggle.checked;
-    __centerIdInput.readOnly = !on;
-    // iOS UX: ensure focus is possible and the user sees it's editable
-    __centerIdInput.style.opacity = on ? "1" : "0.9";
-    __centerIdInput.style.background = on ? "#ffffff" : "#f6f8ff";
-  };
-  if (__centerIdToggle) {
-    __centerIdToggle.addEventListener("change", __applyCenterIdToggle);
-    __centerIdToggle.addEventListener("click", __applyCenterIdToggle);
-    __centerIdToggle.addEventListener("touchend", __applyCenterIdToggle);
-    // init state
-    __applyCenterIdToggle();
-  }
-const btnSave = document.getElementById("btnCenterSetupSave");
+  const btnSave = document.getElementById("btnCenterSetupSave");
   if (btnSave) btnSave.addEventListener("click", () => {
     const nameEl = document.getElementById("center_name_input");
     const boatsEl = document.getElementById("center_boats_input");
@@ -11572,31 +11616,12 @@ const btnSave = document.getElementById("btnCenterSetupSave");
 
     const name = (nameEl && nameEl.value) ? String(nameEl.value).trim() : "";
     const boatsN = boatsEl && boatsEl.value ? Number(boatsEl.value) : 1;
-    const idRaw = (idEl && idEl.value) ? String(idEl.value).trim() : "";
-    const t = document.getElementById("center_id_manual_toggle");
-    const id = (t && t.checked) ? idRaw : idRaw; // locked mode still uses the displayed generated id
+    const id = (idEl && idEl.value) ? String(idEl.value).trim() : "";
 
-    if (!name) {
-      alert("Nom du centre requis.");
-      return;
-    }
+    if (!name) { alert("Nom du centre requis."); return; }
+    if (!id) { alert("ID centre manquant."); return; }
 
-    if (!boatsN || boatsN <= 0) {
-      alert("Nombre de bateaux requis.");
-      return;
-    }
-
-    if (!id) {
-      alert("ID centre (token) requis.");
-      return;
-    }
-
-    saveCenterCfg({
-      name,
-      id,
-      boatsN
-    });
-
+    saveCenterCfg({ name, id, boatsN });
     closeCenterSetupModal();
     refreshCenterDisplay();
 
@@ -11693,6 +11718,5 @@ const btnSave = document.getElementById("btnCenterSetupSave");
 
 </body>
 </html>
-
 
 
