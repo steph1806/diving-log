@@ -5130,8 +5130,7 @@ function openQrScannerScreen(){
   scr.setAttribute("aria-hidden","false");
   qrss_setStatus("Prêt. Choisis Caméra ou Photo.");
   qrss_setDebug("");
-  // ensure old modal closed if user opened it somehow
-  try { closeQrScanModal(); } catch(_){}
+
 }
 
 function closeQrScannerScreen(){
@@ -5430,8 +5429,15 @@ function initQrScannerScreen(){
   const btnSnap  = document.getElementById("qrss_btn_snap");
   const file     = document.getElementById("qrss_file");
 
-  if (btnClose) btnClose.onclick = closeQrScannerScreen;
-  if (btnCam)   btnCam.onclick   = startQrScannerCamera;
+  if (btnClose) {
+   btnClose.addEventListener("click", closeQrScannerScreen);
+   btnClose.addEventListener("touchend", closeQrScannerScreen);
+ }
+
+  if (btnCam) {
+   btnCam.addEventListener("click", startQrScannerCamera);
+   btnCam.addEventListener("touchend", startQrScannerCamera);
+ }
   if (btnSnap)  btnSnap.onclick  = () => { qrss_decodeCurrentFrame(true); };
 
   if (btnPhoto && file){
