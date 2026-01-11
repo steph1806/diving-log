@@ -1565,7 +1565,7 @@
   .incident-panel{ left:auto; right: 10px; width: 520px; }
 }
 
-/* === Programme du jour (Avant plongée) : lisibilité cross-device === */
+/* === Programme du jour (Avant la plongée) : lisibilité cross-device === */
 #sec-before-group {
   font-size: 1.05rem;
   line-height: 1.35;
@@ -2074,6 +2074,19 @@
   #qr_scanner_screen .qrss-actions button{ flex:1 1 100%; min-width:0; }
 }
 
+
+/* ===============================
+   Help text – premium guidance
+   =============================== */
+.help-text {
+  color: #7fd3c6;          /* vert/cyan premium */
+  font-size: 13px;
+  line-height: 1.45;
+  font-style: italic;
+  opacity: 0.95;
+}
+
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -2136,15 +2149,15 @@
 <div class="container">
 <!-- SECTION: CONTEXTE (CONSTANTES + SITE + GPS) -->
   <section class="section" id="sec-site-gps">
-    <div class="section-title">Contexte du jour</div>
+    <div class="section-title">Plongée du jour</div>
     <p class="help-text">Renseignez les constantes (DP / bateau / sécurité surface), puis le site et les coordonnées GPS (format marin).</p>
 
     <!-- Constantes -->
     <div class="row" style="align-items:flex-end; gap:10px; flex-wrap:wrap;">
       <div class="field" style="flex:1; min-width:160px;">
-        <label for="dive_const_dp">DP</label>
+        <label for="dive_const_dp">Directeur de plongée</label>
         <div style="display:flex; gap:6px; align-items:center;">
-          <input id="dive_const_dp" type="text" placeholder="Nom DP" list="dp_list" style="flex:1;"/>
+          <input id="dive_const_dp" type="text" placeholder="Nom du Directeur de plongée" list="dp_list" style="flex:1;"/>
           <button type="button" class="btn btn-secondary" id="btn_dp_add" title="Ajouter / ouvrir la base formateurs DP" style="white-space:nowrap;">📚</button>
           <button type="button" class="btn btn-secondary" id="btn_instructor_sync" title="Synchroniser la base instructeurs depuis la bibliothèque plongeurs (ajout uniquement)" style="white-space:nowrap;">↻</button>
         </div>
@@ -2168,8 +2181,8 @@
       </div>
 
       <div class="field" style="flex:2; min-width:220px;">
-        <label for="dive_site_name">Nom (édition)</label>
-        <input id="dive_site_name" type="text" placeholder="Nom du site"/>
+        <label for="dive_site_name">Libellé du site</label>
+        <input id="dive_site_name" type="text" placeholder="Ex. : Épave du Grec / Cap Martin / Sec des Moines"/>
       </div>
 
       <div class="field" style="flex:1; min-width:120px;">
@@ -2228,9 +2241,9 @@
 
   <!-- SECTION: PLONGEURS DU JOUR -->
   <section class="section" id="sec-plongeurs-jour">
-    <div class="section-title">Plongeurs du jour</div>
+    <div class="section-title">Plongeurs présents sur le bateau</div>
     <p class="help-text">
-      Sélectionnez les plongeurs présents sur le bateau aujourd'hui.
+      Sélectionnez les plongeurs présents pour ce bateau et cette sortie.
     </p>
 
     
@@ -2404,19 +2417,19 @@
         type="button"
         class="btn btn-primary"
         id="btn_valider_plongeurs_jour">
-        Valider les plongeurs du jour
+        Confirmer les plongeurs à bord
       </button>
 
       <button
         type="button"
         class="btn"
         id="pdj_bulk_remove">
-        Retirer les plongeurs du jour
+        Recommencer la liste
       </button>
 
 
       <button type="button" class="btn" id="btn_qr_scan_diver" title="Scanner un QR code plongeur">
-        + Scanner QR plongeur
+        Importer des plongeurs (QR code)
       </button>
       <div id="qr-scan-status" class="status-text" style="margin-top:6px;"></div>
 
@@ -2428,7 +2441,9 @@
   
 
 <section class="section" id="sec-groupes">
-    <div class="section-title">Groupes &amp; affectation</div>
+    <div class="section-title">Organisation des groupes</div>
+<p class="help-text">À partir des plongeurs sélectionnés, vous pouvez les affectés a plusieurs bateaux et utiliser le QR code, pour les exporter</p>
+<p class="help-text" style="margin-top:-6px;"> vers Android/ Tablette/ Iphone en un click.</p>
 <div class="bulk-boat-assign" style="margin:10px 0; display:flex; gap:8px; align-items:center;">
   <label for="ga_bulk_boat"><strong>Bateau (masse)</strong></label>
   <select id="ga_bulk_boat" class="pdj-select">
@@ -2457,14 +2472,13 @@
 </div>
 
     <p class="help-text">
-      À partir des plongeurs du jour, affectez chacun à un groupe opérationnel.
-      Cette étape n'a, pour l'instant, aucun impact sur les autres sections de la fiche.
+      À partir des plongeurs du jour, créez des groupes-palanquées autonome, encadrée ou en formation.
     </p>
 
     <!-- Bouton pour ajouter un nouveau groupe -->
     <div class="add-group-container">
       <button type="button" class="btn btn-secondary" id="btn_add_group">
-        + Ajouter un groupe
+        Ajouter un groupe
       </button>
     </div>
 
@@ -2493,10 +2507,10 @@
 
         <div class="group-buttons">
           <button type="button" class="btn" id="g1_before">
-            Avant plongée
+            Avant la plongée
           </button>
           <button type="button" class="btn btn-primary" id="g1_after">
-            Après plongée
+            Après la plongée
           </button>
         </div>
 
@@ -2514,15 +2528,16 @@
     <!-- ACTIONS & EXPORT (intégré dans Groupes/Affectation) -->
     <!-- SECTION: EXPORT WHATSAPP -->
   <div class="section" id="sec-export">
-  <div class="section-title">Export & PDF</div>
+  <div class="section-title">Export officiel (PDF)</div>
+<p class="help-text">Générez un document professionnel en un clic <br>Le document récapitule les plongeurs, les groupes, les paramètres de plongée et les informations réglementaires.</p>
 
   <div class="footer-actions">
     <button type="button" class="btn btn-primary" id="btn-preview-pdf">
-      👁️ Prévisualiser PDF
+      👁️ Prévisualiser la fiche (PDF)
     </button>
 
     <button type="button" class="btn btn-primary" id="btn-export-pdf">
-      📄 Export PDF / WhatsApp
+      📄 Exporter la fiche officielle (PDF)
     </button>
 
     <button type="button" class="btn btn-reset" id="btn-reset">
@@ -2544,7 +2559,7 @@
   </section>
 <section class="section" id="sec-before-group" style="display:none;">
   <div class="section-title">
-    Programme du jour – Avant plongée le <span id="before_date_title">—</span>
+    Programme du jour – Avant la plongée le <span id="before_date_title">—</span>
   </div>
 
 <!-- EN-TÊTE AVANT PLONGÉE (LAYOUT FICHE DE PLONGÉE) -->
@@ -2684,7 +2699,7 @@
 
 <section class="section" id="sec-after-group" style="display:none;">
   <div class="section-title">
-    Programme du jour – Après plongée
+    Programme du jour – Après la plongée
   </div>
 
   <!-- En-tête groupe -->
@@ -5138,7 +5153,7 @@ function openQrScannerScreen(){
   if (!scr) return;
   scr.style.display = "block";
   scr.setAttribute("aria-hidden","false");
-  qrss_setStatus("Prêt. Choisis Caméra ou Photo.");
+  qrss_setStatus("Prêt à importer des données. Choisissez une méthode :");
   qrss_setDebug("");
   // ensure old modal closed if user opened it somehow
   try { closeQrScanModal(); } catch(_){}
@@ -5256,7 +5271,7 @@ function qrss_decodeCurrentFrame(highRes){
     res = jsQR(img.data, img.width, img.height, { inversionAttempts: "attemptBoth" });
     if (res && res.data){ qrss_onDecoded(res.data); return; }
 
-    qrss_setStatus("Aucun QR détecté sur cette frame. Essaie de rapprocher/augmenter la netteté.");
+    qrss_setStatus("QR code non reconnu. Vérifiez le document ou essayez à nouveau.");
   }catch(e){
     qrss_setStatus("Erreur analyse frame: " + (e && e.message ? e.message : String(e)));
   }
@@ -6887,7 +6902,7 @@ function diverNeedsRT1(diverName) {
     if (!statusEl) return;
     const count = Array.isArray(diversDuJour) ? diversDuJour.length : 0;
     if (count === 0) {
-      statusEl.textContent = "Aucun plongeur sélectionné pour l'instant.";
+      statusEl.textContent = "Aucun plongeur sélectionné pour cette sortie.";
     } else if (count === 1) {
       statusEl.textContent = "1 plongeur sélectionné pour aujourd'hui.";
     } else {
@@ -7290,7 +7305,7 @@ function validateGroupsAndRoles(){
   const dpEl = document.getElementById("dive_const_dp");
   const dpVal = dpEl ? (dpEl.value || "").trim() : "";
   if (!dpVal) {
-    warnings.push({ code:"W-S1", scope:"session", message:"Aucun DP défini (Contexte du jour)." });
+    warnings.push({ code:"W-S1", scope:"session", message:"Aucun Directeur de plongée défini (Plongée du jour)." });
   }
 
   (Array.isArray(GROUP_IDS) ? GROUP_IDS : []).forEach(gid => {
@@ -7822,7 +7837,7 @@ function removeDiverFromAllGroups(diverName) {
     });
 
     if (total === 0) {
-      statusEl.textContent = "Aucun plongeur affecté à un groupe pour l'instant.";
+      statusEl.textContent = "Aucun groupe n’a encore été constitué pour cette plongée.";
     } else {
       statusEl.textContent =
         "Plongeurs affectés : " +
@@ -9499,7 +9514,7 @@ function populateBeforeForm(groupId) {
 
 }
 
-// --- STEP 3.2/3.3: Avant plongée AIR vs TRIMIX/CCR (UI + stockage brut MultiDeco) ---
+// --- STEP 3.2/3.3: Avant la plongée AIR vs TRIMIX/CCR (UI + stockage brut MultiDeco) ---
 function beforeGetTypeValue(){
   const sel = document.getElementById("group_before_site_group");
   const v = sel ? String(sel.value || "").trim() : "";
@@ -10739,7 +10754,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-    // Live UI sync: date + DTR (Avant plongée header)
+    // Live UI sync: date + DTR (Avant la plongée header)
     const beforeDateEl = document.getElementById("group_before_date");
     if (beforeDateEl) {
       const syncTitle = function(){
@@ -11052,7 +11067,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } 
 
 
-    // --- Avant plongée: AIR vs TRIMIX/CCR ---
+    // --- Avant la plongée: AIR vs TRIMIX/CCR ---
     const typeSel = document.getElementById("group_before_site_group");
     if (typeSel) {
       typeSel.addEventListener("change", updateBeforeLayoutByType);
@@ -11702,14 +11717,14 @@ document.addEventListener("DOMContentLoaded", ()=> {
      A1 REFONTE – ÉCRAN SCANNER QR (plein écran)
      ======================= -->
 <div id="qr_scanner_screen" aria-hidden="true">
-  <div class="qrss-card" role="dialog" aria-modal="true" aria-label="Scanner QR">
+  <div class="qrss-card" role="dialog" aria-modal="true" aria-label="Importer par QR code">
     <div class="qrss-header">
-      <div class="qrss-title">Scanner QR</div>
-      <button type="button" class="qrss-close" id="qrss_btn_close">✕ Fermer</button>
+      <div class="qrss-title">Importer par QR code</div>
+      <button type="button" class="qrss-close" id="qrss_btn_close">✕ Fermer le scanner</button>
     </div>
 
     <div class="qrss-body">
-      <div class="qrss-status" id="qrss_status">Prêt. Choisis Caméra ou Photo.</div>
+      <div class="qrss-status" id="qrss_status">Prêt à importer des données. Choisissez une méthode :</div>
       <div class="qrss-debug" id="qrss_debug" style="font-size:12px;opacity:.75;margin:6px 0 0 0;"></div>
 
       <div class="qrss-videoWrap" id="qrss_video_wrap" style="display:none;">
@@ -11717,13 +11732,13 @@ document.addEventListener("DOMContentLoaded", ()=> {
       </div>
 
       <div class="qrss-actions">
-        <button type="button" class="primary" id="qrss_btn_camera">📷 Caméra</button>
-        <button type="button" class="secondary" id="qrss_btn_photo">🖼 Photo</button>
+        <button type="button" class="primary" id="qrss_btn_camera">📷 Scanner avec la caméra</button>
+        <button type="button" class="secondary" id="qrss_btn_photo">🖼 Importer depuis une photo</button>
         <button type="button" class="secondary" id="qrss_btn_snap" style="display:none;">🔍 Analyser frame</button>
       </div>
 
       <div class="qrss-footnote">
-        Import automatique dès détection. Sur iPhone, ouvre le lien dans Safari.
+        L’import démarre automatiquement dès qu’un QR code est détecté.<br>Sur iPhone, l’ouverture s’effectue via Safari.<br>Utilisez cette fonction pour importer des plongeurs, des groupes ou une fiche depuis un autre appareil.
       </div>
 
       <input type="file" id="qrss_file" accept="image/*" style="display:none;">
