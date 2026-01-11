@@ -2113,7 +2113,7 @@
     <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
       <div class="field" style="flex:2; min-width:220px;">
         <label for="center_id_input">ID centre (généré)</label>
-        <input id="center_id_input" type="text" readonly style="opacity:0.9; background:#f6f8ff;"/>
+        <input id="center_id_input" type="text" style="opacity:0.9; background:#f6f8ff;"/>
       </div>
       <div class="field" style="flex:1; min-width:140px;">
         <label>&nbsp;</label>
@@ -2834,6 +2834,8 @@
     } catch(e) { return false; }
   }
 
+
+
   function getCenterDisplayName() {
     const c = loadCenterCfg();
     return (c && c.name) ? c.name : "—";
@@ -2873,6 +2875,14 @@
     if (cfg && cfg.name && cfg.id) return true;
     openCenterSetupModal(false);
     return false;
+  }
+
+  function lockCenterIdInput(lock){
+    const el = document.getElementById("center_id_input");
+    if (!el) return;
+    el.disabled = !!lock;
+    el.style.pointerEvents = lock ? "none" : "auto";
+    el.style.opacity = lock ? "0.6" : "1";
   }
 
   const FAVORITE_DIVERS_KEY = "seaAngel_favoriteDivers_v1";
@@ -11585,7 +11595,10 @@ async function gaUploadQrPageAndMakeUrl(pageObj) {
 
 
 document.addEventListener("DOMContentLoaded", ()=> {
-  // A1: Scanner QR web désactivé (QR = URL + caméra native)
+ 
+   // A1: Scanner QR web désactivé (QR = URL + caméra native)
+  // PATCH 2 — lock / unlock Center ID input (deterministic)
+ 
 
   // =========================
   // Centre setup (UI wiring)
