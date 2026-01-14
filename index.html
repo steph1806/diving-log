@@ -2310,6 +2310,17 @@
           <select id="add_diver_cert_select">
             <option value="">Sélectionner une certification</option>
           </select>
+      <div style="display:flex; gap:12px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+          <input type="checkbox" id="add_diver_qual_nitrox">
+          Nitrox
+        </label>
+
+        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+          <input type="checkbox" id="add_diver_qual_nitrox_confirmed" disabled>
+          Nitrox confirmé
+        </label>
+      </div>
         </div>
         <div class="field" id="add_diver_cert_manual_wrap" style="flex:1; display:none;">
           <label for="add_diver_cert_manual">Certification (manuel)</label>
@@ -2379,6 +2390,17 @@
           <select id="edit_diver_cert_select">
             <option value="">Sélectionner une certification</option>
           </select>
+      <div style="display:flex; gap:12px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+          <input type="checkbox" id="edit_diver_qual_nitrox">
+          Nitrox
+        </label>
+
+        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+          <input type="checkbox" id="edit_diver_qual_nitrox_confirmed" disabled>
+          Nitrox confirmé
+        </label>
+      </div>
         </div>
         <div class="field" id="edit_diver_cert_manual_wrap" style="flex:1; display:none;">
           <label for="edit_diver_cert_manual">Certification (manuel)</label>
@@ -2725,7 +2747,7 @@
     
   <!-- PATCH16: FORMATION – Paliers groupe -->
   <div id="after_formation_group_paliers" class="card" style="display:none; margin:10px 0; padding:10px; border:1px solid #cfe0ff; border-radius:10px;">
-    <div style="font-weight:700; margin-bottom:8px;">Paliers groupe – FORMATION</div>
+    <div style="font-weight:700; margin-bottom:8px;">Paliers groupe</div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button type="button" class="btn" id="btn_after_group_paliers_edit">Saisir paliers groupe</button>
       <button type="button" class="btn btn-primary" id="btn_after_group_paliers_apply">Appliquer aux plongeurs</button>
@@ -2733,6 +2755,50 @@
     </div>
   </div>
   <!-- /PATCH16 -->
+
+<!-- PATCH2: Runtime réalisé GROUPE (APRÈS) -->
+<div id="after_group_runtime" class="card" style="margin:10px 0; padding:10px; border:1px solid #cfe0ff; border-radius:12px;">
+  <div style="font-weight:700; margin-bottom:8px;">Runtime réalisé — Groupe</div>
+
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <div class="numpad-field">
+      <input type="number" id="after_group_runtime_min" min="0" step="1" placeholder="min" style="max-width:110px;">
+      <button type="button" class="numpad-open" data-numpad-for="after_group_runtime_min">123</button>
+    </div>
+
+    <span class="help-text" style="margin:0;">min</span>
+
+    <button type="button" class="btn btn-primary" id="btn_after_group_runtime_apply">Appliquer aux plongeurs</button>
+  </div>
+
+  <span class="help-text" id="after_group_runtime_hint" style="margin-left:4px;">
+    Copie initiale uniquement (modifiable ensuite).
+  </span>
+</div>
+<!-- /PATCH2 -->
+
+<!-- PATCH3: Profondeur réalisée GROUPE (APRÈS) -->
+<div id="after_group_depth" class="card" style="margin:10px 0; padding:10px; border:1px solid #cfe0ff; border-radius:12px;">
+  <div style="font-weight:700; margin-bottom:8px;">Profondeur réalisée — Groupe</div>
+
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <div class="numpad-field">
+      <input type="number" id="after_group_depth_real_m" min="0" step="1" placeholder="m" style="max-width:110px;">
+      <button type="button" class="numpad-open" data-numpad-for="after_group_depth_real_m">123</button>
+    </div>
+
+    <span class="help-text" style="margin:0;">m</span>
+
+    <button type="button" class="btn btn-primary" id="btn_after_group_depth_apply">Appliquer aux plongeurs</button>
+  </div>
+
+  <span class="help-text" id="after_group_depth_hint" style="margin-left:4px;">
+    Copie initiale uniquement (modifiable ensuite).
+  </span>
+</div>
+<!-- /PATCH3 -->
+
+
 
 <div id="group_after_divers_container"></div>
       
@@ -3393,6 +3459,53 @@ function populateAddDiverCertSelect() {
     }
   }
 
+  function syncNitroxCheckboxes(nitroxId, nitroxConfId) {
+    const n = document.getElementById(nitroxId);
+    const nc = document.getElementById(nitroxConfId);
+    if (!n || !nc) return;
+
+    const apply = () => {
+      if (!n.checked) {
+        nc.checked = false;
+        nc.disabled = true;
+      } else {
+        nc.disabled = false;
+      }
+    };
+
+    n.addEventListener("change", apply);
+    apply();
+  }
+
+  function parseCertMainAndQualifs(certStr) {
+    const raw = String(certStr || "").trim();
+    if (!raw) return { main: "", nitrox: false, nitroxConf: false };
+
+    const parts = raw.split("|").map(s => String(s || "").trim()).filter(Boolean);
+    const main = parts.length ? parts[0] : "";
+
+    let nitrox = false;
+    let nitroxConf = false;
+
+    for (let i = 1; i < parts.length; i++) {
+      const t = parts[i];
+      if (t === "Nitrox") nitrox = true;
+      if (t === "Nitrox confirmé") { nitrox = true; nitroxConf = true; }
+    }
+    return { main, nitrox, nitroxConf };
+  }
+
+  function buildCertWithQualifs(mainCert, nitrox, nitroxConf) {
+    const main = String(mainCert || "").trim();
+    const out = [];
+    if (main) out.push(main);
+
+    if (nitroxConf) nitrox = true; // règle métier
+    if (nitrox) out.push("Nitrox");
+    if (nitroxConf) out.push("Nitrox confirmé");
+
+    return out.join(" | ");
+  }
 
   function addDiverToLibraryFromForm() {
     const nameEl = document.getElementById("add_diver_name");
@@ -3445,7 +3558,11 @@ function populateAddDiverCertSelect() {
      id: "d_" + Date.now() + "_" + Math.random().toString(36).slice(2),
      name: name,
      licence: "",
-     cert: cert,
+     cert: buildCertWithQualifs(
+     cert,
+     !!document.getElementById("add_diver_qual_nitrox")?.checked,
+     !!document.getElementById("add_diver_qual_nitrox_confirmed")?.checked
+   ),
      aptitudes: aptitude
    };
 
@@ -3468,6 +3585,14 @@ function populateAddDiverCertSelect() {
     if (certManual) certManual.value = "";
     if (aptSel) aptSel.value = "";
     if (aptManual) aptManual.value = "";
+    const qN = document.getElementById("add_diver_qual_nitrox");
+    const qNC = document.getElementById("add_diver_qual_nitrox_confirmed");
+    if (qN) qN.checked = false;
+    if (qNC) {
+      qNC.checked = false;
+      qNC.disabled = true;
+    }
+
     toggleAddDiverManualFields();
     setAddDiverStatus("Plongeur ajouté.");
   }
@@ -3633,20 +3758,29 @@ function getDiverById(diverId) {
       }
     }
 
-    const cert = String(diver.cert || "").trim();
-    if (certSel) {
-      const hasOpt = Array.from(certSel.options).some(o => o.value === cert);
-      if (cert && hasOpt) {
-        certSel.value = cert;
-        if (certMan) certMan.value = "";
-      } else if (cert) {
-        certSel.value = "Autre";
-        if (certMan) certMan.value = cert;
-      } else {
-        certSel.value = "";
-        if (certMan) certMan.value = "";
-      }
-    }
+   const parsed = parseCertMainAndQualifs(diver.cert);
+   const cert = String(parsed.main || "").trim();
+
+   if (certSel) {
+     const hasOpt = Array.from(certSel.options).some(o => o.value === cert);
+
+     if (cert && hasOpt) {
+       certSel.value = cert;
+       if (certMan) certMan.value = "";
+     } else if (cert) {
+       certSel.value = "Autre";
+       if (certMan) certMan.value = cert;
+     } else {
+       certSel.value = "";
+       if (certMan) certMan.value = "";
+     }
+   }
+
+   // checkboxes qualifs (en dehors du if(certSel) ou dedans, peu importe)
+   const qN  = document.getElementById("edit_diver_qual_nitrox");
+   const qNC = document.getElementById("edit_diver_qual_nitrox_confirmed");
+   if (qN)  qN.checked  = !!parsed.nitrox;
+   if (qNC) qNC.checked = !!parsed.nitroxConf;
 
     toggleEditDiverManualFields();
     setEditDiverStatus("");
@@ -3717,6 +3851,11 @@ function getDiverById(diverId) {
         populateEditDiverCertSelect();
       }
     }
+    newCert = buildCertWithQualifs(
+      newCert,
+      !!document.getElementById("edit_diver_qual_nitrox")?.checked,
+      !!document.getElementById("edit_diver_qual_nitrox_confirmed")?.checked
+    );
 
     // Apply
     diver.name = newName;
@@ -6521,6 +6660,7 @@ function savePaliersGeneric(scope, groupId, diverName, paliers) {
     const diversStore = ensureAfterDiversStore(groupId);
     if (!diversStore[key]) diversStore[key] = {};
     diversStore[key].paliersDone = Array.isArray(paliers) ? paliers : [];
+    diversStore[key].paliersDoneSrc = "manual";
   } else {
     const diversStore = ensureBeforeDiversStore(groupId);
     if (!diversStore[key]) diversStore[key] = {};
@@ -6558,8 +6698,11 @@ function applyAfterGroupPaliersToDivers(groupId){
   names.forEach((diverName) => {
     const key = normalizeName(diverName);
     const entry = rec.after.divers[key] || (rec.after.divers[key] = {});
-    if (!Array.isArray(entry.paliersDone) || entry.paliersDone.length === 0) {
+    const curHas = Array.isArray(entry.paliersDone) && entry.paliersDone.length > 0;
+    const src = String(entry.paliersDoneSrc || "");
+    if (!curHas || src === "group") {
       entry.paliersDone = gp.map(p => ({ depth: p.depth, time: p.time }));
+      entry.paliersDoneSrc = "group";
     }
   });
 
@@ -6567,10 +6710,153 @@ function applyAfterGroupPaliersToDivers(groupId){
   try { renderAfterDivers(groupId); } catch(e) {}
 }
 
+// PATCH2: Runtime groupe (APRÈS)
+function getAfterGroupRuntimeMin(groupId){
+  const rec = getGroupRecord(groupId);
+  const after = rec && rec.after ? rec.after : {};
+  return (after.runtimeGroupMin != null) ? String(after.runtimeGroupMin) : "";
+}
+
+function saveAfterGroupRuntimeMin(groupId, v){
+  const rec = getGroupRecord(groupId);
+  if (!rec) return;
+  if (!rec.after) rec.after = {};
+  const s = String(v ?? "").trim();
+  if (s === "") rec.after.runtimeGroupMin = "";
+  else rec.after.runtimeGroupMin = String(parseInt(s, 10));
+  saveGroupDetails();
+}
+
+// Setter métier unique: runtime diver + calcul exitHHMM (si heure d'entrée groupe connue)
+function setAfterDiverRuntimeMin(groupId, diverKey, runtimeMin, source){
+  const rec = getGroupRecord(groupId);
+  if (!rec) return;
+  if (!rec.after) rec.after = {};
+  if (!rec.after.divers || typeof rec.after.divers !== "object") rec.after.divers = {};
+
+  const entry = rec.after.divers[diverKey] || (rec.after.divers[diverKey] = {});
+
+  const s = String(runtimeMin ?? "").trim();
+  entry.runtimeMin = (s === "") ? "" : String(parseInt(s, 10));
+
+  // Calcul heure de sortie: base = heure de mise à l'eau groupe (before.inPlanned)
+  const timeInGroup = (rec.before && rec.before.inPlanned) ? String(rec.before.inPlanned) : "";
+  const rt = parseInt(entry.runtimeMin, 10);
+
+  // Si runtime valide + heure entrée connue => calcule exit
+  // Règle: si source === "group" => autorise écriture (car on ne remplit que les vides)
+  //       sinon, n'écrase exitHHMM que s'il est vide
+  if (timeInGroup && !isNaN(rt)) {
+    const canWriteExit = (String(source || "") === "group") || (String(entry.exitHHMM || "").trim() === "");
+    if (canWriteExit) {
+      entry.exitHHMM = addMinutesHHMM(timeInGroup, rt);
+    }
+  }
+}
+
+function applyAfterGroupRuntimeToDivers(groupId){
+  const rec = getGroupRecord(groupId);
+  if (!rec) return;
+  if (!rec.after) rec.after = {};
+  if (!rec.after.divers || typeof rec.after.divers !== "object") rec.after.divers = {};
+
+  const rt = getAfterGroupRuntimeMin(groupId);
+  if (rt == null || String(rt).trim() === "") return;
+
+  // One-shot: only fill divers with no runtimeMin yet
+  const names = getAfterDiverNames(groupId);
+  names.forEach((diverName) => {
+    const key = normalizeName(diverName);
+    const entry = rec.after.divers[key] || (rec.after.divers[key] = {});
+    const cur = (entry.runtimeMin != null) ? String(entry.runtimeMin).trim() : "";
+    const src = String(entry.runtimeMinSrc || "");
+    if (cur === "" || src === "group") {
+      entry.runtimeMin = rt;
+      entry.runtimeMinSrc = "group";
+
+      // compute exitHHMM from group in-time when empty OR still group-driven
+      const timeInGroup = (rec.before && rec.before.inPlanned) ? String(rec.before.inPlanned).trim() : "";
+      const rti = parseInt(rt, 10);
+      const curExit = (entry.exitHHMM != null) ? String(entry.exitHHMM).trim() : "";
+      const exitSrc = String(entry.exitHHMMSrc || "");
+      if ((curExit === "" || exitSrc === "group") && timeInGroup && !isNaN(rti)) {
+        const out = addMinutesHHMM(timeInGroup, rti);
+        if (out) {
+          entry.exitHHMM = out;
+          entry.exitHHMMSrc = "group";
+        }
+      }
+    }
+    
+  });
+
+  saveGroupDetails();
+  try { renderAfterDivers(groupId); } catch(e) {}
+}
+
+function updateAfterGroupRuntimeUI(groupId){
+  const el = document.getElementById("after_group_runtime_min");
+  if (!el) return;
+  const v = getAfterGroupRuntimeMin(groupId);
+  el.value = (v && String(v).trim() !== "") ? v : "";
+}
+
+// PATCH3: Profondeur groupe (APRÈS)
+function getAfterGroupDepthM(groupId){
+  const rec = getGroupRecord(groupId);
+  const after = rec && rec.after ? rec.after : {};
+  return (after.depthGroupM != null) ? String(after.depthGroupM) : "";
+}
+
+function saveAfterGroupDepthM(groupId, v){
+  const rec = getGroupRecord(groupId);
+  if (!rec) return;
+  if (!rec.after) rec.after = {};
+  const s = String(v ?? "").trim();
+  if (s === "") rec.after.depthGroupM = "";
+  else rec.after.depthGroupM = String(parseInt(s, 10));
+  saveGroupDetails();
+}
+
+function applyAfterGroupDepthToDivers(groupId){
+  const rec = getGroupRecord(groupId);
+  if (!rec) return;
+  if (!rec.after) rec.after = {};
+  if (!rec.after.divers || typeof rec.after.divers !== "object") rec.after.divers = {};
+
+  const d = getAfterGroupDepthM(groupId);
+  if (d == null || String(d).trim() === "") return;
+
+  // One-shot: only fill divers with no depthRealM yet
+  const names = getAfterDiverNames(groupId);
+  names.forEach((diverName) => {
+    const key = normalizeName(diverName);
+    const entry = rec.after.divers[key] || (rec.after.divers[key] = {});
+    const cur = (entry.depthRealM != null) ? String(entry.depthRealM).trim() : "";
+    const src = String(entry.depthRealSrc || "");
+    if (cur === "" || src === "group") {
+      entry.depthRealM = d;
+      entry.depthRealSrc = "group";
+    }
+  });
+
+  saveGroupDetails();
+  try { renderAfterDivers(groupId); } catch(e) {}
+}
+
+function updateAfterGroupDepthUI(groupId){
+  const el = document.getElementById("after_group_depth_real_m");
+  if (!el) return;
+  const v = getAfterGroupDepthM(groupId);
+  el.value = (v && String(v).trim() !== "") ? v : "";
+}
+
+
+
 function updateAfterFormationBlockVisibility(groupId){
   const box = document.getElementById("after_formation_group_paliers");
   if (!box) return;
-  box.style.display = isFormationGroup(groupId) ? "" : "none";
+  box.style.display = "";
 }
 
 // Hook visibility when entering AFTER view
@@ -6580,7 +6866,9 @@ function updateAfterFormationBlockVisibility(groupId){
     window.openAfterView = function(groupId){
       const r = _openAfterView.apply(this, arguments);
       try { updateAfterFormationBlockVisibility(groupId); } catch(e) {}
-      return r;
+            try { updateAfterGroupRuntimeUI(groupId); } catch(e) {}
+      try { updateAfterGroupDepthUI(groupId); } catch(e) {}
+return r;
     };
   }
 })();
@@ -6600,7 +6888,36 @@ document.addEventListener("click", function(ev){
     if (!currentGroupId) return;
     applyAfterGroupPaliersToDivers(currentGroupId);
   }
+
+
+  if (t.id === "btn_after_group_runtime_apply") {
+    if (!currentGroupId) return;
+    applyAfterGroupRuntimeToDivers(currentGroupId);
+  }
+
+  if (t.id === "btn_after_group_depth_apply") {
+    if (!currentGroupId) return;
+    applyAfterGroupDepthToDivers(currentGroupId);
+  }
+
 });
+
+document.addEventListener("input", function(ev){
+  const t = ev.target;
+  if (!t) return;
+
+  if (t.id === "after_group_runtime_min") {
+    if (!currentGroupId) return;
+    saveAfterGroupRuntimeMin(currentGroupId, t.value);
+  }
+
+  if (t.id === "after_group_depth_real_m") {
+    if (!currentGroupId) return;
+    saveAfterGroupDepthM(currentGroupId, t.value);
+  }
+});
+
+
 
 let palierModalEl = null;
 let palierModalCtx = null;
@@ -9741,24 +10058,23 @@ depthInput.style.maxWidth = "110px";
 
 // --- Persist "valeurs réalisées" to state (prevents wipe on rerender after "Déco réalisée") ---
 const persistAfterReal = () => {
-  const diversStore = ensureAfterDiversStore(groupId);
-  if (!diversStore[key]) diversStore[key] = {};
-  // runtime (minutes)
-  const rtStr = String(rtInput.value ?? "").trim();
-  diversStore[key].runtimeMin = (rtStr === "") ? "" : String(parseInt(rtStr, 10));
-  // exit time (HH:MM)
-  diversStore[key].exitHHMM = String(exitInput.value ?? "").trim();
-  // depth (meters)
-  const dStr = String(depthInput.value ?? "").trim();
-  diversStore[key].depthRealM = (dStr === "") ? "" : String(parseInt(dStr, 10));
-  saveGroupDetails();
-};
+   const diversStore = ensureAfterDiversStore(groupId);
+   diversStore[key] = diversStore[key] || {};
+   diversStore[key].runtimeMin = rt || "";
+   diversStore[key].exitHHMM = exit || "";
+   diversStore[key].depthRealM = depth || "";
+
+   if (changedField === "runtime") diversStore[key].runtimeMinSrc = "manual";
+   if (changedField === "exit") diversStore[key].exitHHMMSrc = "manual";
+   if (changedField === "depth") diversStore[key].depthRealSrc = "manual";
+
+   saveGroupDetails();
+ }
 
 // Persist on edits
-rtInput.addEventListener("input", persistAfterReal);
-exitInput.addEventListener("input", persistAfterReal);
-depthInput.addEventListener("input", persistAfterReal);
-
+rtInput.addEventListener("input", () => persistAfterReal("runtime"));
+exitInput.addEventListener("input", () => persistAfterReal("exit"));
+depthInput.addEventListener("input", () => persistAfterReal("depth"));
 
 // Validation stricte entier (sans casser l’UX)
 depthInput.addEventListener("blur", () => {
@@ -10876,7 +11192,7 @@ document.addEventListener("DOMContentLoaded", function () {
         editFormEl.style.display = (editFormEl.style.display == "none" || !editFormEl.style.display) ? "block" : "none";
         setEditDiverStatus("");
         if (editFormEl.style.display === "block") {
-          refreshEditDiverResults(editSearchEl ? editSearchEl.value : "");
+          
           refreshEditDiverDatalist(editSearchEl ? editSearchEl.value : "");
         }
       });
