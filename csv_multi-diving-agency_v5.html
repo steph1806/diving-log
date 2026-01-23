@@ -1,0 +1,1610 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Import Centre → Ocean Infinity (CSV → JSON)</title>
+  <style>
+   :root{
+  color-scheme: dark;
+  --bg-main:#050b16;
+  --bg-card:#0b1527;
+  --bg-card-soft:#101d33;
+  --border-soft:#223b5c;
+  --text-main:#e4ecfb;
+  --text-muted:#9fb4d7;
+  --accent-cyan:#00a8ff;
+  --accent-green:#39ff88;
+  --accent-red:#ff6b6b;
+  --radius:12px;
+}
+
+
+html{ -webkit-text-size-adjust: 100%; }
+body{
+  margin:0;
+  padding:20px 12px 40px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background: radial-gradient(circle at top, var(--bg-card-soft) 0, var(--bg-main) 55%);
+  color: var(--text-main);
+}
+    
+/* Mobile/tablet safe areas (iOS notch, Android gesture bar) */
+body{ padding: calc(20px + env(safe-area-inset-top)) 12px calc(40px + env(safe-area-inset-bottom)); }
+h1 { margin: 0 0 8px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+   .card{
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: 0 0 18px rgba(0,0,0,.45);
+}
+
+button{
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: rgba(255,255,255,.06);
+  color: var(--text-main);
+  cursor: pointer;
+  font-weight: 650;
+}
+button:hover{ filter: brightness(1.08); }
+button:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
+
+.btnPrimary{
+  background: linear-gradient(180deg, rgba(0,168,255,.35), rgba(0,168,255,.18));
+  border-color: rgba(0,168,255,.55);
+}
+.btnDanger{
+  background: rgba(255,107,107,.18);
+  border-color: rgba(255,107,107,.55);
+}
+
+.muted{ color: var(--text-muted); }
+.ok{ color: var(--accent-green); }
+.warn{ color: #ffd166; }
+.err{ color: var(--accent-red); }
+
+    textarea { width: 100%; min-height: 160px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    pre { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 980px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+    .small { font-size: 12px; }
+
+    .unmatchedBox { display: flex; flex-direction: column; gap: 10px; }
+    .unmatchedRow { border: 1px solid #8884; border-radius: 10px; padding: 10px; }
+    .unmatchedTop { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+    .unmatchedToken { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .unmatchedCount { font-weight: 700; }
+    .unmatchedSuggest { opacity: 0.9; }
+    .unmatchedActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+    .unmatchedSelect { max-width: 520px; }
+  
+
+/* Small screens: stack controls, enlarge touch targets */
+@media (max-width: 720px){
+  .row{ flex-direction: column; align-items: stretch; }
+  button{ width: 100%; min-height: 44px; }
+  textarea{ min-height: 140px; font-size: 14px; }
+  .unmatchedActions{ flex-direction: column; align-items: stretch; }
+  .unmatchedSelect{ max-width: 100%; width: 100%; }
+}
+
+
+/* === Visual layout constraints (no page growth) === */
+#csvText{
+  white-space: pre;
+  overflow: auto;
+  max-height: 260px;
+}
+#log, #jsonOut{
+  white-space: pre;
+  overflow: auto;
+  max-height: 320px;
+}
+.unmatchedBox{
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* === 2 colonnes desktop, 1 colonne mobile, sans débordement page === */
+.twoCol{
+  display: grid;
+  grid-template-columns: 1fr;   /* mobile: 1 colonne */
+  gap: 12px;
+  align-items: stretch;
+}
+@media (min-width: 980px){
+  /* desktop: 2 colonnes équilibrées, sans écrasement */
+  .twoCol{ grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+}
+
+/* cartes à hauteur fixe + scroll interne */
+.twoCol .card{
+  min-width: 0; /* crucial: autorise le contenu à shrink dans la grille */
+  min-height: 420px;
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+.twoCol .scrollArea{
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  min-height: 0; /* crucial en flex */
+}
+
+/* mobile: Anomalies au-dessus du Log (même si 1 colonne) */
+@media (max-width: 979px){
+  #cardAnom{ order: 0; }
+  #cardLog{ order: 1; }
+}
+
+/* évite débordements (tokens longs: underscores, etc.) */
+.twoCol pre{
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* === STEP1: néophyte UI === */
+.isHidden{ display:none !important; }
+.helpToggle{ cursor:pointer; text-decoration: underline; text-underline-offset: 3px; }
+.helpBox{
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #ffffff22;
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+}
+
+
+</style>
+</head>
+<body>
+  <h1>Import Centre → Ocean Infinity (CSV → JSON)</h1>
+  <div class="muted">
+    Chargez un fichier plongeurs format CSV de votre centre et téléchargez le dans Ocean   Infinity.
+  </div>
+
+  <div class="row">
+    <input id="csvFile" type="file" accept=".csv,text/csv" />
+    <button id="btnLoadSample">Voir un exemple de fichier CSV</button>
+    <button id="btnRun" class="btnPrimary" disabled>Analyser le fichier CSV</button>
+    <button id="btnDownload" class="btnPrimary" disabled>Télécharger vos plongeurs pour Ocean Infinity</button>
+    <span id="status" class="small muted"></span>
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+  CSV (source) — <span id="btnHelpCsv" class="helpToggle">?</span>
+  </div>
+  <div id="helpCsv" class="helpBox isHidden">
+    <div class="small">
+      Dans votre fichier CSV, chaque colonne est séparée par un caractère : <b>;</b> ou <b>,</b>   ou une <b>tabulation</b>.<br>
+      Exemple : <span class="unmatchedToken">Nom;Prénom;Certification</span><br>
+      Si votre fichier n’est pas interprété correctement, sélectionnez le bon séparateur dans les   options.
+    </div>
+  </div>
+  <div class="small muted" id="csvHelp">
+    Collez ici le CSV de votre base clients / plongeurs.
+    Utilisez “Charger un exemple” si besoin.
+  </div>
+    <textarea id="csvText" spellcheck="false" placeholder="Colle ici un CSV ou charge un fichier."></textarea>
+   <div class="row isHidden" id="csvOptions">
+      <label class="small"><input type="checkbox" id="optHasHeader" checked> CSV a un header (1ère ligne)</label>
+      <label class="small"><input type="checkbox" id="optAutoDelimiter" checked> Détecter automatiquement le séparateur</label>
+      <label class="small">Séparateur: <select id="optDelimiter">
+        <option value=";" selected>;</option>
+        <option value=",">,</option>
+        <option value="\t">TAB</option>
+      </select></label>
+    </div>
+  </div>
+
+ <div class="card isHidden" id="cardAnom">
+  <div class="section-title">Éléments non reconnus (correction-demandée)</div>
+  <div class="scrollArea">
+    <div id="unmatched" class="unmatchedBox"></div>
+  </div>
+  <div class="small muted">Corrigez ces éléments pour exporter davantage de plongeurs.</div>
+</div>
+
+
+  <div class="card">
+  <div class="section-title">Export</div>
+  <div class="muted small">
+    Le fichier exporté est destiné à Ocean Infinity. Vous n’avez pas besoin de lire le contenu.
+  </div>
+  <div id="exportInfo"></div>
+<pre id="jsonOut" class="isHidden"></pre>
+</div>
+</div>
+
+<div class="card isHidden" id="cardLog">
+  <div class="section-title">Log (debug)</div>
+  <div class="scrollArea"><pre id="log"></pre></div>
+</div>
+<script>
+'use strict';
+
+// 2.1 — Garde-fou mobile : outil CSV avancé = desktop / tablette only
+(function guardMobile() {
+  const ua = navigator.userAgent || "";
+  const isPhone = /iPhone|Android.*Mobile|Windows Phone|Mobi/i.test(ua);
+
+  if (isPhone) {
+    document.body.innerHTML = `
+      <div style="padding:24px;max-width:720px;margin:0 auto;">
+        <h3>Outil CSV avancé</h3>
+        <p>
+          Cet outil est destiné à une utilisation sur <b>ordinateur ou tablette</b>.
+        </p>
+        <p class="small muted">
+          Ouvrez cette page depuis un écran plus large pour importer votre base clients.
+        </p>
+      </div>`;
+  }
+})();
+
+/* ==========================================================
+   0) AGENCY TABLES (CORE DATA) — ZONE DEDIEE AMENDABLE
+   ----------------------------------------------------------
+   - Tout est embarqué ici (pas de fetch).
+   - La clef = certification (cert_key).
+   - depthMax est une propriété de la certification.
+   - path = OC | CCR.
+   ========================================================== */
+
+/**
+ * Structure attendue:
+ * AGENCY_TABLES[agency].certs[] = { key, label, path, depthMax }
+ * (Optionnel plus tard: synonyms[] pour matching exact sans overrides)
+ */
+const AGENCY_TABLES = Object.freeze({
+  // FFESSM (France) — OC + CCR + add-ons Nitrox
+  FFESSM: {
+    certs: [
+      // OC Base (niveau)
+      { key: "FFESSM_N1", label: "N1", path: "OC", depthMax: 20 },
+      { key: "FFESSM_N2", label: "N2", path: "OC", depthMax: 40 },
+      { key: "FFESSM_N3", label: "N3", path: "OC", depthMax: 60 },
+      { key: "FFESSM_N4", label: "N4", path: "OC", depthMax: 60 },
+      { key: "FFESSM_N5", label: "N5", path: "OC", depthMax: 60 },
+
+      // OC Trimix (aptitudes au-dessus)
+      { key: "FFESSM_PTH70", label: "PTH70", path: "OC", depthMax: 70 },
+      { key: "FFESSM_PTH100", label: "PTH100", path: "OC", depthMax: 100 },
+
+      // CCR
+      { key: "FFESSM_CCR30", label: "CCR Diluant Air No Deco", path: "CCR", depthMax: 30 },
+      { key: "FFESSM_CCR40", label: "CCR Diluant Helitrox Deco", path: "CCR", depthMax: 40 },   
+      { key: "FFESSM_CCR60", label: "CCR Trimix Elementaire", path: "CCR", depthMax: 60 },
+      { key: "FFESSM_CCR100", label: "CCR Trimix Avancé (Hypoxic)", path: "CCR", depthMax: 100 },
+
+      // Add-ons Nitrox (ne changent pas la profondeur)
+      { key: "FFESSM_NITROX", label: "Nitrox", path: "OC", depthMax: null },
+      { key: "FFESSM_NITROX_CONF", label: "Nitrox confirmé", path: "OC", depthMax: null }
+    ]
+  },
+
+  // TDI — OC + CCR (linéaire par profondeur)
+  TDI: {
+    certs: [
+      // OC
+      { key: "TDI_ADV_NITROX", label: "TDI Advanced Nitrox", path: "OC", depthMax: 40 },
+      { key: "TDI_DECO_PROC", label: "TDI Decompression Procedures", path: "OC", depthMax: 45 },
+      { key: "TDI_EXT_RANGE", label: "TDI Extended Range", path: "OC", depthMax: 55 },
+      { key: "TDI_TRIMIX", label: "TDI Trimix", path: "OC", depthMax: 60 },
+      { key: "TDI_ADV_TRIMIX", label: "TDI Advanced Trimix", path: "OC", depthMax: 100 },
+
+      // CCR
+      { key: "TDI_CCR_AIR", label: "TDI CCR Air Diluent", path: "CCR", depthMax: 30 },
+      { key: "TDI_CCR_AIR_DECO", label: "TDI CCR Air Diluent Decompression Procedures", path: "CCR", depthMax: 40 },
+      { key: "TDI_CCR_HELITROX_DECO", label: "TDI CCR Helitrox Decompression Procedures", path: "CCR", depthMax: 45 },
+      { key: "TDI_CCR_MIXED_GAS", label: "TDI CCR Mixed Gas", path: "CCR", depthMax: 60 },
+      { key: "TDI_CCR_ADV_MIXED_GAS", label: "TDI CCR Advanced Mixed Gas", path: "CCR", depthMax: 100 }
+    ]
+  },
+
+  // IANTD — OC + CCR (linéaire par profondeur)
+  IANTD: {
+    certs: [
+      // OC
+      { key: "IANTD_ADV_EANX", label: "IANTD Advanced EANx", path: "OC", depthMax: 40 },
+      { key: "IANTD_NORMOXIC_TRIMIX", label: "IANTD Normoxic Trimix", path: "OC", depthMax: 60 },
+      { key: "IANTD_TRIMIX", label: "IANTD Trimix", path: "OC", depthMax: 75 },
+      { key: "IANTD_ADV_TRIMIX", label: "IANTD Advanced Trimix", path: "OC", depthMax: 100 },
+
+      // CCR
+      { key: "IANTD_RCCR_OPEN_WATER", label: "IANTD RCCR Open Water Diver", path: "CCR", depthMax: 30 },
+      { key: "IANTD_CCR_ADV_EANX", label: "IANTD CCR Advanced EANx Diver", path: "CCR", depthMax: 40 },
+      { key: "IANTD_CCR_ART", label: "IANTD CCR Advanced Recreational Trimix Diver", path: "CCR", depthMax: 45 },
+      { key: "IANTD_CCR_NORMOXIC_TRIMIX", label: "IANTD CCR Normoxic Trimix (MOD 2)", path: "CCR", depthMax: 60 },
+      { key: "IANTD_CCR_TRIMIX_DIVER", label: "IANTD CCR TRIMIX DIVER (MOD 3)", path: "CCR", depthMax: 100 }
+    ]
+  },
+
+  // SSI — OC + CCR (linéaire par profondeur)
+  SSI:  { 
+    certs: [
+      // OC
+      { key: "SSI_OPEN_WATER", label: "SSI Open Water Diver", path: "OC", depthMax: 18 },
+      { key: "SSI_ENRICHED_AIR_NITROX", label: "SSI Enriched Air Nitrox", path: "OC", depthMax: 30 },  
+      { key: "SSI_DEEP_DIVING", label: "SSI Deep Diving", path: "OC", depthMax: 40 },
+      { key: "SSI_EXTENDED_RANGE", label: "SSI Extended Range first deco stop", path: "OC", depthMax: 45 },
+      { key: "SSI_TECHNICAL_EXTENDED_RANGE", label: "SSI Technical Extended Range: Normoxic", path: "OC", depthMax: 60 },  
+      { key: "SSI_HYPOXIC_TRIMIX", label: "SSI Hypoxic Trimix", path: "OC", depthMax: 100 },
+
+      // CCR
+      { key: "SSI_CCR_DIVING", label: "SSI CCR Diving/Entry level (no-deco)", path: "CCR", depthMax: 30 },
+      { key: "SSI_CCR_EXTENDED_RANGE", label: "SSI CCR Extended Range:Deco-Helitrox", path: "CCR", depthMax: 40 },
+      { key: "SSI_CCR_TECHNICAL_EXTENDED_RANGE", label: "SSI CCR Technical Extended Range: Normoxic Trimix", path: "CCR", depthMax: 60 },
+      { key: "SSI_CCR_HYPOXIC_TRIMIX", label: "SSI CCR Hypoxic Trimix", path: "CCR", depthMax: 100 }
+    ]
+  },
+  PADI: { 
+    certs: [
+      // OC
+      { key: "PADI_OPEN_WATER", label: "PADI Open Water Diver", path: "OC", depthMax: 18 },
+      { key: "PADI_ADVANCED_OPEN_WATER", label: "PADI Advanced Open Water", path: "OC", depthMax: 30 },  
+      { key: "PADI_DEEP_DIVER", label: "PADI Deep Diver", path: "OC", depthMax: 40 },
+      { key: "PADI_TEC_DIVER", label: "PADI Tec Diver", path: "OC", depthMax: 40 },
+      { key: "PADI_TEC_45", label: "PADI Tec 45 Diver accelerated decompression: Nitrox", path: "OC", depthMax: 45 },  
+      { key: "PADI_TEC_50", label: "PADI Tec 50 Diver: Uses two deco gases", path: "OC", depthMax: 50 },
+      { key: "PADI_TEC_TRIMIX_65", label: "PADI Tec Trimix 65: Normoxic", path: "OC", depthMax: 65 },
+      { key: "PADI_TEC_TRIMIX_DIVER", label: "PADI Trimix Diver", path: "OC", depthMax: 90 },
+
+      // CCR
+      { key: "PADI_CCR_DIVER", label: "PADI Type R (recreational) rebreathers. No deco.", path: "CCR", depthMax: 18 },
+      { key: "PADI_CCR_ADVANCED_DIVER", label: "PADI CCR Advanced Rebreather Diver", path: "CCR", depthMax: 30 },  
+      { key: "PADI_CCR_TEC_40", label: "PADI CCR Tec 40:limited deco", path: "CCR", depthMax: 40 },
+      { key: "PADI_CCR_TEC_60", label: "PADI CCR Tec 60: Normoxic", path: "CCR", depthMax: 60 },
+      { key: "PADI_CCR_TEC_100", label: "PADI CCR Tec 100", path: "CCR", depthMax: 100 },     
+
+      // Add-ons Nitrox (ne changent pas la profondeur)
+      { key: "PADI_NITROX", label: "Nitrox", path: "OC", depthMax: null }    
+    ] 
+  }
+});
+
+/* ==========================================================
+   0.1) AGENCY CORESPONDANCE TABLES (CORE DATA) 
+   ----------------------------------------------------------
+
+   - depthMax est une propriété de l'aptitude pour correspondance
+   - entre agence et FFESSM
+   ========================================================== */
+
+const APTITUDE_FFESSM_FROM_KEY = Object.freeze({
+ 
+ // ---------- FFESSM ----------
+      
+  FFESSM: Object.freeze({
+    OC: Object.freeze({
+      "FFESSM_N1": "PA20",
+      "FFESSM_N2": "PA40",
+      "FFESSM_N3": "PA60",
+      "FFESSM_N4": "PA60",
+      "FFESSM_N5": "PA60",
+      "FFESSM_PTH70": "PTH70",
+      "FFESSM_PTH100": "PTH100"
+    }),
+    CCR: Object.freeze({
+      "FFESSM_CCR30": "CCR30",
+      "FFESSM_CCR40": "CCR40",
+      "FFESSM_CCR60": "CCR60",
+      "FFESSM_CCR100": "CCR100"
+    })
+  }),
+// ---------- TDI ----------
+  TDI: Object.freeze({
+    OC: Object.freeze({
+      "TDI_ADV_NITROX": "PA40",
+      "TDI_DECO_PROC": "PA40",
+      "TDI_EXT_RANGE": "PA60",
+      "TDI_TRIMIX": "PA60",
+      "TDI_ADV_TRIMIX": "PA60"
+    }),
+    CCR: Object.freeze({
+      "TDI_CCR_AIR": "CCR40",
+      "TDI_CCR_AIR_DECO": "CCR40",
+      "TDI_CCR_HELITROX_DECO": "CCR40",
+      "TDI_CCR_MIXED_GAS": "CCR60",
+      "TDI_CCR_ADV_MIXED_GAS": "CCR100"
+    })
+  }),
+
+  // ---------- IANTD ----------
+  IANTD: Object.freeze({
+    OC: Object.freeze({
+      "IANTD_ADV_EANX": "PA40",
+      "IANTD_NORMOXIC_TRIMIX": "PA60",
+      "IANTD_TRIMIX": "PA60",
+      "IANTD_ADV_TRIMIX": "PA60"
+    }),
+    CCR: Object.freeze({
+      "IANTD_RCCR_OPEN_WATER": "CCR30",
+      "IANTD_CCR_ADV_EANX": "CCR40",
+      "IANTD_CCR_ART": "CCR40",
+      "IANTD_CCR_NORMOXIC_TRIMIX": "CCR60",
+      "IANTD_CCR_TRIMIX_DIVER": "CCR100"
+    })
+  }),
+
+  // ---------- SSI ----------
+  SSI: Object.freeze({
+    OC: Object.freeze({
+      "SSI_OPEN_WATER": "PA20",
+      "SSI_ENRICHED_AIR_NITROX": "PA30",
+      "SSI_DEEP_DIVING": "PA40",
+      "SSI_EXTENDED_RANGE": "PA40",
+      "SSI_TECHNICAL_EXTENDED_RANGE": "PA60",
+      "SSI_HYPOXIC_TRIMIX": "PTH100"
+    }),
+    CCR: Object.freeze({
+      "SSI_CCR_DIVING": "CCR30",
+      "SSI_CCR_EXTENDED_RANGE": "CCR40",
+      "SSI_CCR_TECHNICAL_EXTENDED_RANGE": "CCR60",
+      "SSI_CCR_HYPOXIC_TRIMIX": "CCR100"
+    })
+  }),
+
+  // ---------- PADI ----------
+  PADI: Object.freeze({
+    OC: Object.freeze({
+     "PADI_OPEN_WATER": "PA20",
+      "PADI_ADVANCED_OPEN_WATER": "PA30",
+      "PADI_DEEP_DIVER": "PA40",
+      "PADI_TEC_DIVER": "PA40",
+      "PADI_TEC_45": "PA40",
+      "PADI_TEC_50": "PA40",
+      "PADI_TEC_TRIMIX_65": "PA60",
+      "PADI_TEC_TRIMIX_DIVER": "PTH70"
+    }),
+    CCR: Object.freeze({
+      "PADI_CCR_DIVER": "CCR20",  
+      "PADI_CCR_ADVANCED_DIVER": "CCR30",
+      "PADI_CCR_TEC_40": "CCR40",
+      "PADI_CCR_TEC_60": "CCR60",
+      "PADI_CCR_TEC_100": "CCR100"
+    })
+  })
+});
+
+
+
+/* ==========================================================
+   1) HEADER DICTIONARY (EMBARQUE) — ZONE DEDIEE
+   ----------------------------------------------------------
+   - Sert à reconnaître: fullName / firstName / lastName
+     + colonnes certifications (multi-colonnes)
+     + colonnes aptitudes (multi-colonnes)
+   ========================================================== */
+
+const HEADER_DICT = Object.freeze({
+  // -------------------------
+  // IDENTITÉ
+  // -------------------------
+  fullName: [
+    // FR
+    "nom complet", "nom et prenom", "nom et prénom", "nom prenom", "nom prénom",
+    "nom/prenom", "nom/prénom", "nom_prenom", "nom-prenom",
+    "prenom nom", "prénom nom", "prenom_nom", "prénom_nom",
+    "nom du plongeur", "plongeur", "participant", "client", "nom client",
+    // EN
+    "full name", "fullname", "full_name", "diver", "diver name", "customer", "client name",
+    // Generic (last resort)
+    "name"
+  ],
+
+  firstName: [
+    "prenom", "prénom", "prenoms", "prénoms",
+    "first name", "firstname", "first_name", "given name", "givenname", "forename",
+    "prenom client", "prénom client"
+  ],
+
+  lastName: [
+    "nom", "nom de famille", "nom famille",
+    "last name", "lastname", "last_name", "family name", "surname",
+    "nom client"
+  ],
+
+  // -------------------------
+  // LICENCE (Ocean Infinity)
+  // -------------------------
+  licence: [
+    "licence", "license",
+    "n licence", "n° licence", "no licence", "num licence", "numero licence", "numéro licence",
+    "n_licence", "no_licence", "num_licence", "numero_licence",
+    "licence ffessm", "licence federale", "licence fédérale", "licence federation",
+    "license number", "licence number",
+    "id licence", "id_licence"
+  ],
+
+  // -------------------------
+  // CERTIFICATIONS (Ocean Infinity)
+  // -------------------------
+  certifications: [
+    "certification", "certifications", "certif", "certifs",
+    "brevet", "brevets",
+    "formation", "formations",
+    "qualification", "qualifications",
+    "niveau", "niveaux",          // IMPORTANT: niveau => certifications (pas aptitudes)
+    "level", "levels", "grade", "grades",
+    "certification principale", "main cert", "principal cert"
+  ],
+
+  // -------------------------
+  // APTITUDES (Ocean Infinity)
+  // -------------------------
+  aptitudes: [
+    "aptitude", "aptitudes",
+    "pre rogatives", "prerogatives", "prérogatives", "prerogative", "prérogative",
+    "autonomie", "encadrement",
+    "pa", "pe", "pa/pe", "pe/pa",
+    "aptitudes ffessm", "ffessm aptitudes",
+    "capacite", "capacites", "capacité", "capacités",
+    "rating", "ratings"
+    // NOTE: PAS de "profondeur max" ici (refusé comme tu l’as demandé)
+  ]
+});
+
+/* ==========================================================
+   2) OVERRIDES / CORRECTIONS MANUELLES — ZONE DEDIEE
+   ----------------------------------------------------------
+   - Objectif: rattraper typos/variantes des centres.
+   - Format: token_normalise -> { agency, key }
+   - (Plus tard: règles regex contrôlées)
+   ========================================================== */
+
+const OVERRIDES_DEFAULT = Object.freeze({
+  "tdi ext range": { agency: "TDI", key: "TDI_EXT_RANGE" },
+  "tdi extended range": { agency: "TDI", key: "TDI_EXT_RANGE" },
+  "iantd adv trimix": { agency: "IANTD", key: "IANTD_ADV_TRIMIX" },
+  "nitrox conf": { agency: "FFESSM", key: "FFESSM_NITROX_CONF" }
+});
+
+let OVERRIDES_EXACT = {}; // mutable (loaded at startup)
+
+/* ==========================================================
+   3) MOTEUR — Briques déterministes
+   ========================================================== */
+
+function norm(s) {
+  return String(s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+const LS_KEY_OVERRIDES = "oi_csv_overrides_exact_v1";
+
+function loadOverridesExact() {
+  try {
+    const raw = localStorage.getItem(LS_KEY_OVERRIDES);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const merged = Object.assign({}, OVERRIDES_DEFAULT, parsed || {});
+    OVERRIDES_EXACT = merged;
+  } catch (_) {
+    OVERRIDES_EXACT = Object.assign({}, OVERRIDES_DEFAULT);
+  }
+}
+
+function saveOverridesExact() {
+  try {
+    localStorage.setItem(LS_KEY_OVERRIDES, JSON.stringify(OVERRIDES_EXACT));
+  } catch (_) { /* ignore */ }
+}
+
+function setOverrideExact(tokenNorm, agency, key) {
+  OVERRIDES_EXACT[tokenNorm] = { agency, key };
+  saveOverridesExact();
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = `small ${cls || 'muted'}`;
+}
+
+function logLine(line) {
+  const el = document.getElementById('log');
+  el.textContent += (el.textContent ? "\n" : "") + line;
+}
+
+function clearOutputs() {
+  document.getElementById('log').textContent = '';
+  document.getElementById('jsonOut').textContent = '';
+  const u = document.getElementById('unmatched');
+  if (u) u.innerHTML = '';
+}
+
+function detectDelimiter(text) {
+  // Simple heuristic: count ; , \t on first non-empty line
+  const lines = String(text || "").split(/\r?\n/).filter(l => l.trim().length > 0);
+  const first = lines[0] || "";
+  const counts = {
+    ';': (first.match(/;/g) || []).length,
+    ',': (first.match(/,/g) || []).length,
+    '\t': (first.match(/\t/g) || []).length,
+  };
+  let best = ';';
+  for (const k of Object.keys(counts)) {
+    if (counts[k] > counts[best]) best = k;
+  }
+  return best;
+}
+
+function parseCSV(text, delimiter) {
+  // Deterministic CSV parser with basic quoted-field support.
+  // - Supports delimiter ; , or TAB
+  // - Supports fields wrapped in double-quotes
+  // - Supports escaped quotes as ""
+  const rows = [];
+  const lines = String(text || '').split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = String(rawLine ?? '');
+    if (!line.trim()) continue;
+
+    const row = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+
+      if (ch === '"') {
+        // escaped quote
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+          continue;
+        }
+        inQuotes = !inQuotes;
+        continue;
+      }
+
+      if (!inQuotes && ch === delimiter) {
+        row.push(cur);
+        cur = '';
+        continue;
+      }
+
+      cur += ch;
+    }
+    row.push(cur);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function canonHeaderCell(h) {
+  let s = norm(h);
+  // suppression accents (diacritics)
+  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // séparateurs usuels -> espace
+  s = s.replace(/[_\-\/]/g, ' ');
+  // ponctuation explicitement supprimée
+  s = s.replace(/[.:#]/g, ' ');
+  // nettoyage final
+  s = s.replace(/[^a-z0-9\s]/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+ 
+}
+
+function matchHeaderToCanon(headerCell) {
+  const h = canonHeaderCell(headerCell);
+  if (!h) return null;
+
+  // Allow numbered columns like "Certification 1", "Certif_2".
+  const hNoNum = h
+    .replace(/\b\d+\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // 2) Exclure explicitement profondeur/depth/profondeur max
+  if (hNoNum.includes('depth') || hNoNum.includes('profondeur')) return null;
+
+  // 3) Forçages anti-collision (selon checklist)
+  // pa / pe / pa-pe / prérogative / autonomie / encadrement → APTITUDES
+  const words = new Set(hNoNum.split(' ').filter(Boolean));
+  const hasPA = words.has('pa');
+  const hasPE = words.has('pe');
+  const hasPrerog = hNoNum.includes('prerogative') || hNoNum.includes('prerogatives') || hNoNum.includes('pre rogative');
+  const hasAutonomie = hNoNum.includes('autonomie');
+  const hasEncadrement = hNoNum.includes('encadrement');
+  if (hasPA || hasPE || hasPrerog || hasAutonomie || hasEncadrement) return 'aptitudes';
+
+  // cert / certification / brevet / formation / qualification / niveau / level → CERTIFICATIONS
+  const isCert =
+    hNoNum.includes('cert') ||
+    hNoNum.includes('brevet') ||
+    hNoNum.includes('formation') ||
+    hNoNum.includes('qualification') ||
+    words.has('niveau') || words.has('niveaux') ||
+    words.has('level') || words.has('levels');
+  if (isCert) return 'certifications';
+
+  // 3) Règles de priorité strictes
+  const ORDER = ['fullName', 'firstName', 'lastName', 'licence', 'aptitudes', 'certifications'];
+
+  for (const canonKey of ORDER) {
+    const synonyms = HEADER_DICT[canonKey] || [];
+    for (const syn of synonyms) {
+      const s = canonHeaderCell(syn);
+      if (!s) continue;
+
+      // Exact match (with/without numbering)
+      if (h === s || hNoNum === s) return canonKey;
+
+      // Prefix match: "certification 1" -> "certification"
+      if (h.startsWith(s + ' ')) return canonKey;
+      if (hNoNum.startsWith(s + ' ')) return canonKey;
+
+      // Whole-word containment
+      const hPad = ` ${h} `;
+      const hNoNumPad = ` ${hNoNum} `;
+      if (hPad.includes(` ${s} `) || hNoNumPad.includes(` ${s} `)) return canonKey;
+    }
+  }
+
+  return null;
+}
+
+function buildColumnMap(headerRow) {
+  // Returns { fullNameIdx, firstNameIdx, lastNameIdx, licenceIdx, certIdxs[], aptIdxs[] }
+  const m = { fullNameIdx: null, firstNameIdx: null, lastNameIdx: null, licenceIdx: null, certIdxs: [], aptIdxs: [] };
+  for (let i = 0; i < headerRow.length; i++) {
+    const canon = matchHeaderToCanon(headerRow[i]);
+    if (!canon) continue;
+    if (canon === 'fullName' && m.fullNameIdx == null) m.fullNameIdx = i;
+    if (canon === 'firstName' && m.firstNameIdx == null) m.firstNameIdx = i;
+    if (canon === 'lastName' && m.lastNameIdx == null) m.lastNameIdx = i;
+    if (canon === 'licence' && m.licenceIdx == null) m.licenceIdx = i;
+    if (canon === 'certifications') m.certIdxs.push(i);
+    if (canon === 'aptitudes') m.aptIdxs.push(i);
+  }
+  return m;
+}
+
+function extractDivers(rows, hasHeader) {
+  if (!rows || !rows.length) return [];
+
+  // Helpers locaux (deterministic)
+  function getCell(row, idx) {
+    if (idx == null) return '';
+    return String((row && row[idx] != null) ? row[idx] : '').trim();
+  }
+
+  // Split deterministic sur séparateurs centre réels
+  // - gère multi tokens dans une cellule
+  // - garde l’ordre
+  function explodeTokens(cellValue) {
+    const v = String(cellValue ?? '').trim();
+    if (!v) return [];
+    return v
+      .split(/\s*[|,;\/+&]\s*/g)
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  let start = 0;
+  let colMap = null;
+
+  if (hasHeader) {
+    colMap = buildColumnMap(rows[0]);
+    start = 1;
+
+    // Guardrail deterministic: on doit pouvoir construire un nom.
+    const hasName = (colMap.fullNameIdx != null) ||
+      (colMap.firstNameIdx != null && colMap.lastNameIdx != null);
+    if (!hasName) {
+      throw new Error(
+        'Header: impossible de trouver une colonne Nom complet OU (Nom + Prénom). ' +
+        'Ajoute un header reconnu (via HEADER_DICT) ou attends la phase "sans header" (mapping manuel).'
+      );
+    }
+  } else {
+    // TODO: mapping manuel deterministic
+    throw new Error(
+  'CSV sans en-tête (header) non supporté. ' +
+  'Merci d’exporter un CSV avec une première ligne contenant les noms de colonnes.'
+);
+  }
+
+  const divers = [];
+
+  for (let r = start; r < rows.length; r++) {
+    const row = rows[r];
+
+    // Nom
+    const fullName = getCell(row, colMap.fullNameIdx);
+    const firstName = getCell(row, colMap.firstNameIdx);
+    const lastName  = getCell(row, colMap.lastNameIdx);
+    const licence   = getCell(row, colMap.licenceIdx);
+
+    const name = (fullName || `${lastName} ${firstName}`.trim()).trim();
+    if (!name) continue;
+
+    // Certifications : concat de TOUTES les colonnes certIdxs, puis explode
+    const certTokens = [];
+    for (const idx of (colMap.certIdxs || [])) {
+      const cell = getCell(row, idx);
+      if (!cell) continue;
+      const parts = explodeTokens(cell);
+      for (const t of parts) certTokens.push(t);
+    }
+
+    // Aptitudes : concat de TOUTES les colonnes aptIdxs, puis explode
+    const aptTokens = [];
+    for (const idx of (colMap.aptIdxs || [])) {
+      const cell = getCell(row, idx);
+      if (!cell) continue;
+      const parts = explodeTokens(cell);
+      for (const t of parts) aptTokens.push(t);
+    }
+
+    divers.push({
+      fullName: name,
+      licence: licence || "",
+      certifications_sources: certTokens,
+      aptitudes_sources: aptTokens,
+      _rowIndex: r
+    });
+  }
+
+  return divers;
+}
+
+function buildExactIndexFromTables() {
+  // Index by normalized label -> { agency, key, path, depthMax, label }
+  const idx = new Map();
+  for (const [agency, data] of Object.entries(AGENCY_TABLES)) {
+    for (const item of (data.certs || [])) {
+      if (!item || !item.label || !item.key) continue;
+      idx.set(norm(item.label), {
+        agency,
+        key: item.key,
+        path: item.path,
+        depthMax: item.depthMax,
+        label: item.label
+      });
+    }
+  }
+  return idx;
+}
+
+function normalizeCertToken(token, exactIndex) {
+  const t = norm(token);
+  if (!t) return null;
+
+  // 1) Overrides exact
+  if (OVERRIDES_EXACT[t]) {
+    const o = OVERRIDES_EXACT[t];
+    // We'll resolve details from tables later
+    return { via: 'override', agency: o.agency, key: o.key, source_token: token };
+  }
+
+  // 2) Exact label match
+  const hit = exactIndex.get(t);
+  if (hit) {
+    return { via: 'label', ...hit, source_token: token };
+  }
+
+  return { via: 'unmatched', source_token: token };
+}
+
+function hydrateFromTables(match) {
+  if (!match || !match.agency || !match.key) return match;
+  const table = AGENCY_TABLES[match.agency];
+  if (!table) return match;
+  const found = (table.certs || []).find(x => x.key === match.key);
+  if (!found) return match;
+  return {
+    ...match,
+    label: found.label,
+    path: found.path,
+    depthMax: found.depthMax
+  };
+}
+
+function selectBestCertByAgencyPath(normalizedCerts) {
+  // Returns best[agency][path] = { key, label, depthMax }
+  const best = {};
+  for (const c of normalizedCerts) {
+    if (!c || c.via === 'unmatched') continue;
+    const cc = (c.via === 'override') ? hydrateFromTables(c) : c;
+    if (!cc.agency || !cc.path || !cc.key) continue;
+    best[cc.agency] = best[cc.agency] || { OC: null, CCR: null };
+    const cur = best[cc.agency][cc.path];
+    if (!cur || (cc.depthMax ?? -1) > (cur.depthMax ?? -1)) {
+      best[cc.agency][cc.path] = { key: cc.key, label: cc.label, depthMax: cc.depthMax };
+    }
+  }
+  return best;
+}
+
+function getFFESSMNitroxAddonLabel(normalizedCerts) {
+  // Deterministic: prefer "Nitrox confirmé" over "Nitrox"
+  let hasNx = false;
+  let hasNxConf = false;
+
+  for (const c of (normalizedCerts || [])) {
+    if (!c || c.via === 'unmatched') continue;
+    const cc = (c.via === 'override') ? hydrateFromTables(c) : c;
+    if (!cc) continue;
+    if (cc.agency !== 'FFESSM') continue;
+    if (cc.key === 'FFESSM_NITROX') hasNx = true;
+    if (cc.key === 'FFESSM_NITROX_CONF') hasNxConf = true;
+  }
+
+  if (hasNxConf) return 'Nitrox confirmé';
+  if (hasNx) return 'Nitrox';
+  return null;
+}
+
+
+function pickDominantAgency(best) {
+  // Dominant agency = max depthMax across all (agency,path)
+  let bestAgency = null;
+  let bestDepth = -1;
+  for (const [agency, paths] of Object.entries(best || {})) {
+    for (const path of ['OC', 'CCR']) {
+      const b = paths && paths[path];
+      const d = (b && b.depthMax != null) ? b.depthMax : -1;
+      if (d > bestDepth) {
+        bestDepth = d;
+        bestAgency = agency;
+        continue;
+      }
+      if (d == bestDepth && bestAgency != null && agency < bestAgency) {
+        bestAgency = agency;
+      }
+      if (d == bestDepth && bestAgency == null) {
+        bestAgency = agency;
+      }
+    }
+  }
+  return bestAgency;
+}
+
+/* ==========================================================
+   3.1) BLOC C — UNMATCHED STRUCTURE + SUGGESTION (deterministic)
+   ----------------------------------------------------------
+   - Build a summary of unmatched tokens (unique) with:
+     count, agencyHint, suggestion (agency/key/label), impactsImport
+   - Conservative impactsImport: TRUE (blocks export) for any unmatched cert token.
+   ========================================================== */
+
+function inferAgencyHint(tokenNorm) {
+  const t = String(tokenNorm || "");
+  // Deterministic, no guess beyond explicit agency markers
+  if (t.includes("tdi")) return "TDI";
+  if (t.includes("iantd")) return "IANTD";
+  if (t.includes("padi")) return "PADI";
+  if (t.includes("ssi")) return "SSI";
+  if (t.includes("ffessm")) return "FFESSM";
+  return null;
+}
+
+function tokenizeWords(s) {
+  return norm(s)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/g)
+    .filter(Boolean);
+}
+
+function scoreLabelSimilarity(tokenNorm, labelNorm) {
+  // Deterministic scoring: overlap + containment bonuses
+  if (!tokenNorm || !labelNorm) return 0;
+
+  if (tokenNorm === labelNorm) return 999; // should not happen here (unmatched), but safe
+  let score = 0;
+
+  if (labelNorm.includes(tokenNorm)) score += 50;
+  if (tokenNorm.includes(labelNorm)) score += 40;
+
+  const a = tokenizeWords(tokenNorm);
+  const b = tokenizeWords(labelNorm);
+  if (!a.length || !b.length) return score;
+
+  const setB = new Set(b);
+  let overlap = 0;
+  for (const w of a) if (setB.has(w)) overlap++;
+
+  score += overlap * 10;
+  score += Math.min(a.length, b.length); // small tie-break
+
+  return score;
+}
+
+function buildSuggestionForToken(tokenNorm, agencyHint) {
+  // Search only within the hinted agency (if any). Otherwise: no suggestion.
+  if (!agencyHint || !AGENCY_TABLES[agencyHint]) return null;
+
+  const certs = AGENCY_TABLES[agencyHint].certs || [];
+  let best = null;
+  let bestScore = 0;
+
+  for (const c of certs) {
+    if (!c || !c.label || !c.key) continue;
+    const s = scoreLabelSimilarity(tokenNorm, norm(c.label));
+    if (s > bestScore) {
+      bestScore = s;
+      best = { agency: agencyHint, key: c.key, label: c.label, score: s };
+    }
+  }
+
+  // Deterministic threshold: if too weak, return null (avoid junk suggestions)
+  // (50 comes from containment bonus; below means mostly random overlap)
+  if (!best || best.score < 50) return null;
+  return best;
+}
+
+function buildUnmatchedSummary(unmatchedAllMap) {
+  const rows = [];
+  for (const [tokenNorm, count] of unmatchedAllMap.entries()) {
+    const agencyHint = inferAgencyHint(tokenNorm);
+    const suggestion = buildSuggestionForToken(tokenNorm, agencyHint);
+
+    // Conservative rule (objective "export clean"): any unmatched cert token blocks export.
+    const impactsImport = false; // export partiel autorisé
+
+    rows.push({
+      tokenNorm,
+      count,
+      agencyHint,
+      suggestion, // null or {agency,key,label,score}
+      impactsImport
+    });
+  }
+
+  rows.sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.tokenNorm.localeCompare(b.tokenNorm);
+  });
+
+  return rows;
+}
+
+function computeCanExport(unmatchedSummary) {
+  // Export only if no blocking unmatched tokens exist
+  for (const r of (unmatchedSummary || [])) {
+    if (r && r.impactsImport) return false;
+  }
+  return true;
+}
+
+function renderUnmatchedUI(unmatchedSummary) {
+  const host = document.getElementById('unmatched');
+  if (!host) return;
+
+  host.innerHTML = '';
+
+  if (!unmatchedSummary || unmatchedSummary.length === 0) {
+    const ok = document.createElement('div');
+    ok.className = 'muted small';
+    ok.textContent = 'Aucune anomalie. Export autorisé.';
+    host.appendChild(ok);
+    return;
+  }
+
+  for (const r of unmatchedSummary) {
+    const row = document.createElement('div');
+    row.className = 'unmatchedRow';
+
+    const top = document.createElement('div');
+    top.className = 'unmatchedTop';
+
+    const count = document.createElement('span');
+    count.className = 'unmatchedCount';
+    count.textContent = `${r.count}×`;
+
+    const token = document.createElement('span');
+    token.className = 'unmatchedToken';
+    token.textContent = r.tokenNorm;
+
+    const sug = document.createElement('span');
+    sug.className = 'unmatchedSuggest small muted';
+    if (r.suggestion) {
+     sug.textContent = `Suggestion : ${r.suggestion.label} (${r.suggestion.agency})`;
+    } else if (r.agencyHint) {
+      sug.textContent = `Suggestion : aucune suggestion fiable (${r.agencyHint})`;
+    } else {
+     sug.textContent = `Suggestion : impossible (agence non détectée)`;
+    }
+
+    top.appendChild(count);
+    top.appendChild(token);
+    top.appendChild(sug);
+    row.appendChild(top);
+
+    const actions = document.createElement('div');
+    actions.className = 'unmatchedActions';
+
+    // APPLY button (only if suggestion exists)
+    if (r.suggestion) {
+      const btnApply = document.createElement('button');
+      btnApply.textContent = 'Appliquer';
+      btnApply.addEventListener('click', () => {
+        setOverrideExact(r.tokenNorm, r.suggestion.agency, r.suggestion.key);
+        // rerun deterministically (same CSV in textarea)
+        document.getElementById('btnRun').click();
+      });
+      actions.appendChild(btnApply);
+    }
+
+    // CHOOSE… (only if agencyHint exists)
+    if (r.agencyHint && AGENCY_TABLES[r.agencyHint]) {
+      const sel = document.createElement('select');
+      sel.className = 'unmatchedSelect';
+      const certs = AGENCY_TABLES[r.agencyHint].certs || [];
+
+      // default option
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = `Choisir… (${r.agencyHint})`;
+      sel.appendChild(opt0);
+
+      for (const c of certs) {
+        const opt = document.createElement('option');
+        opt.value = c.key;
+        opt.textContent = `${c.label} (key=${c.key})`;
+        if (r.suggestion && r.suggestion.key === c.key) opt.selected = true;
+        sel.appendChild(opt);
+      }
+
+      const btnChoose = document.createElement('button');
+      btnChoose.textContent = 'Choisir';
+      btnChoose.addEventListener('click', () => {
+        const key = sel.value;
+        if (!key) return; // user must choose
+        setOverrideExact(r.tokenNorm, r.agencyHint, key);
+        document.getElementById('btnRun').click();
+      });
+
+      actions.appendChild(sel);
+      actions.appendChild(btnChoose);
+    }
+
+    // If no actions possible, show hint
+    if (!actions.childNodes.length) {
+      const note = document.createElement('div');
+      note.className = 'small muted';
+      note.textContent = 'Aucune action possible sans agency hint. Ajoute un override manuel (plus tard) ou renomme le token dans le CSV.';
+      row.appendChild(note);
+    } else {
+      row.appendChild(actions);
+    }
+
+    host.appendChild(row);
+  }
+}
+
+function projectOceanInfinityJson(diversInternal) {
+  // Export "centre" propre: 1 diver -> 1 ou 2 lignes (OC/CCR) pour l'agence dominante.
+  // Chaque ligne contient fullName + agency + path + certification (label/key/depth) + aptitude_ffessm
+  const out = [];
+  const issuesMissingApt = [];
+
+  for (const d of (diversInternal || [])) {
+    const domAgency = pickDominantAgency(d.best || {});
+    if (!domAgency) continue;
+
+    const paths = d.best?.[domAgency] || {};
+    for (const path of ['OC', 'CCR']) {
+      const b = paths[path];
+      if (!b) continue;
+
+      const aptitude_ffessm =
+        APTITUDE_FFESSM_FROM_KEY[domAgency]
+          ?.[path]
+          ?.[b.key]
+        ?? null;
+
+      if (!aptitude_ffessm) {
+        issuesMissingApt.push({
+          fullName: d.fullName,
+          agency: domAgency,
+          path,
+          certKey: b.key,
+          certLabel: b.label || b.key
+        });
+      }
+
+      const nitroxAddon = (domAgency === 'FFESSM' && path === 'OC')
+        ? getFFESSMNitroxAddonLabel(d.certifications_normalized)
+        : null;
+
+      const mergedLabel = nitroxAddon
+        ? `${(b.label || b.key)} | ${nitroxAddon}`
+        : (b.label || b.key);
+
+      out.push({
+        fullName: d.fullName,
+        licence: d.licence || "",
+        agency: domAgency,
+        path,
+        certification_label: mergedLabel,
+        certification_key: b.key,
+        depthMax: (b.depthMax != null) ? b.depthMax : null,
+        aptitude_ffessm
+      });
+    }
+  }
+
+  return {
+    schemaVersion: 1,
+    exportType: "ocean_infinity_v1",
+    exportedAt: new Date().toISOString(),
+    divers: out,
+    issues: {
+      missingAptitudeFFESSM: issuesMissingApt
+    }
+  };
+}
+
+// ==========================================================
+// MATRIX — CSV TOOL ➜ OCEAN INFINITY LIBRARY (strict D1)
+// input = jsonCenter.divers[]
+// output = divinglog_library_export_v1 (diverLibrary[])
+// ==========================================================
+
+// Hash stable (FNV-1a 32-bit) — requis pour id déterministe
+function hashString(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return ("00000000" + h.toString(16)).slice(-8);
+}
+
+function projectOceanInfinityLibrary(rows) {
+  const diverLibrary = [];
+
+  for (const r of (rows || [])) {
+    const name = String(r.fullName || "").trim();
+    if (!name) continue;
+
+    const cert = String(r.certification_label || "").trim();
+    const aptitudes = String(r.aptitude_ffessm || "").trim();
+    const licence = String(r.licence || "").trim(); // v2 ne fournit pas licence => "" (OK)
+
+    if (!(cert || aptitudes || licence)) continue;
+
+    const path = (r.path === "CCR") ? "CCR" : "OC"; // normalisation défensive
+    const id = "d_" + hashString(name + "|" + path + "|" + licence);
+
+    diverLibrary.push({ id, name, licence, cert, aptitudes });
+  }
+
+  return {
+    schema: "divinglog_library_export_v1",
+    exportedAt: new Date().toISOString(),
+    diverLibrary,
+    instructorLibrary: []
+  };
+}
+
+function projectToDivingLog(diver, selectedCert) {
+  const aptitude_ffessm =
+  APTITUDE_FFESSM_FROM_KEY[selectedCert.agency]
+    ?.[selectedCert.path]
+    ?.[selectedCert.key]
+  ?? null;
+
+  return {
+    fullName: diver.fullName,
+    certification: {
+      agency: selectedCert.agency,
+      key: selectedCert.key
+    },
+    aptitude_ffessm
+  };
+}
+
+
+function runAll() {
+  clearOutputs();
+  setStatus('Running…', 'muted');
+
+  const csvText = document.getElementById('csvText').value || '';
+  const hasHeader = document.getElementById('optHasHeader').checked;
+  const autoDelim = document.getElementById('optAutoDelimiter').checked;
+  const delim = autoDelim ? detectDelimiter(csvText) : document.getElementById('optDelimiter').value;
+
+  logLine(`delimiter=${delim === '\t' ? 'TAB' : delim}`);
+
+  const rows = parseCSV(csvText, delim);
+  logLine(`rows=${rows.length}`);
+
+  const divers = extractDivers(rows, hasHeader);
+  logLine(`divers_extracted=${divers.length}`);
+
+  const exactIndex = buildExactIndexFromTables();
+  const unmatchedAll = new Map();
+
+  const diversInternal = [];
+  for (const d of divers) {
+    const normalized = [];
+    for (const tok of d.certifications_sources) {
+      const m = normalizeCertToken(tok, exactIndex);
+      if (m.via === 'unmatched') {
+        const k = norm(tok);
+        unmatchedAll.set(k, (unmatchedAll.get(k) || 0) + 1);
+      } else {
+        normalized.push(m.via === 'override' ? hydrateFromTables(m) : m);
+      }
+    }
+
+    const best = selectBestCertByAgencyPath(normalized);
+
+    diversInternal.push({
+      fullName: d.fullName,
+      licence: d.licence || "",
+      certifications_sources: d.certifications_sources,
+      certifications_normalized: normalized,
+      best
+    });
+
+    // Anchor/coherence log lines (dominant agency + depth + aptitude FFESSM)
+    // Requirement: 2 lines per diver (OC + CCR)
+    const domAgency = pickDominantAgency(best);
+    function fmtLine(path) {
+      const b = domAgency ? (best?.[domAgency]?.[path] || null) : null;
+      const depth = (b && b.depthMax != null) ? `${b.depthMax}m` : '-';
+      const certLabel = b ? (b.label || b.key) : '-';
+      const proj = (b && domAgency)
+        ? projectToDivingLog({ fullName: d.fullName }, { agency: domAgency, path, key: b.key })
+        : { aptitude_ffessm: null };
+      const apt = proj.aptitude_ffessm || '-';
+      return `${d.fullName} | dom=${domAgency || '-'} | ${path} | depth=${depth} | cert=${certLabel} | aptitudeFFESSM=${apt}`;
+    }
+    logLine(fmtLine('OC'));
+    logLine(fmtLine('CCR'));
+  }
+
+  // ---- Bloc C: structuration unmatched + suggestion + export gate
+  const unmatchedSummary = buildUnmatchedSummary(unmatchedAll);
+  const canExport = computeCanExport(unmatchedSummary);
+
+  window.__LAST_UNMATCHED_SUMMARY__ = unmatchedSummary;
+  window.__CAN_EXPORT__ = canExport;
+
+  const jsonCenter = projectOceanInfinityJson(diversInternal);
+
+  // UI-only issues (D1 => pas exportées)
+  const missingApt = jsonCenter?.issues?.missingAptitudeFFESSM || [];
+  window.__EXPORT_ISSUES__ = missingApt;
+
+  // MATRIX: JSON final Ocean Infinity (library import)
+  const oiJson = projectOceanInfinityLibrary(jsonCenter?.divers || []);
+  document.getElementById('jsonOut').textContent = JSON.stringify(oiJson, null, 2);
+
+
+   // Unmatched report (now includes deterministic)
+    // Bloc C UI
+  renderUnmatchedUI(unmatchedSummary);
+// STEP1: show correction panel only if there are ignored/unmatched tokens OR missing aptitude mapping
+const hasUnmatched = (unmatchedSummary && unmatchedSummary.length > 0);
+const hasExportIssues = (window.__EXPORT_ISSUES__ && window.__EXPORT_ISSUES__.length > 0);
+document.getElementById('cardAnom').classList.toggle('isHidden', !(hasUnmatched || hasExportIssues));
+
+  // Append export issues (missing aptitude mapping) if any
+  const host = document.getElementById('unmatched');
+  const issues = window.__EXPORT_ISSUES__ || [];
+  if (host && issues.length) {
+    const box = document.createElement('div');
+    box.className = 'unmatchedRow';
+    const title = document.createElement('div');
+    title.className = 'small err';
+    title.textContent = `Export bloqué: ${issues.length} aptitudeFFESSM manquante(s) (mapping table).`;
+    box.appendChild(title);
+
+    const pre = document.createElement('pre');
+    pre.className = 'small';
+    pre.textContent = issues
+      .map(x => `${x.fullName} | ${x.agency} | ${x.path} | ${x.certLabel} (key=${x.certKey})`)
+      .join('\n');
+    box.appendChild(pre);
+
+    host.appendChild(box);
+  }
+
+   // Enable/disable export based on gate
+  window.__LAST_EXPORT_JSON__ = oiJson;
+
+  const totalRows = divers.length;
+  const exportedRows = (window.__LAST_EXPORT_JSON__?.diverLibrary || []).length;
+
+   document.getElementById('btnDownload').disabled = (exportedRows <= 0);
+
+  if (exportedRows > 0) {
+    const ignored = Math.max(0, totalRows - exportedRows);
+    setStatus(`${exportedRows} exportable(s) — ${ignored} ignorée(s) (corrigeable)`, 'ok');
+  } else {
+    setStatus(`Aucune ligne compatible — export impossible`, 'err');
+  }
+}
+
+async function downloadJson() {
+  const data = window.__LAST_EXPORT_JSON__;
+  if (!data) return;
+
+  try {
+    const res = await fetch("/.netlify/functions/csv_import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      setStatus("Échec export vers Ocean Infinity", "err");
+      return;
+    }
+
+    setStatus(
+      `✔ ${data.diverLibrary?.length ?? 0} plongeur(s) envoyés vers Ocean Infinity`,
+      "ok"
+    );
+
+  } catch (e) {
+    setStatus("Erreur réseau export Ocean Infinity", "err");
+  }
+}
+
+function loadSample() {
+  const sample = [
+    'Nom complet;Certifications;Aptitude',
+    'Durand Paul;TDI Extended Range | TDI Advanced Trimix;',
+    'Martin Lea;IANTD Advanced EANx | IANTD Advanced Trimix;',
+    'Dupont Alex;N3 | Nitrox confirmé;PA60'
+  ].join('\n');
+  document.getElementById('csvText').value = sample;
+  setStatus('Sample loaded', 'muted');
+  document.getElementById('btnRun').disabled = false;
+}
+
+function readFileAsText(file) {
+  // Android WebView / older browsers: fallback to FileReader when File.text() is missing
+  if (file && typeof file.text === 'function') return file.text();
+  return new Promise((resolve, reject) => {
+    try {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result || ''));
+      fr.onerror = () => reject(fr.error || new Error('FileReader error'));
+      fr.readAsText(file);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+async function loadFile(file) {
+  const text = await readFileAsText(file);
+  document.getElementById('csvText').value = text;
+  document.getElementById('btnRun').disabled = false;
+  setStatus(`CSV chargé: ${file.name}`, 'muted');
+}
+
+// Wire UI
+document.getElementById('btnLoadSample').addEventListener('click', loadSample);
+document.getElementById('btnRun').addEventListener('click', () => {
+  try {
+    runAll();
+  } catch (e) {
+    setStatus(String(e?.message || e), 'err');
+    logLine(`ERROR: ${String(e?.stack || e)}`);
+  }
+});
+document.getElementById('btnDownload').addEventListener('click', downloadJson);
+
+document.getElementById('csvFile').addEventListener('change', (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  loadFile(f);
+});
+
+loadOverridesExact();
+
+// === STEP1 UI (no business logic change) ===
+document.getElementById('btnHelpCsv').addEventListener('click', () => {
+  document.getElementById('helpCsv').classList.toggle('isHidden');
+  document.getElementById('csvOptions').classList.toggle('isHidden');
+});
+// Initial status
+setStatus('Prêt. Charge un CSV ou clique “Charger un exemple”.', 'muted');
+
+/* ==========================================================
+   JOURNAL DES MODIFICATIONS — CSV TOOL → OCEAN INFINITY
+
+   Date       : 2026-01-22
+   Étape      : ÉTAPE 1 — Réduction de périmètre & lecture néophyte
+   Statut     : ANALYSE / AUDIT — AUCUN CODE MODIFIÉ
+
+   Objectif :
+   - Rendre l’outil intelligible pour un utilisateur non technique.
+   - Réduire le périmètre visible à l’essentiel :
+     charger CSV → résumé → export JSON.
+   - Conserver la capacité de correction, mais en lecture secondaire.
+
+   Décisions figées :
+   - CSV sans header : import refusé avec message explicite.
+   - Logs / debug / scoring : hors lecture primaire.
+   - Correction conservée mais déportée (second niveau).
+   - Aucun impact sur Ocean Infinity (outil strictement autonome).
+
+   Prochaine étape :
+   - Audit écran par écran des éléments UI existants
+     pour décider : VISIBLE / MASQUÉ / DÉPORTÉ.
+
+POINT 1 EN COURS DE TRAITEMENT-08:03-21/01/26===> REGLE A 12:00 
+   ========================================================== */
+
+/* ==========================================================
+   JOURNAL DES MODIFICATIONS — CSV TOOL → OCEAN INFINITY
+
+   Date       : 2026-01-22
+   Étape      : ÉTAPE 1 — Réduction de périmètre & lecture néophyte
+   Statut     : ANALYSE / AUDIT — AUCUN CODE MODIFIÉ
+
+   Objectif :
+   - Rendre l’outil json compatible avec ocean infinity
+   - creation d'une matrice de passage
+   - preparer l'export vers ocean infinity 
+   ========================================================== */
+
+/* ==========================================================
+   JOURNAL DES MODIFICATIONS — CSV TOOL → OCEAN INFINITY
+
+   Date       : 2026-01-22
+   Étape      : ÉTAPE 1 — Réduction de périmètre & lecture néophyte
+   Statut     : ANALYSE / AUDIT — AUCUN CODE MODIFIÉ
+
+   Objectif :
+   - Ajouter Licence au fichier pour être coherent avec attente
+   - json ocean infinity
+   - rendre le header compatible pour la lecture de licence 
+   ========================================================== */
+
+/* ==========================================================
+   JOURNAL DES MODIFICATIONS — CSV TOOL → OCEAN INFINITY
+
+   Date       : 2026-01-22
+   Étape      : ÉTAPE 1 — Réduction de périmètre & lecture néophyte
+   Statut     : ANALYSE / AUDIT — AUCUN CODE MODIFIÉ
+
+   Objectif :
+   - headers renforcer le dic
+   - regles de collision figés
+   - nom absolument nécessaire
+   - si absence de header ne rien autoriser
+   -V5:
+   - Header sur variable clef augmenter la capacité de detection
+   ========================================================== */
+
+/* ==========================================================
+   JOURNAL DES MODIFICATIONS — CSV TOOL → OCEAN INFINITY
+
+   Date       : 2026-01-22
+   Étape      : ÉTAPE 1 — Réduction de périmètre & lecture néophyte
+   Statut     : ANALYSE / AUDIT — AUCUN CODE MODIFIÉ
+
+   Objectif :
+   - Changer la function downloadJson() 
+   - en async pour pouvoir exporter le json via Netlify function
+  
+   ========================================================== */
+</script>
+</body>
+</html>
