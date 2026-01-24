@@ -150,6 +150,8 @@
 
     .field {
       margin-bottom: 10px;
+      /* Important for flex rows: allow children to shrink and avoid horizontal overflow */
+      min-width: 0;
     }
 
     input[type="text"],
@@ -2278,58 +2280,76 @@
         <div class="field" style="flex:1;">
           <label for="add_diver_name">Nom</label>
           <input type="text" id="add_diver_name" placeholder="Nom du plongeur">
-        </div>
-        <div class="field" style="flex:1;">
-          <label for="add_diver_aptitude_select">Aptitude (badge)</label>
-          <select id="add_diver_aptitude_select">
-            <option value="">— Sélectionner —</option>
-             <option value="BAPTEME">BAPTÊME</option>
-             <option value="PE6">PE6</option>
-             <option value="PE12">PE12</option>
-             <option value="PE20">PE20</option>
-             <option value="PE40">PE40</option>
-             <option value="PE60">PE60</option>
-             <option value="PA12">PA12</option>
-             <option value="PA20">PA20</option>
-             <option value="PA40">PA40</option>
-             <option value="PA60">PA60</option>
-             <option value="PTH70">PTH 70</option>
-             <option value="PTH120">PTH 120</option>
-             <option value="CCR40">CCR 40</option>
-             <option value="CCR70">CCR 70</option>
-             <option value="CCR100">CCR 100</option>
-             <option value="CCR120">CCR 120</option>
-             <option value="Autre">Autre (manuel)</option>
-          </select>
-          <div id="add_diver_aptitude_manual_wrap" style="display:none; margin-top:6px;">
-            <input type="text" id="add_diver_aptitude_manual" placeholder="Aptitude (manuel)">
-          </div>
-        </div>
+        </div>  
       </div>
+
 
       <div class="row">
         <div class="field" style="flex:1;">
+          <label for="add_diver_agency_select">Agence</label>
+          <select id="add_diver_agency_select">
+            <option value="">— Toutes / inconnue —</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.4;">
           <label for="add_diver_cert_select">Certification (bibliothèque)</label>
           <select id="add_diver_cert_select">
             <option value="">Sélectionner une certification</option>
           </select>
-      <div style="display:flex; gap:12px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
-          <input type="checkbox" id="add_diver_qual_nitrox">
-          Nitrox
-        </label>
+        </div>
 
-        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
-          <input type="checkbox" id="add_diver_qual_nitrox_confirmed" disabled>
-          Nitrox confirmé
-        </label>
-      </div>
+        <div class="field" style="flex:1;">
+          <label for="add_diver_aptitude_select">Aptitude (badge)</label>
+          <select id="add_diver_aptitude_select">
+            <option value="">— Sélectionner —</option>
+                   <option value="BAPTEME">BAPTÊME</option>
+                   <option value="PE6">PE6</option>
+                   <option value="PE12">PE12</option>
+                   <option value="PE20">PE20</option>
+                   <option value="PE40">PE40</option>
+                   <option value="PE60">PE60</option>
+                   <option value="PA12">PA12</option>
+                   <option value="PA20">PA20</option>
+                   <option value="PA40">PA40</option>
+                   <option value="PA60">PA60</option>
+                   <option value="PTH70">PTH 70</option>
+                   <option value="PTH120">PTH 120</option>
+                   <option value="CCR40">CCR 40</option>
+                   <option value="CCR70">CCR 70</option>
+                   <option value="CCR100">CCR 100</option>
+                   <option value="CCR120">CCR 120</option>
+                   <option value="Autre">Autre (manuel)</option>
+               </select>
+           
+          <div id="add_diver_aptitude_manual_wrap" style="display:none; margin-top:6px;">
+           <input type="text" id="add_diver_aptitude_manual" placeholder="Aptitude (manuel)">
+         </div>
         </div>
-        <div class="field" id="add_diver_cert_manual_wrap" style="flex:1; display:none;">
-          <label for="add_diver_cert_manual">Certification (manuel)</label>
-          <input type="text" id="add_diver_cert_manual" placeholder="ex : TDI Advanced Trimix CCR">
-        </div>
-      </div>
+
+      </div> <!-- fin row cert + aptitude -->
+
+<div class="row" style="margin-top:8px;">
+  <div class="field" style="flex:1; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+      <input type="checkbox" id="add_diver_qual_nitrox">
+      Nitrox
+    </label>
+
+    <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+      <input type="checkbox" id="add_diver_qual_nitrox_confirmed" disabled>
+      Nitrox confirmé
+    </label>
+  </div>
+</div>
+
+<div class="row">
+  <div class="field" id="add_diver_cert_manual_wrap" style="flex:1; display:none;">
+    <label for="add_diver_cert_manual">Certification (manuel)</label>
+    <input type="text" id="add_diver_cert_manual" placeholder="ex : TDI Advanced Trimix CCR">
+  </div>
+</div>
 
       <div class="row" style="margin-top:8px;">
         <button type="button" class="btn btn-primary" id="btn_add_diver_confirm">Ajouter</button>
@@ -2358,43 +2378,54 @@
         </div>
       </div>
 
+
       <div class="row">
         <div class="field" style="flex:1;">
-          <label for="edit_diver_aptitude_select">Aptitude (badge)</label>
-          <select id="edit_diver_aptitude_select">
-            <option value="">— Sélectionner —</option>
-             <option value="BAPTEME">BAPTÊME</option>
-             <option value="PE6">PE6</option>
-             <option value="PE12">PE12</option>
-             <option value="PE20">PE20</option>
-             <option value="PE40">PE40</option>
-             <option value="PE60">PE60</option>
-             <option value="PA12">PA12</option>
-             <option value="PA20">PA20</option>
-             <option value="PA40">PA40</option>
-             <option value="PA60">PA60</option>
-             <option value="PTH70">PTH 70</option>
-             <option value="PTH120">PTH 120</option>
-             <option value="CCR40">CCR 40</option>
-             <option value="CCR70">CCR 70</option>
-             <option value="CCR100">CCR 100</option>
-             <option value="CCR120">CCR 120</option>
-             <option value="Autre">Autre (manuel)</option>
+          <label for="edit_diver_agency_select">Agence</label>
+          <select id="edit_diver_agency_select">
+            <option value="">— Toutes / inconnue —</option>
           </select>
-          <div id="edit_diver_aptitude_manual_wrap" style="display:none; margin-top:6px;">
-            <input type="text" id="edit_diver_aptitude_manual" placeholder="Aptitude (manuel)">
-          </div>
         </div>
       </div>
 
       <div class="row">
-        <div class="field" style="flex:1;">
+        <div class="field" style="flex:1.4;">
           <label for="edit_diver_cert_select">Certification (bibliothèque)</label>
           <select id="edit_diver_cert_select">
             <option value="">Sélectionner une certification</option>
           </select>
-      <div style="display:flex; gap:12px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+        </div>
+
+        <div class="field" style="flex:1;">
+          <label for="edit_diver_aptitude_select">Aptitude (badge)</label>
+          <select id="edit_diver_aptitude_select">
+            <option value="">— Sélectionner —</option>
+                   <option value="BAPTEME">BAPTÊME</option>
+                   <option value="PE6">PE6</option>
+                   <option value="PE12">PE12</option>
+                   <option value="PE20">PE20</option>
+                   <option value="PE40">PE40</option>
+                   <option value="PE60">PE60</option>
+                   <option value="PA12">PA12</option>
+                   <option value="PA20">PA20</option>
+                   <option value="PA40">PA40</option>
+                   <option value="PA60">PA60</option>
+                   <option value="PTH70">PTH 70</option>
+                   <option value="PTH120">PTH 120</option>
+                   <option value="CCR40">CCR 40</option>
+                   <option value="CCR70">CCR 70</option>
+                   <option value="CCR100">CCR 100</option>
+                   <option value="CCR120">CCR 120</option>
+                   <option value="Autre">Autre (manuel)</option>
+            </select>
+
+          <div id="edit_diver_aptitude_manual_wrap" style="display:none; margin-top:6px;">
+            <input type="text" id="edit_diver_aptitude_manual" placeholder="Aptitude (manuel)">
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center;">
+         <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
           <input type="checkbox" id="edit_diver_qual_nitrox">
           Nitrox
         </label>
@@ -2403,14 +2434,14 @@
           <input type="checkbox" id="edit_diver_qual_nitrox_confirmed" disabled>
           Nitrox confirmé
         </label>
-      </div>
         </div>
+      </div>
+      <div class="row">
         <div class="field" id="edit_diver_cert_manual_wrap" style="flex:1; display:none;">
           <label for="edit_diver_cert_manual">Certification (manuel)</label>
           <input type="text" id="edit_diver_cert_manual" placeholder="ex : TDI Advanced Trimix CCR">
         </div>
       </div>
-
       <div class="row" style="margin-top:8px;">
         <button type="button" class="btn btn-primary" id="btn_edit_diver_confirm">Enregistrer</button>
         <button type="button" class="btn" id="btn_edit_diver_cancel">Annuler</button>
@@ -2419,20 +2450,20 @@
       <div id="edit-diver-status" class="status-text" style="margin-top:6px;"></div>
     </div>
 
-<!-- <!-- SECTION: GROUPES & AFFECTATION -->
-        <!-- OUTILS: Vues + filtre + bulk -->
+<!-- SECTION: GROUPES & AFFECTATION -->
+    <!-- OUTILS: Vues + filtre + bulk -->
     <div id="pdj_tools" class="pdj-tools">
       <div class="pdj-row">
         <button type="button" class="btn pdj-chip" id="pdj_view_all">Tous</button>
         <button type="button" class="btn pdj-chip" id="pdj_view_fav">Favoris</button>
         <input type="text" id="pdj_search" class="pdj-search" placeholder="Rechercher…">
         <datalist id="pdj_search_list"></datalist>
-<select id="pdj_filter_apt" class="pdj-select" title="Filtrer par aptitude">
+        <select id="pdj_filter_apt" class="pdj-select" title="Filtrer par aptitude">
           <option value="">Aptitude : toutes</option>
         </select>
       </div>
+    </div>
 
-     
 <div id="plongeurs-jour-list" class="plongeurs-jour-container">
       <!-- Cartes plongeurs générées en JS à partir de diverLibrary -->
     </div>
@@ -2865,6 +2896,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+<script src="cert_catalog_v1.js"></script>
 <script>
 
   const STORAGE_KEY_FICHE = "seaAngel_fichePlongee_v2";
@@ -3378,7 +3410,20 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
     }
   }
 
-
+  function getBaseCertLabels() {
+    // Source: catalogue injecté offline
+    if (window.CERT_CATALOG && CERT_CATALOG.indexByAgency) {
+      const out = [];
+      for (const agency of Object.keys(CERT_CATALOG.indexByAgency)) {
+        const labels = CERT_CATALOG.indexByAgency[agency] || [];
+        for (const label of labels) if (label) out.push(String(label).trim());
+      }
+      // déduplication stable
+      return Array.from(new Set(out));
+    }
+    // Fallback sécurité (ne casse rien)
+    return Array.isArray(BASE_CERTS) ? BASE_CERTS.slice() : [];
+  }
 
   // --- Bibliothèque de certifications (certLibrary) ---
 
@@ -3397,7 +3442,7 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
     }
 
     // Si rien en mémoire → utiliser la base
-    certLibrary = BASE_CERTS.slice();
+   certLibrary = getBaseCertLabels().slice();
     saveCertLibrary();
   }
 
@@ -3414,6 +3459,9 @@ function populateAddDiverCertSelect() {
     const sel = document.getElementById("add_diver_cert_select");
     if (!sel) return;
 
+    const agencySel = document.getElementById("add_diver_agency_select");
+    const agency = agencySel ? String(agencySel.value || "") : "";
+
     // reset
     sel.innerHTML = "";
     const opt0 = document.createElement("option");
@@ -3421,22 +3469,55 @@ function populateAddDiverCertSelect() {
     opt0.textContent = "Sélectionner une certification";
     sel.appendChild(opt0);
 
-    if (!Array.isArray(certLibrary) || certLibrary.length === 0) {
-      loadCertLibrary();
+    // Build list from offline CERT_CATALOG
+    const catalog = (typeof CERT_CATALOG !== "undefined" && CERT_CATALOG && CERT_CATALOG.agencies) ? CERT_CATALOG : null;
+    if (!catalog) {
+      // fallback: keep previous behavior if catalog missing
+      if (Array.isArray(certLibrary)) {
+        for (const c of certLibrary) {
+          const s = String(c || "").trim();
+          if (!s) continue;
+          const o = document.createElement("option");
+          o.value = s;
+          o.textContent = s;
+          sel.appendChild(o);
+        }
+      }
+      const oAutre = document.createElement("option");
+      oAutre.value = "Autre";
+      oAutre.textContent = "Autre… (manuel)";
+      sel.appendChild(oAutre);
+      return;
     }
 
-    certLibrary.forEach(c => {
-      if (!c) return;
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
-      sel.appendChild(opt);
-    });
+    const pushCert = (agencyName, cert) => {
+      if (!cert || !cert.key || !cert.label) return;
+      const o = document.createElement("option");
+      o.value = `${agencyName}::${cert.key}`;
+      o.textContent = agency ? cert.label : `${agencyName} — ${cert.label}`;
+      o.dataset.agency = agencyName;
+      o.dataset.key = cert.key;
+      o.dataset.path = cert.path || "";
+      o.dataset.label = cert.label;
+      o.dataset.depthMax = (cert.depthMax != null) ? String(cert.depthMax) : "";
+      sel.appendChild(o);
+    };
 
-    const optOther = document.createElement("option");
-    optOther.value = "Autre";
-    optOther.textContent = "Autre (manuel)";
-    sel.appendChild(optOther);
+    if (agency && catalog.agencies[agency] && Array.isArray(catalog.agencies[agency].certs)) {
+      for (const cert of catalog.agencies[agency].certs) pushCert(agency, cert);
+    } else {
+      const agencies = Object.keys(catalog.agencies || {}).sort();
+      for (const ag of agencies) {
+        const a = catalog.agencies[ag];
+        if (!a || !Array.isArray(a.certs)) continue;
+        for (const cert of a.certs) pushCert(ag, cert);
+      }
+    }
+
+    const oAutre = document.createElement("option");
+    oAutre.value = "Autre";
+    oAutre.textContent = "Autre… (manuel)";
+    sel.appendChild(oAutre);
   }
 
   function normalizeName(str) {
@@ -3537,16 +3618,32 @@ function populateAddDiverCertSelect() {
       return;
     }
 
+    const agencyEl = document.getElementById("add_diver_agency_select");
+    let agency = agencyEl ? String(agencyEl.value || "").trim() : "";
+
     let cert = "";
+    let certKey = "";
+    let certPath = "";
+
     if (certSel) {
-      if (certSel.value === "Autre") {
+      const v = String(certSel.value || "").trim();
+      if (v === "Autre") {
         cert = certManual ? String(certManual.value || "").trim() : "";
-      } else {
-        cert = String(certSel.value || "").trim();
+      } else if (v) {
+        const meta = getCertMetaFromSelect(certSel);
+        if (meta) {
+          cert = meta.label || "";
+          certKey = meta.key || "";
+          certPath = meta.path || "";
+          if (!agency && meta.agency) agency = meta.agency;
+        } else {
+          // legacy fallback (value is the label)
+          cert = v;
+        }
       }
     }
     // If manual cert is provided, add it to certLibrary (same architecture as FICHE)
-    if (cert && Array.isArray(certLibrary)) {
+    if (cert && Array.isArray(certLibrary) && certSel && String(certSel.value || "") === "Autre") {
       const hasCert = certLibrary.some(c => String(c).trim() === cert);
       if (!hasCert) {
         certLibrary.push(cert);
@@ -3567,6 +3664,9 @@ function populateAddDiverCertSelect() {
      id: "d_" + Date.now() + "_" + Math.random().toString(36).slice(2),
      name: name,
      licence: "",
+     agency: agency,
+     certKey: certKey,
+     certPath: certPath,
      cert: buildCertWithQualifs(
      cert,
      !!document.getElementById("add_diver_qual_nitrox")?.checked,
@@ -3590,6 +3690,8 @@ function populateAddDiverCertSelect() {
 
     // reset form
     if (nameEl) nameEl.value = "";
+    if (agencyEl) agencyEl.value = "";
+    populateAddDiverCertSelect();
     if (certSel) certSel.value = "";
     if (certManual) certManual.value = "";
     if (aptSel) aptSel.value = "";
@@ -3650,29 +3752,160 @@ function populateAddDiverCertSelect() {
     const sel = document.getElementById("edit_diver_cert_select");
     if (!sel) return;
 
+    const agencySel = document.getElementById("edit_diver_agency_select");
+    const agency = agencySel ? String(agencySel.value || "") : "";
+
+    // reset
     sel.innerHTML = "";
     const opt0 = document.createElement("option");
     opt0.value = "";
     opt0.textContent = "Sélectionner une certification";
     sel.appendChild(opt0);
 
-    // Uses existing certLibrary + loadCertLibrary()
-    if (!Array.isArray(certLibrary) || certLibrary.length === 0) loadCertLibrary();
-    if (Array.isArray(certLibrary)) {
-      certLibrary.forEach(c => {
-        if (!c) return;
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        sel.appendChild(opt);
-      });
+    const catalog = (typeof CERT_CATALOG !== "undefined" && CERT_CATALOG && CERT_CATALOG.agencies) ? CERT_CATALOG : null;
+    if (!catalog) {
+      if (Array.isArray(certLibrary)) {
+        for (const c of certLibrary) {
+          const s = String(c || "").trim();
+          if (!s) continue;
+          const o = document.createElement("option");
+          o.value = s;
+          o.textContent = s;
+          sel.appendChild(o);
+        }
+      }
+      const oAutre = document.createElement("option");
+      oAutre.value = "Autre";
+      oAutre.textContent = "Autre… (manuel)";
+      sel.appendChild(oAutre);
+      return;
     }
 
-    const optOther = document.createElement("option");
-    optOther.value = "Autre";
-    optOther.textContent = "Autre (manuel)";
-    sel.appendChild(optOther);
+    const pushCert = (agencyName, cert) => {
+      if (!cert || !cert.key || !cert.label) return;
+      const o = document.createElement("option");
+      o.value = `${agencyName}::${cert.key}`;
+      o.textContent = agency ? cert.label : `${agencyName} — ${cert.label}`;
+      o.dataset.agency = agencyName;
+      o.dataset.key = cert.key;
+      o.dataset.path = cert.path || "";
+      o.dataset.label = cert.label;
+      o.dataset.depthMax = (cert.depthMax != null) ? String(cert.depthMax) : "";
+      sel.appendChild(o);
+    };
+
+    if (agency && catalog.agencies[agency] && Array.isArray(catalog.agencies[agency].certs)) {
+      for (const cert of catalog.agencies[agency].certs) pushCert(agency, cert);
+    } else {
+      const agencies = Object.keys(catalog.agencies || {}).sort();
+      for (const ag of agencies) {
+        const a = catalog.agencies[ag];
+        if (!a || !Array.isArray(a.certs)) continue;
+        for (const cert of a.certs) pushCert(ag, cert);
+      }
+    }
+
+    const oAutre = document.createElement("option");
+    oAutre.value = "Autre";
+    oAutre.textContent = "Autre… (manuel)";
+    sel.appendChild(oAutre);
   }
+
+  // --- CERT CATALOG helpers (offline) ---
+  function populateAgencySelect(selectEl, currentValue) {
+    if (!selectEl) return;
+    const catalog = (typeof CERT_CATALOG !== "undefined" && CERT_CATALOG && CERT_CATALOG.agencies) ? CERT_CATALOG : null;
+
+    // reset
+    selectEl.innerHTML = "";
+    const o0 = document.createElement("option");
+    o0.value = "";
+    o0.textContent = "— Toutes / inconnue —";
+    selectEl.appendChild(o0);
+
+    if (!catalog) return;
+
+    const agencies = Object.keys(catalog.agencies || {}).sort();
+    for (const ag of agencies) {
+      const o = document.createElement("option");
+      o.value = ag;
+      o.textContent = ag;
+      selectEl.appendChild(o);
+    }
+
+    if (currentValue != null) {
+      const v = String(currentValue || "");
+      const has = Array.from(selectEl.options).some(o => o.value === v);
+      if (has) selectEl.value = v;
+    }
+  }
+
+  function getCertMetaFromSelect(sel) {
+    if (!sel) return null;
+    const v = String(sel.value || "");
+    if (!v || v === "Autre") return null;
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt) return null;
+
+    // value format: AGENCY::KEY
+    let agency = "";
+    let key = "";
+    const parts = v.split("::");
+    if (parts.length >= 2) {
+      agency = parts[0] || opt.dataset.agency || "";
+      key = parts.slice(1).join("::") || opt.dataset.key || "";
+    } else {
+      // fallback legacy
+      agency = opt.dataset.agency || "";
+      key = v;
+    }
+
+    return {
+      agency,
+      key,
+      path: opt.dataset.path || "",
+      label: String(opt.textContent || "").trim(),
+      depthMax: opt.dataset.depthMax ? Number(opt.dataset.depthMax) : null
+    };
+  }
+
+  function deriveAptitudeFromCatalog(agency, path, key) {
+    const catalog = (typeof CERT_CATALOG !== "undefined" && CERT_CATALOG && CERT_CATALOG.aptitudeByKey) ? CERT_CATALOG : null;
+    if (!catalog) return "";
+    if (!agency || !path || !key) return "";
+    return (catalog.aptitudeByKey?.[agency]?.[path]?.[key]) || "";
+  }
+
+  function applyDerivedAptitude(agencySelEl, certSelEl, aptSelEl) {
+    if (!certSelEl || !aptSelEl) return;
+
+    const meta = getCertMetaFromSelect(certSelEl);
+    if (!meta) return;
+
+    // If agency not selected, auto-set it from the chosen cert
+    if (agencySelEl && !String(agencySelEl.value || "").trim() && meta.agency) {
+      const has = Array.from(agencySelEl.options).some(o => o.value === meta.agency);
+      if (has) agencySelEl.value = meta.agency;
+    }
+
+    const agency = agencySelEl ? String(agencySelEl.value || "").trim() : meta.agency;
+    const apt = deriveAptitudeFromCatalog(agency, meta.path, meta.key);
+    if (!apt) return;
+
+    const hasOpt = Array.from(aptSelEl.options).some(o => o.value === apt);
+    if (hasOpt) {
+      aptSelEl.value = apt;
+      const man = document.getElementById(aptSelEl.id.replace("_select", "_manual"));
+      if (man) man.value = "";
+      // keep manual toggle coherent if present
+      try {
+        if (aptSelEl.id.startsWith("add_")) toggleAddDiverManualFields();
+        if (aptSelEl.id.startsWith("edit_")) toggleEditDiverManualFields();
+      } catch (e) {}
+    }
+  }
+
+
 
   
   // DATALIST autocomplete for edit diver (same UX as DP)
@@ -3748,6 +3981,8 @@ function getDiverById(diverId) {
     const aptMan = document.getElementById("edit_diver_aptitude_manual");
     const certSel= document.getElementById("edit_diver_cert_select");
     const certMan= document.getElementById("edit_diver_cert_manual");
+    const agencySel = document.getElementById("edit_diver_agency_select");
+    const agencyEl = document.getElementById("edit_diver_agency_select");
 
     if (nameEl) nameEl.value = diver.name || "";
     if (licEl)  licEl.value  = diver.licence || "";
@@ -3767,19 +4002,48 @@ function getDiverById(diverId) {
       }
     }
 
+   const diverAgency = String(diver.agency || "").trim();
+   if (agencySel) {
+     const hasOpt = Array.from(agencySel.options).some(o => o.value === diverAgency);
+     agencySel.value = (diverAgency && hasOpt) ? diverAgency : "";
+   }
+   // refresh cert options according to agency
+   populateEditDiverCertSelect();
+
    const parsed = parseCertMainAndQualifs(diver.cert);
    const cert = String(parsed.main || "").trim();
 
    if (certSel) {
-     const hasOpt = Array.from(certSel.options).some(o => o.value === cert);
+     // Prefer stored key/path if present
+     const storedAgency = String(diver.agency || "").trim();
+     const storedKey = String(diver.certKey || "").trim();
 
-     if (cert && hasOpt) {
-       certSel.value = cert;
-       if (certMan) certMan.value = "";
-     } else if (cert) {
+     let selected = false;
+
+     if (storedAgency && storedKey) {
+       const v = `${storedAgency}::${storedKey}`;
+       const has = Array.from(certSel.options).some(o => o.value === v);
+       if (has) {
+         certSel.value = v;
+         selected = true;
+         if (certMan) certMan.value = "";
+       }
+     }
+
+     // Fallback: match by label
+     if (!selected && cert) {
+       const opt = Array.from(certSel.options).find(o => (o.dataset && o.dataset.label === cert));
+       if (opt) {
+         certSel.value = opt.value;
+         selected = true;
+         if (certMan) certMan.value = "";
+       }
+     }
+
+     if (!selected && cert) {
        certSel.value = "Autre";
        if (certMan) certMan.value = cert;
-     } else {
+     } else if (!cert) {
        certSel.value = "";
        if (certMan) certMan.value = "";
      }
@@ -3790,6 +4054,11 @@ function getDiverById(diverId) {
    const qNC = document.getElementById("edit_diver_qual_nitrox_confirmed");
    if (qN)  qN.checked  = !!parsed.nitrox;
    if (qNC) qNC.checked = !!parsed.nitroxConf;
+
+    // auto-aptitude from catalog only if diver has no aptitude
+    if (!String(diver.aptitudes || "").trim()) {
+      applyDerivedAptitude(agencySel, certSel, aptSel);
+    }
 
     toggleEditDiverManualFields();
     setEditDiverStatus("");
@@ -3844,14 +4113,32 @@ function getDiverById(diverId) {
       else newApt = String(aptSel.value || "").trim();
     }
 
+    let agency = agencyEl ? String(agencyEl.value || "").trim() : "";
+
     let newCert = "";
+    let certKey = "";
+    let certPath = "";
+
     if (certSel) {
-      if (certSel.value === "Autre") newCert = certMan ? String(certMan.value || "").trim() : "";
-      else newCert = String(certSel.value || "").trim();
+      const v = String(certSel.value || "").trim();
+      if (v === "Autre") {
+        newCert = certMan ? String(certMan.value || "").trim() : "";
+      } else if (v) {
+        const meta = getCertMetaFromSelect(certSel);
+        if (meta) {
+          newCert = meta.label || "";
+          certKey = meta.key || "";
+          certPath = meta.path || "";
+          if (!agency && meta.agency) agency = meta.agency;
+        } else {
+          // legacy fallback (value is the label)
+          newCert = v;
+        }
+      }
     }
 
     // If manual cert: enrich library using existing saveCertLibrary()
-    if (newCert && Array.isArray(certLibrary)) {
+    if (newCert && Array.isArray(certLibrary) && certSel && String(certSel.value || "") === "Autre") {
       const has = certLibrary.some(c => String(c).trim() === newCert);
       if (!has) {
         certLibrary.push(newCert);
@@ -3871,6 +4158,9 @@ function getDiverById(diverId) {
     diver.licence = newLicence;
     diver.aptitudes = newApt;
     diver.cert = newCert;
+    diver.agency = agency;
+    diver.certKey = certKey;
+    diver.certPath = certPath;
 
     normalizeDiverRecord(diver);
 
@@ -11183,6 +11473,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // --- Diver library: Add diver UI (aligned with FICHE_PLONGÉE) ---
+    const addAgencySel = document.getElementById("add_diver_agency_select");
+    populateAgencySelect(addAgencySel);
+
     populateAddDiverCertSelect();
     toggleAddDiverManualFields();
 
@@ -11196,6 +11489,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (addBtn && formEl) {
       addBtn.addEventListener("click", function () {
         formEl.style.display = (formEl.style.display === "none" || !formEl.style.display) ? "block" : "none";
+      // fermer l’autre formulaire (édition) pour éviter les doubles cadres
+      const other = document.getElementById("edit-diver-form");
+      if (other) other.style.display = "none";
         setAddDiverStatus("");
       });
     }
@@ -11213,9 +11509,17 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
+    if (addAgencySel) {
+      addAgencySel.addEventListener("change", function () {
+        populateAddDiverCertSelect();
+        toggleAddDiverManualFields();
+      });
+    }
+
     if (certSel) {
       certSel.addEventListener("change", function () {
         toggleAddDiverManualFields();
+        applyDerivedAptitude(addAgencySel, certSel, aptSel);
       });
     }
     if (aptSel) {
@@ -11233,12 +11537,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const editCertSel = document.getElementById("edit_diver_cert_select");
     const editAptSel  = document.getElementById("edit_diver_aptitude_select");
 
+    const editAgencySel = document.getElementById("edit_diver_agency_select");
+    populateAgencySelect(editAgencySel);
+
     populateEditDiverCertSelect();
     toggleEditDiverManualFields();
 
     if (editBtn && editFormEl) {
       editBtn.addEventListener("click", function () {
         editFormEl.style.display = (editFormEl.style.display == "none" || !editFormEl.style.display) ? "block" : "none";
+        // fermer l’autre formulaire (ajout) pour éviter les doubles cadres
+        const other = document.getElementById("add-diver-form");
+        if (other) other.style.display = "none";
         setEditDiverStatus("");
         if (editFormEl.style.display === "block") {
           
@@ -11274,7 +11584,19 @@ document.addEventListener("DOMContentLoaded", function () {
       editSearchEl.addEventListener("blur", _tryPick);
     }
 
-    if (editCertSel) editCertSel.addEventListener("change", toggleEditDiverManualFields);
+    if (editAgencySel) {
+      editAgencySel.addEventListener("change", function () {
+        populateEditDiverCertSelect();
+        toggleEditDiverManualFields();
+      });
+    }
+
+    if (editCertSel) {
+      editCertSel.addEventListener("change", function () {
+        toggleEditDiverManualFields();
+        applyDerivedAptitude(editAgencySel, editCertSel, editAptSel);
+      });
+    }
     if (editAptSel)  editAptSel.addEventListener("change", toggleEditDiverManualFields);
 
     if (editConfirmBtn) {
@@ -12114,5 +12436,4 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
 </body>
 </html>
-
 
