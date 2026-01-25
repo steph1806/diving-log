@@ -2275,14 +2275,21 @@
 
     </div>
 
-    <div id="add-diver-form" class="add-diver-form" style="display:none;">
-      <div class="row">
-        <div class="field" style="flex:1;">
-          <label for="add_diver_name">Nom</label>
-          <input type="text" id="add_diver_name" placeholder="Nom du plongeur">
-        </div>  
-      </div>
 
+
+<div id="add-diver-form" class="add-diver-form" style="display:none; margin-top:10px;">
+     <div class="row">
+       <div class="field">
+         <label for="add_diver_name">Nom</label>
+          <input type="text" id="add_diver_name" placeholder="Nom du plongeur">
+        </div>
+
+        <div class="field" style="flex:1;">
+          <label for="add_diver_licence">N° licence</label>
+         <input type="text" id="add_diver_licence" placeholder="Licence">
+        </div>
+     </div>
+      
 
       <div class="row">
         <div class="field" style="flex:1;">
@@ -2358,6 +2365,7 @@
 
       <div id="add-diver-status" class="status-text" style="margin-top:6px;"></div>
     </div>
+
 
     <div id="edit-diver-form" class="add-diver-form" style="display:none; margin-top:10px;">
       <div class="row">
@@ -3602,6 +3610,7 @@ function populateAddDiverCertSelect() {
 
   function addDiverToLibraryFromForm() {
     const nameEl = document.getElementById("add_diver_name");
+    const licEl  = document.getElementById("add_diver_licence");
     const certSel = document.getElementById("add_diver_cert_select");
     const certManual = document.getElementById("add_diver_cert_manual");
     const aptSel = document.getElementById("add_diver_aptitude_select");
@@ -3612,6 +3621,7 @@ function populateAddDiverCertSelect() {
       setAddDiverStatus("Nom obligatoire.");
       return;
     }
+    const licence = licEl ? String(licEl.value || "").trim() : "";
 
     const nkey = normalizeName(name);
     if (!Array.isArray(diverLibrary)) diverLibrary = [];
@@ -3666,7 +3676,7 @@ function populateAddDiverCertSelect() {
    const diver = {
      id: "d_" + Date.now() + "_" + Math.random().toString(36).slice(2),
      name: name,
-     licence: "",
+     licence: licence,
      agency: agency,
      certKey: certKey,
      certPath: certPath,
@@ -3696,6 +3706,7 @@ function populateAddDiverCertSelect() {
     if (agencyEl) agencyEl.value = "";
     populateAddDiverCertSelect();
     if (certSel) certSel.value = "";
+    if (licEl) licEl.value = "";
     if (certManual) certManual.value = "";
     if (aptSel) aptSel.value = "";
     if (aptManual) aptManual.value = "";
@@ -9920,8 +9931,18 @@ function closePdfPreview() {
   if (secAfter)     secAfter.style.display     = "none";
   if (secBefore)    secBefore.style.display    = "";
 
-  // STEP 1: positionner l'affichage au début de la page
-  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  // STEP 1: positionner l'affichage sur le titre de section AVANT (anchor stable)
+  const beforeAnchor =
+    document.getElementById("before_date_title") ||
+    document.getElementById("sec-before-group");
+
+  requestAnimationFrame(() => {
+    try {
+      if (beforeAnchor && typeof beforeAnchor.scrollIntoView === "function") {
+        beforeAnchor.scrollIntoView({ block: "start", behavior: "auto" });
+      }
+    } catch (e) {}
+  });
 
   // n'afficher que le bouton "Retour" AVANT
   if (beforeBackBtn) beforeBackBtn.style.display = "inline-flex";
