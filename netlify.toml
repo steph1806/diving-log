@@ -2,11 +2,6 @@
   functions = "netlify/functions"
   publish = "."
 
-# ✅ laisser passer les functions
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
 
 # ✅ SPA fallback en dernier
 [[redirects]]
