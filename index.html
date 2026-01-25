@@ -2751,8 +2751,9 @@
       ← Retour aux groupes
     </button>
   </div>
-</section>
 </div>
+</section>
+
 <section class="section" id="sec-after-group" style="display:none;">
   <div class="section-title">
     Programme du jour – Après la plongée
@@ -2873,13 +2874,14 @@
         <button type="button" class="btn" id="btn_qr_scan_stop">Stop</button>
         <button type="button" class="btn" id="btn_qr_scan_photo">Photo</button>
         <input type="file" id="qr_scan_file" accept="image/*" style="display:none;">
-        <div id="qr_scan_modal_status" style="margin-top:8px; font-size:13px; color:#0b3a7a; font-weight:700;"></div>
+        <div id="qr_scan_cam_status" style="margin-top:8px; font-size:13px; color:#0b3a7a; font-weight:700;"></div>
       </div>
     </div>
 
     <div style="margin-top:6px;">
       <div style="font-weight:700; margin:8px 0 6px;">Import manuel</div>
-      <textarea id="qr_scan_text" rows="5" style="width:100%; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px;" placeholder='{"type":"diver","firstName":"Jean","lastName":"Dupont","aptitude":"PA60","certification":"FFESSM N3","license":"12345"}'></textarea>
+      <textarea id="qr_scan_text" rows="5" style="width:100%; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px;"> {"type":"diver","firstName":"Jean","lastName":"Dupont","aptitude":"PA60","certification":"FFESSM N3","license":"12345"}
+</textarea>
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
         <button type="button" class="btn btn-primary" id="btn_qr_scan_import">Importer</button>
         <button type="button" class="btn" id="btn_qr_scan_clear">Effacer</button>
