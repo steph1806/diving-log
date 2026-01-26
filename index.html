@@ -3090,13 +3090,21 @@ async function triggerPwaInstall(){
 }
 
 function checkStandaloneThenOpenCenterSetup(){
-  // If user is now in standalone context, proceed to center setup
+  // Desktop (Mac/Windows) or non-iOS: allow direct setup (no iOS storage split issue)
+  if (!isIOS()){
+    closeInstallGate();
+    openCenterSetupModal(false);
+    return;
+  }
+
+  // iOS: only allow setup once we are in standalone context
   if (isStandaloneMode()){
     closeInstallGate();
     openCenterSetupModal(false);
     return;
   }
-  // Still not standalone -> keep gate visible (no center modal in Safari)
+
+  // Still in Safari iOS -> keep gate visible
   openInstallGate();
 }
 
@@ -12502,16 +12510,16 @@ document.addEventListener("DOMContentLoaded", ()=> {
       const __hasCenter = (__cfg && __cfg.name && __cfg.id);
 
       if (!__hasCenter) {
-        // Critical: on iOS, do NOT open center setup in Safari (storage split).
-        // Force install-first gate unless we are already standalone.
-        if (!isStandaloneMode()) {
+        // iOS only: force install-first gate to avoid Safari vs Home Screen double setup
+        if (isIOS() && !isStandaloneMode()) {
           openInstallGate();
           return;
         }
-  // Standalone => safe to configure once in the correct container
-  openCenterSetupModal(false);
-  return;
-}
+        // Non-iOS (Mac/Android browser) OR iOS standalone: allow center setup
+        openCenterSetupModal(false);
+        return;
+      }
+
     if (!window.__dlog_inited) {
       window.__dlog_inited = true;
       try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
