@@ -2142,15 +2142,18 @@
   </div>
 </div>
 
+<!-- =======================
+     INSTALL GATE (universal)
+     ======================= -->
 <div id="installGateModal" class="modal-overlay" style="display:none;">
   <div class="modal-card" style="max-width:560px; width:100%; padding:16px;">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
       <div style="font-weight:900; font-size:16px; color:#0b3c5d;">Installer l’app</div>
-      <button type="button" class="btn btn-secondary" onclick="closeInstallGate()">Fermer</button>
+      <button type="button" class="btn btn-secondary" id="btnInstallGateClose" style="padding:8px 12px;">Fermer</button>
     </div>
 
     <div style="font-size:14px; line-height:1.45; color:#0b3c5d; margin-bottom:10px;">
-      Pour sécuriser le centre et éviter une double configuration (iPhone/iPad), installe l’app puis reviens l’ouvrir depuis l’icône.
+      Pour un fonctionnement fiable (et éviter les problèmes iPhone/iPad), installe l’app puis continue.
     </div>
 
     <div id="installGate_ios" style="display:none; padding:10px; border-radius:10px; background:#f3f7fb; color:#0b3c5d; margin-bottom:10px;">
@@ -2161,16 +2164,19 @@
     </div>
 
     <div id="installGate_android" style="display:none; padding:10px; border-radius:10px; background:#f3f7fb; color:#0b3c5d; margin-bottom:10px;">
-      <div style="font-weight:800; margin-bottom:6px;">Android</div>
-      <div>Installe l’app puis ouvre-la depuis l’icône.</div>
+      <div style="font-weight:800; margin-bottom:6px;">Android / Tablettes</div>
+      <div>Installe l’app (si proposé), puis ouvre depuis l’icône.</div>
+      <div style="opacity:.85;font-size:12px;margin-top:6px;">Sinon : menu ⋮ du navigateur → “Installer l’application”.</div>
+    </div>
+
+    <div id="installGate_desktop" style="display:none; padding:10px; border-radius:10px; background:#f3f7fb; color:#0b3c5d; margin-bottom:10px;">
+      <div style="font-weight:800; margin-bottom:6px;">Mac / Desktop</div>
+      <div>Vous pouvez continuer dans le navigateur.</div>
     </div>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-      <button id="btnInstallApp" type="button" class="btn btn-primary" style="display:none;"
-        onclick="triggerPwaInstall()">Installer maintenant</button>
-
-      <button type="button" class="btn btn-primary"
-        onclick="checkStandaloneThenOpenCenterSetup()">J’ai installé / Ouvrir l’app</button>
+      <button id="btnInstallNow" type="button" class="btn btn-primary" style="display:none;">Installer maintenant</button>
+      <button id="btnInstallContinue" type="button" class="btn btn-primary">Continuer</button>
     </div>
   </div>
 </div>
@@ -3035,87 +3041,90 @@
     return false;
   }
 
-// ============================
-// Install-first gate (iOS/Android)
-// ============================
-function isStandaloneMode(){
-  try {
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-    // iOS Safari legacy flag when launched from home screen
-    if (window.navigator && window.navigator.standalone) return true;
-  } catch(e) {}
-  return false;
-}
+  // =======================
+  // Install Gate (universal)
+  // =======================
+  let __deferredPwaInstallPrompt = null;
 
-function isIOS(){
-  const ua = navigator.userAgent || "";
-  return /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-}
-
-function openInstallGate(){
-  const m = document.getElementById("installGateModal");
-  if (!m) return;
-
-  // Toggle iOS/Android help
-  const iosBox = document.getElementById("installGate_ios");
-  const andBox = document.getElementById("installGate_android");
-  if (iosBox) iosBox.style.display = isIOS() ? "block" : "none";
-  if (andBox) andBox.style.display = isIOS() ? "none" : "block";
-
-  // Show install button only if we captured beforeinstallprompt (Android/Chrome)
-  const btn = document.getElementById("btnInstallApp");
-  if (btn) btn.style.display = window.__deferredPWAInstallPrompt ? "inline-block" : "none";
-
-  m.style.display = "flex";
-}
-
-function closeInstallGate(){
-  const m = document.getElementById("installGateModal");
-  if (m) m.style.display = "none";
-}
-
-async function triggerPwaInstall(){
-  const p = window.__deferredPWAInstallPrompt;
-  if (!p) return;
-  try {
-    p.prompt();
-    await p.userChoice;
-  } catch(e) {
-    console.warn("install prompt failed", e);
-  } finally {
-    window.__deferredPWAInstallPrompt = null;
-    const btn = document.getElementById("btnInstallApp");
-    if (btn) btn.style.display = "none";
+  function isIOS(){
+    const ua = navigator.userAgent || "";
+    return /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
   }
-}
+  function isAndroid(){
+    const ua = navigator.userAgent || "";
+    return /Android/i.test(ua);
+  }
+  function isStandaloneMode(){
+    try {
+      if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+      if (window.navigator && window.navigator.standalone) return true; // iOS legacy
+    } catch(e) {}
+    return false;
+  }
 
-function checkStandaloneThenOpenCenterSetup(){
-  // Desktop (Mac/Windows) or non-iOS: allow direct setup (no iOS storage split issue)
-  if (!isIOS()){
+  function openInstallGate(){
+    // Ensure splash is not blocking interactions
+    try {
+      const __s = document.getElementById('app_splash');
+      if (__s){ __s.classList.add('hide'); __s.style.pointerEvents='none'; __s.style.display='none'; }
+    } catch(e) {}
+
+    const m = document.getElementById("installGateModal");
+    if (!m) return;
+
+    const boxIOS = document.getElementById("installGate_ios");
+    const boxA   = document.getElementById("installGate_android");
+    const boxD   = document.getElementById("installGate_desktop");
+
+    const isi = isIOS();
+    const isa = isAndroid();
+
+    if (boxIOS) boxIOS.style.display = isi ? "block" : "none";
+    if (boxA)   boxA.style.display   = (!isi && isa) ? "block" : "none";
+    if (boxD)   boxD.style.display   = (!isi && !isa) ? "block" : "none";
+
+    const btnInstall = document.getElementById("btnInstallNow");
+    if (btnInstall) btnInstall.style.display = __deferredPwaInstallPrompt ? "inline-block" : "none";
+
+    m.style.display = "flex";
+  }
+
+  function closeInstallGate(){
+    const m = document.getElementById("installGateModal");
+    if (m) m.style.display = "none";
+  }
+
+  async function triggerPwaInstall(){
+    if (!__deferredPwaInstallPrompt) return;
+    try {
+      __deferredPwaInstallPrompt.prompt();
+      await __deferredPwaInstallPrompt.userChoice;
+    } catch(e) {
+      console.warn("PWA install prompt failed:", e);
+    } finally {
+      __deferredPwaInstallPrompt = null;
+      const btnInstall = document.getElementById("btnInstallNow");
+      if (btnInstall) btnInstall.style.display = "none";
+    }
+  }
+
+  function continueAfterInstallGate(){
+    // iOS Safari: user must be in standalone (home screen) to avoid double setup
+    if (isIOS() && !isStandaloneMode()){
+      openInstallGate(); // keep visible
+      return;
+    }
     closeInstallGate();
     openCenterSetupModal(false);
-    return;
   }
 
-  // iOS: only allow setup once we are in standalone context
-  if (isStandaloneMode()){
-    closeInstallGate();
-    openCenterSetupModal(false);
-    return;
-  }
-
-  // Still in Safari iOS -> keep gate visible
-  openInstallGate();
-}
-
-// Capture Android install prompt
-window.addEventListener("beforeinstallprompt", (e) => {
-  try {
-    e.preventDefault();
-    window.__deferredPWAInstallPrompt = e;
-  } catch(_) {}
-});
-
+  // Android install prompt capture (Chrome/Edge)
+  window.addEventListener("beforeinstallprompt", (e) => {
+    try {
+      e.preventDefault();
+      __deferredPwaInstallPrompt = e;
+    } catch(_) {}
+  });
 
   function lockCenterIdInput(lock){
     const el = document.getElementById("center_id_input");
@@ -12473,6 +12482,18 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
     saveCenterCfg({ name, id, boatsN });
     closeCenterSetupModal();
+
+  // =========================
+  // Install Gate wiring
+  // =========================
+  const igClose = document.getElementById("btnInstallGateClose");
+  if (igClose) igClose.addEventListener("click", closeInstallGate);
+
+  const igInstall = document.getElementById("btnInstallNow");
+  if (igInstall) igInstall.addEventListener("click", triggerPwaInstall);
+
+  const igContinue = document.getElementById("btnInstallContinue");
+  if (igContinue) igContinue.addEventListener("click", continueAfterInstallGate);
     refreshCenterDisplay();
 
     // Init app once center is configured
@@ -12505,18 +12526,13 @@ document.addEventListener("DOMContentLoaded", ()=> {
       }
     } catch(e) { console.warn('splash kill', e); }
 
-        // Gate app init on center cfg
+       // Gate app init on center cfg
       const __cfg = loadCenterCfg();
       const __hasCenter = (__cfg && __cfg.name && __cfg.id);
 
       if (!__hasCenter) {
-        // iOS only: force install-first gate to avoid Safari vs Home Screen double setup
-        if (isIOS() && !isStandaloneMode()) {
-          openInstallGate();
-          return;
-        }
-        // Non-iOS (Mac/Android browser) OR iOS standalone: allow center setup
-        openCenterSetupModal(false);
+        // Universal rule: everyone sees Install screen first
+        openInstallGate();
         return;
       }
 
