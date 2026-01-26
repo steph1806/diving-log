@@ -2149,7 +2149,7 @@
   <div class="modal-card" style="max-width:560px; width:100%; padding:16px;">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
       <div style="font-weight:900; font-size:16px; color:#0b3c5d;">Installer l’app</div>
-      <button type="button" class="btn btn-secondary" id="btnInstallGateClose" style="padding:8px 12px;">Fermer</button>
+      <button type="button" class="btn btn-secondary" onclick="closeInstallGate()">Fermer</button>
     </div>
 
     <div style="font-size:14px; line-height:1.45; color:#0b3c5d; margin-bottom:10px;">
@@ -2175,8 +2175,8 @@
     </div>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-      <button id="btnInstallNow" type="button" class="btn btn-primary" style="display:none;">Installer maintenant</button>
-      <button id="btnInstallContinue" type="button" class="btn btn-primary">Continuer</button>
+    <button id="btnInstallNow" type="button" class="btn btn-primary" style="display:none;" onclick="triggerPwaInstall()">Installer maintenant</button>
+     <button type="button" class="btn btn-primary" onclick="continueAfterInstallGate()">Continuer</button>
     </div>
   </div>
 </div>
@@ -3061,6 +3061,8 @@
     } catch(e) {}
     return false;
   }
+
+
 
   function openInstallGate(){
     // Ensure splash is not blocking interactions
@@ -12483,17 +12485,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
     saveCenterCfg({ name, id, boatsN });
     closeCenterSetupModal();
 
-  // =========================
-  // Install Gate wiring
-  // =========================
-  const igClose = document.getElementById("btnInstallGateClose");
-  if (igClose) igClose.addEventListener("click", closeInstallGate);
-
-  const igInstall = document.getElementById("btnInstallNow");
-  if (igInstall) igInstall.addEventListener("click", triggerPwaInstall);
-
-  const igContinue = document.getElementById("btnInstallContinue");
-  if (igContinue) igContinue.addEventListener("click", continueAfterInstallGate);
+ 
     refreshCenterDisplay();
 
     // Init app once center is configured
