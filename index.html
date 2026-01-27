@@ -2142,54 +2142,6 @@
   </div>
 </div>
 
-<!-- =======================
-     INSTALL GATE (UNIVERSAL)
-     ======================= -->
-<div id="installGateModal" class="modal-overlay" style="display:none;">
-  <div class="modal-card" style="max-width:560px;width:100%;padding:16px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div style="font-weight:900;font-size:16px;color:#0b3c5d;">
-        Installer l’app
-      </div>
-      <button class="btn btn-secondary" onclick="closeInstallGate()">Fermer</button>
-    </div>
-
-    <div style="font-size:14px;color:#0b3c5d;margin-bottom:10px;">
-      Pour un fonctionnement fiable et sécurisé, installe l’app avant de continuer.
-    </div>
-
-    <div id="installGate_ios" style="display:none;padding:10px;border-radius:8px;background:#f3f7fb;margin-bottom:10px;">
-      <b>iPhone / iPad</b><br>
-      1) Bouton <b>Partager</b><br>
-      2) <b>Sur l’écran d’accueil</b><br>
-      3) Ouvre l’app depuis l’icône
-    </div>
-
-    <div id="installGate_android" style="display:none;padding:10px;border-radius:8px;background:#f3f7fb;margin-bottom:10px;">
-      <b>Android</b><br>
-      Installe l’app si proposé, sinon menu ⋮ → Installer l’application.
-    </div>
-
-    <div id="installGate_mac" style="display:none;padding:10px;border-radius:8px;background:#f3f7fb;margin-bottom:10px;">
-      <b>Mac</b><br>
-      “Ajouter au Dock” est recommandé, mais pas obligatoire.
-    </div>
-
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button id="btnInstallNow"
-              class="btn btn-primary"
-              style="display:none;"
-              onclick="triggerPwaInstall()">
-        Installer maintenant
-      </button>
-
-      <button class="btn btn-primary"
-              onclick="continueAfterInstallGate()">
-        Continuer
-      </button>
-    </div>
-  </div>
-</div>
 
   <!-- Splash (logo plein écran 200ms) -->
   <div id="app_splash" aria-hidden="true">
@@ -2948,6 +2900,74 @@
 </div>
 <!-- /QR SCAN MODAL -->
 
+<!-- =======================
+     INSTALL ASSISTANT (PWA install gate)
+     ======================= -->
+<div id="installGateModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,.75); align-items:center; justify-content:center; padding:16px;">
+  <div style="width:min(720px,100%); background:#0e1622; color:#eaf2ff; border-radius:14px; border:1px solid rgba(255,255,255,.12); box-shadow:0 16px 60px rgba(0,0,0,.45); overflow:hidden;">
+    <div style="padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.12); display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+      <div>
+        <div style="font-weight:900; font-size:18px;">Installer l’app Ocean Infinity</div>
+        <div style="opacity:.9; margin-top:4px;">
+          <b>Pour configurer votre centre, l’app doit être installée.</b><br/>
+          Une fois installée, ouvrez l’app depuis l’icône puis continuez.
+        </div>
+      </div>
+      <button type="button" class="btn" id="btnInstallGateClose" style="white-space:nowrap;">Fermer</button>
+    </div>
+
+    <div style="padding:14px 16px;">
+
+      <!-- iPhone / iPad -->
+      <div id="installGate_ios" style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
+        <div style="font-weight:800; margin-bottom:6px;">iPhone / iPad</div>
+        <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
+          <li>Touchez <b>Partager</b> (⬆︎)</li>
+          <li>Choisissez <b>Sur l’écran d’accueil</b></li>
+          <li>Fermez Safari</li>
+          <li>Ouvrez <b>Ocean Infinity</b> depuis l’icône</li>
+        </ol>
+        <div style="font-size:12px; opacity:.75;">Si vous ne voyez pas “Sur l’écran d’accueil”, faites défiler la liste.</div>
+      </div>
+
+      <!-- Mac -->
+      <div id="installGate_mac" style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
+        <div style="font-weight:800; margin-bottom:6px;">Mac</div>
+        <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
+          <li>Cliquez <b>Partager</b></li>
+          <li>Choisissez <b>Ajouter au Dock</b></li>
+          <li>Fermez l’onglet Safari</li>
+          <li>Ouvrez <b>Ocean Infinity</b> depuis l’icône du Dock</li>
+        </ol>
+        <div style="font-size:12px; opacity:.75;">L’installation est requise pour éviter les doublons et garantir la sécurité.</div>
+      </div>
+
+      <!-- Android -->
+      <div id="installGate_android" style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
+        <div style="font-weight:800; margin-bottom:6px;">Android (téléphone / tablette)</div>
+        <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
+          <li>Appuyez sur <b>⋮ Menu</b></li>
+          <li>Choisissez <b>Installer l’application</b></li>
+          <li>Ouvrez <b>Ocean Infinity</b> depuis l’icône</li>
+        </ol>
+        <div style="font-size:12px; opacity:.75;">Si “Installer maintenant” n’apparaît pas, utilisez le menu ⋮.</div>
+      </div>
+
+      <div id="installGateError" style="display:none; margin-top:10px; padding:10px; border-radius:10px; background:rgba(255,80,80,.12); border:1px solid rgba(255,80,80,.25); color:#ffd6d6;">
+        <b>Installation non détectée.</b><br/>
+        Ouvrez Ocean Infinity depuis l’icône (Écran d’accueil / Dock), puis réessayez.
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+        <button type="button" class="btn btn-primary" id="btnInstallNow" style="display:none;">Installer maintenant</button>
+        <button type="button" class="btn btn-primary" id="btnInstalledCheck">J’ai ouvert l’app depuis l’icône</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- /INSTALL ASSISTANT -->
+
 </div> <!-- /container -->
 
 <!-- Librairies pour capture HTML → PDF -->
@@ -3057,11 +3077,9 @@
 function isIOS(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent || "");
 }
-
 function isAndroid(){
   return /Android/.test(navigator.userAgent || "");
 }
-
 function isStandaloneMode(){
   try {
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
@@ -3078,6 +3096,10 @@ let deferredPwaInstallPrompt = null;
 function openInstallGate(){
   const m = document.getElementById("installGateModal");
   if (!m) return;
+
+  // reset error
+  const err = document.getElementById("installGateError");
+  if (err) err.style.display = "none";
 
   const iosBox = document.getElementById("installGate_ios");
   const aBox   = document.getElementById("installGate_android");
@@ -3104,9 +3126,7 @@ async function triggerPwaInstall(){
   const p = deferredPwaInstallPrompt; // snapshot stable
   try {
     p.prompt();
-    if (p.userChoice) {
-      await p.userChoice;
-    }
+    if (p.userChoice) await p.userChoice;
   } catch(e) {
     console.warn("install prompt failed", e);
   } finally {
@@ -3116,30 +3136,20 @@ async function triggerPwaInstall(){
   }
 }
 
-function continueAfterInstallGate(){
-  // iOS Safari strict: block until standalone
-  if (isIOS() && !isStandaloneMode()){
+function validateInstalledOrShowError(){
+  if (!isStandaloneMode()){
+    const err = document.getElementById("installGateError");
+    if (err) err.style.display = "block";
     openInstallGate();
-    return;
+    return false;
   }
-  closeInstallGate();
-  openCenterSetupModal(false);
+  return true;
 }
 
-// Android Chrome install prompt capture
-window.addEventListener("beforeinstallprompt", (e) => {
-  try {
-    e.preventDefault();
-    deferredPwaInstallPrompt = e;
-  } catch(_) {}
-});
-
-// expose for onclick safety
+// Expose (onclick safety if needed later)
 window.openInstallGate = openInstallGate;
 window.closeInstallGate = closeInstallGate;
 window.triggerPwaInstall = triggerPwaInstall;
-window.continueAfterInstallGate = continueAfterInstallGate;
-
 
 
   function lockCenterIdInput(lock){
@@ -12475,7 +12485,13 @@ document.addEventListener("DOMContentLoaded", ()=> {
   };
 
   const btnCfg = document.getElementById("btn_center_setup");
-  if (btnCfg) btnCfg.addEventListener("click", () => { openCenterSetupModal(false); });
+  if (btnCfg) btnCfg.addEventListener("click", () => {
+    if (!isStandaloneMode()){
+      openInstallGate();
+      return;
+    }
+    openCenterSetupModal(false);
+  });
 
   const btnClose = document.getElementById("btnCenterSetupClose");
   if (btnClose) btnClose.addEventListener("click", () => { closeCenterSetupModal(); refreshCenterDisplay(); });
@@ -12509,6 +12525,31 @@ document.addEventListener("DOMContentLoaded", ()=> {
     }
   });
 
+// =========================
+// Install assistant wiring  ← STEP 3 ICI
+// =========================
+const btnGateClose = document.getElementById("btnInstallGateClose");
+if (btnGateClose) btnGateClose.addEventListener("click", closeInstallGate);
+
+const btnInstalled = document.getElementById("btnInstalledCheck");
+if (btnInstalled) btnInstalled.addEventListener("click", () => {
+  if (!validateInstalledOrShowError()) return;
+  closeInstallGate();
+  openCenterSetupModal(false);
+});
+
+const btnInstallNow = document.getElementById("btnInstallNow");
+if (btnInstallNow) btnInstallNow.addEventListener("click", triggerPwaInstall);
+
+// Android install prompt capture
+window.addEventListener("beforeinstallprompt", (e) => {
+  try {
+    e.preventDefault();
+    deferredPwaInstallPrompt = e;
+    const b = document.getElementById("btnInstallNow");
+    if (b) b.style.display = "inline-block";
+  } catch(_) {}
+});
   refreshCenterDisplay();
 
   // =========================
@@ -12530,15 +12571,18 @@ document.addEventListener("DOMContentLoaded", ()=> {
       }
     } catch(e) { console.warn('splash kill', e); }
 
-      // Gate app init on center cfg
-    const cfg = loadCenterCfg();
-    const hasCenter = (cfg && cfg.name && cfg.id);
-
-    if (!hasCenter) {
-      // universal: show installer first, do not open center automatically
+    // Gate 0: require installed (standalone) before ANY center configuration
+    if (!isStandaloneMode()){
       openInstallGate();
       return;
     }
+
+    // Gate 1: require center cfg once installed
+    if (!ensureCenterCfgOrPrompt()) {
+      // init will be triggered after save
+      return;
+    }
+
     if (!window.__dlog_inited) {
       window.__dlog_inited = true;
       try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
