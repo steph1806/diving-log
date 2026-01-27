@@ -2918,28 +2918,48 @@
 
     <div style="padding:14px 16px;">
 
-      <!-- iPhone / iPad -->
-      <div id="installGate_ios" style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
+     <!-- iPhone / iPad -->
+      <div id="installGate_ios"
+           style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
         <div style="font-weight:800; margin-bottom:6px;">iPhone / iPad</div>
+
         <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
-          <li>Touchez <b>Partager</b> (⬆︎)</li>
-          <li>Choisissez <b>Sur l’écran d’accueil</b></li>
+          <li>Touchez <b>…</b> (menu Safari)</li>
+          <li>Sélectionnez <b>Ajouter à l’écran d’accueil</b></li>
           <li>Fermez Safari</li>
           <li>Ouvrez <b>Ocean Infinity</b> depuis l’icône</li>
         </ol>
-        <div style="font-size:12px; opacity:.75;">Si vous ne voyez pas “Sur l’écran d’accueil”, faites défiler la liste.</div>
+
+        <div style="font-size:12px; opacity:.75;">
+          Si “Ajouter à l’écran d’accueil” n’apparaît pas, faites défiler la liste.
+        </div>
       </div>
 
       <!-- Mac -->
-      <div id="installGate_mac" style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
+      <div id="installGate_mac"
+     style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
         <div style="font-weight:800; margin-bottom:6px;">Mac</div>
+
         <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
-          <li>Cliquez <b>Partager</b></li>
-          <li>Choisissez <b>Ajouter au Dock</b></li>
+          <li>
+            Cliquez sur l’icône
+            <span style="display:inline-flex; align-items:center; gap:4px;">
+              <!-- Apple Share icon (inline SVG) -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="4" y="11" width="16" height="10" rx="2"
+                      stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <b>Partager</b>
+            </span>
+            dans Safari
+          </li>
+          <li>Sélectionnez <b>Ajouter au Dock</b></li>
           <li>Fermez l’onglet Safari</li>
           <li>Ouvrez <b>Ocean Infinity</b> depuis l’icône du Dock</li>
         </ol>
-        <div style="font-size:12px; opacity:.75;">L’installation est requise pour éviter les doublons et garantir la sécurité.</div>
       </div>
 
       <!-- Android -->
@@ -7067,21 +7087,50 @@ function openGroupSupervisorPickerOverlay(opts){
     initialValue: curName,
     placeholder: "Nom et prénom (tape pour rechercher)",
     onConfirm: (name) => {
-      const nm = String(name || "").trim();
-      if (!nm) {
-        delete groupSupervisors[gid];
-        saveGroupSupervisors();
-        updateGroupHeadersWithLeaders();
-        renderValidationBanner();
-        return;
-      }
-      const inst = ensureInstructorByName(nm);
-      if (!inst || !inst.id) return;
-      groupSupervisors[gid] = { type: "INSTRUCTOR_LIB", value: inst.id };
+    const nm = String(name || "").trim();
+    if (!nm) {
+      delete groupSupervisors[gid];
       saveGroupSupervisors();
-      refreshContextInstructorDatalists(); // keep lists fresh
       updateGroupHeadersWithLeaders();
       renderValidationBanner();
+      return;
+    }
+
+    // Current selected instructor (by ID) if any
+    const curId = (sup && sup.type === "INSTRUCTOR_LIB" && sup.value) ? String(sup.value) : "";
+    const curInst = curId ? getInstructorById(curId) : null;
+
+    // If the typed name matches an existing instructor, switch to it (no creation)
+    const existing = getInstructorByName(nm);
+    if (existing && existing.id) {
+      groupSupervisors[gid] = { type: "INSTRUCTOR_LIB", value: existing.id };
+      saveGroupSupervisors();
+      refreshContextInstructorDatalists();
+      updateGroupHeadersWithLeaders();
+      renderValidationBanner();
+      return;
+    }
+
+    // If we are editing an existing selected instructor, rename it IN PLACE (no new row)
+    if (curInst && curInst.id) {
+      curInst.name = nm;
+      saveInstructorLibrary();              // persist rename
+      groupSupervisors[gid] = { type: "INSTRUCTOR_LIB", value: curInst.id }; // keep same ID
+      saveGroupSupervisors();
+      refreshContextInstructorDatalists();
+      updateGroupHeadersWithLeaders();
+      renderValidationBanner();
+      return;
+    }
+
+    // Otherwise (no current instructor), create if needed (original behavior)
+    const inst = ensureInstructorByName(nm);
+    if (!inst || !inst.id) return;
+    groupSupervisors[gid] = { type: "INSTRUCTOR_LIB", value: inst.id };
+    saveGroupSupervisors();
+    refreshContextInstructorDatalists(); // keep lists fresh
+    updateGroupHeadersWithLeaders();
+    renderValidationBanner();
     }
   });
 }
