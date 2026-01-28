@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
  
   <title>DIVING CENTER – Fiche Plongée (GENERIC) v2</title>
 
@@ -22,9 +23,6 @@
 <!-- Theme -->
 <meta name="theme-color" content="#0B5F73">
 
-<!-- Meta -->
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <style>
     /* ===========================
@@ -40,6 +38,13 @@
       --accent-cyan: #00a8ff;
       --accent-green: #39ff88;
       --accent-red: #ff6b6b;
+
+      /* === UI System V1 === */
+      --ctl-h: 46px;
+      --ctl-px: 14px;
+      --ctl-py: 10px;
+      --ctl-fs: 16px;          /* anti-zoom iOS */
+      --ctl-radius: 12px;
     }
 
     * {
@@ -155,23 +160,39 @@
     }
 
     input[type="text"],
-    input[type="number"],
-    input[type="time"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 10px;
-      border: 1px solid #2a4570;
-      background: #0b172c;
-      color: var(--text-main);
-      font-size: 20px;
-      outline: none;
-      transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease,
-        background 0.15s ease;
-    }
+      input[type="number"],
+      input[type="time"],
+      input[type="search"],
+      input[type="tel"],
+      textarea,
+      select{
+        width: 100%;
+        height: var(--ctl-h);
+        min-height: var(--ctl-h);
+        padding: var(--ctl-py) var(--ctl-px);
+        border-radius: var(--ctl-radius);
+        border: 1px solid #2a4570;
+        background: #0b172c;
+        color: var(--text-main);
+        font-size: var(--ctl-fs);
+        line-height: 1.2;
+        outline: none;
+        box-sizing: border-box;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease,
+          background 0.15s ease;
+        }
+
+/* =========================================================
+   FORM CONTROLS — normalize native appearance (iOS / Android)
+   ========================================================= */
+       input,
+       select,
+       textarea{
+         -webkit-appearance: none;
+         appearance: none;
+     }
 
     input[type="text"]:focus,
     input[type="number"]:focus,
@@ -183,9 +204,9 @@
       background: #0e1d35;
     }
 
-    textarea {
-      resize: vertical;
-      min-height: 72px;
+    textarea{
+    resize: vertical;
+    min-height: calc(var(--ctl-h) * 2);
     }
 
     .row {
@@ -309,9 +330,6 @@
         justify-content: center;
       }
     }
-
-
-
 
 
     /* ===========================
@@ -447,7 +465,7 @@
 
       /* Carte encapsulée */
       background: rgba(0, 0, 0, 0.35);
-      border-radius:-radius: 12px;
+      border-radius: 12px;
       border: 1px solid var(--border-soft);
       padding: 10px 10px 8px;
       box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
@@ -592,9 +610,6 @@
       white-space: nowrap;
     }
 
-
-   
-
     .group-buttons {
       display: flex;
       flex-direction: row;
@@ -714,71 +729,6 @@
 
     .group-select-buttons {
       max-height: 260px;
-      overflow-y: auto;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-
-    .group-select-buttons .btn {
-      flex: 1 1 45%;
-      justify-content: center;
-      font-size: 14px;
-      padding: 6px 10px;
-    }
-
-    .group-select-footer {
-      text-align: right;
-    }
-
-    .group-select-cancel {
-      font-size: 13px;
-      color: var(--text-muted);
-      cursor: pointer;
-    }
-
-    .group-select-cancel:hover {
-      text-decoration: underline;
-    }
-    /* ===========================
-       MENU SÉLECTION GROUPE (OVERLAY)
-       =========================== */
-    .group-select-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-
-    .group-select-dialog {
-      background: var(--bg-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-soft);
-      padding: 14px 16px;
-      max-width: 320px;
-      width: 90%;
-      box-shadow: 0 0 18px rgba(0, 0, 0, 0.6);
-    }
-
-    .group-select-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-main);
-    }
-
-    .group-select-sub {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 10px;
-    }
-
-    .group-select-buttons {
-      max-height: 260px; /* <= hybrid: no scroll when few groups, scroll when many */
       overflow-y: auto;
       display: flex;
       flex-wrap: wrap;
@@ -1616,18 +1566,6 @@
   background: rgba(255,255,255,0.04);
 }
 
-.pdj-tools { margin: 10px 0 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
-.pdj-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
-.pdj-row:last-child { margin-bottom: 0; }
-.pdj-chip { padding: 8px 10px; }
-.pdj-chip.is-active { outline: 2px solid rgba(255,255,255,0.35); }
-.pdj-select { padding: 8px 10px; border-radius: 8px; }
-.pdj-count { opacity: 0.85; font-size: 0.95rem; }
-.fav-star { margin-left: 8px; font-size: 18px; line-height: 1; background: transparent; border: 0; cursor: pointer; }
-.fav-star.is-on { filter: drop-shadow(0 0 2px rgba(255,255,255,0.35)); }
-
-
-
 /* PDJ Tools: vues + filtre + bulk (chirurgical) */
 .pdj-tools { margin: 10px 0 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
 .pdj-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
@@ -1640,20 +1578,46 @@
 .fav-star.is-on { filter: drop-shadow(0 0 2px rgba(255,255,255,0.35)); }
 
 
-.pdj-actions {
-  display: flex;
-  gap: 10px;          /* espace entre les boutons */
-  margin-top: 10px;
-  flex-wrap: wrap;    /* iPhone: évite les boutons hors écran */
+/* === Search control (PDJ + Diver search) — UI System V1 ===
+   Supporte 2 formes :
+   A) <input class="pdj-search">
+   B) <div class="diver-search"><input ...></div>
+   IMPORTANT: on évite toute redondance avec les FORM CONTROLS globaux.
+*/
+.pdj-search,
+.diver-search{
+  border-radius: 999px;
+  box-sizing: border-box;
 }
 
-@media (max-width: 520px){
-  .pdj-actions{ flex-direction: column; }
-  .pdj-actions .btn{ width: 100%; }
+/* A) CAS INPUT DIRECT (PDJ actuel) */
+input.pdj-search,
+textarea.pdj-search{
+  height: var(--ctl-h);
+  min-height: var(--ctl-h);
+  padding: var(--ctl-py) var(--ctl-px);
+  font-size: var(--ctl-fs);
+  border-radius: 999px;
 }
 
-.pdj-actions .btn {
-  flex: 1;            /* même largeur */
+/* B) CAS WRAPPER (si tu utilises diver-search comme conteneur) */
+.diver-search{
+  height: var(--ctl-h);
+  min-height: var(--ctl-h);
+  padding: 0;               /* padding sur l’input interne */
+}
+.diver-search input,
+.diver-search textarea{
+  height: 100%;
+  min-height: 100%;
+  padding: var(--ctl-py) var(--ctl-px);
+  font-size: var(--ctl-fs);
+  border-radius: inherit;
+}
+
+#pdj_search{
+  max-height: var(--ctl-h);
+  box-sizing: border-box;
 }
 
 
@@ -2105,25 +2069,8 @@
     --ctl-py: 10px;       /* padding vertical */
     --ctl-fs: 16px;       /* anti-zoom iOS */
     --ctl-radius: 14px;
-  }
+   }
 
-  /* 1) Tous les champs */
-  input[type="text"],
-  input[type="number"],
-  input[type="time"],
-  input[type="search"],
-  input[type="tel"],
-  textarea,
-  select{
-    height: var(--ctl-h);
-    min-height: var(--ctl-h);
-    padding: var(--ctl-py) var(--ctl-px);
-    font-size: var(--ctl-fs);
-    line-height: 1.2;
-    border-radius: var(--ctl-radius);
-    box-sizing: border-box;
-    width: 100%;
-  }
 
   /* 2) Textarea: ne doit pas exploser en hauteur (ça arrive souvent sur iPhone) */
   textarea{
