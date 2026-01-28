@@ -2092,6 +2092,67 @@
 
 
 }
+/* =========================================================
+   iPhone: cohérence des champs (height/padding/typo)
+   - garde 16px sur inputs (anti-zoom iOS)
+   - aligne visuellement tous les champs
+   ========================================================= */
+@media (max-width: 430px){
+
+  :root{
+    --ctl-h: 46px;        /* hauteur uniforme */
+    --ctl-px: 14px;       /* padding horizontal */
+    --ctl-py: 10px;       /* padding vertical */
+    --ctl-fs: 16px;       /* anti-zoom iOS */
+    --ctl-radius: 14px;
+  }
+
+  /* 1) Tous les champs */
+  input[type="text"],
+  input[type="number"],
+  input[type="time"],
+  input[type="search"],
+  input[type="tel"],
+  textarea,
+  select{
+    height: var(--ctl-h);
+    min-height: var(--ctl-h);
+    padding: var(--ctl-py) var(--ctl-px);
+    font-size: var(--ctl-fs);
+    line-height: 1.2;
+    border-radius: var(--ctl-radius);
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  /* 2) Textarea: ne doit pas exploser en hauteur (ça arrive souvent sur iPhone) */
+  textarea{
+    resize: none;
+    overflow: hidden;
+  }
+
+  /* 3) FIX champ GPS "blanc" -> forcer le thème (même look que le reste)
+        (on ne dépend pas d'un id : on force sur input focus/normal) */
+  input{
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* 4) Recherche: doit être un champ compact, pas un "panel" */
+  .diver-search,
+  .diver-search input,
+  .diver-search textarea{
+    height: var(--ctl-h) !important;
+    min-height: var(--ctl-h) !important;
+    padding: var(--ctl-py) var(--ctl-px) !important;
+  }
+
+  /* Si ton wrapper recherche ajoute trop d'espace */
+  .diver-search{
+    padding: 6px !important;
+    margin: 10px 0 12px 0 !important;
+  }
+}
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
