@@ -2133,6 +2133,22 @@
 </style>
 <!-- === /PATCH === -->
 
+/* === PATCH iOS/Android: stop zoom on focus (inputs <16px) === */
+@supports (-webkit-touch-callout: none) {
+  /* iOS zoom trigger: font-size < 16px on focus */
+  .palier-row input[type="number"],
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* garde ton design desktop, mais sur mobile on force 16px */
+@media (max-width: 700px) {
+  .palier-row input[type="number"]{
+    font-size: 16px !important;
+  }
+}
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
