@@ -4327,7 +4327,7 @@ function getDiverById(diverId) {
       if (aptSel.value === "Autre") newApt = aptMan ? String(aptMan.value || "").trim() : "";
       else newApt = String(aptSel.value || "").trim();
     }
-
+    const agencyEl = document.getElementById("edit_diver_agency_select");
     let agency = agencyEl ? String(agencyEl.value || "").trim() : "";
 
     let newCert = "";
