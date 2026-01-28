@@ -7428,6 +7428,8 @@ document.addEventListener("click", function(ev){
   if (t.id === "btn_after_group_paliers_apply") {
     if (!currentGroupId) return;
     applyAfterGroupPaliersToDivers(currentGroupId);
+   // 🔥 FORCER le même refresh que "Retour groupe"
+    showMainLayout(currentGroupId);
   }
 
 
