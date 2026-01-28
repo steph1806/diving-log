@@ -2542,7 +2542,7 @@
 <p class="help-text">À partir des plongeurs sélectionnés, vous pouvez les affectés a plusieurs bateaux et utiliser le QR code, pour les exporter</p>
 <p class="help-text" style="margin-top:-6px;"> vers Android/ Tablette/ Iphone en un click.</p>
 <div class="bulk-boat-assign" style="margin:10px 0; display:flex; gap:8px; align-items:center;">
-  <label for="ga_bulk_boat"><strong>Bateau (masse)</strong></label>
+  <label for="ga_bulk_boat"><strong>Bateau (sélection)</strong></label>
   <select id="ga_bulk_boat" class="pdj-select">
     <option value="">—</option>
   </select>
@@ -11615,7 +11615,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (nAdded > 0) instructorLibrary = loadInstructorLibrary();
       }
     } catch(e) {}
-    try { refreshContextInstructorDatalists(); } catch(e) {}loadCertLibrary();
+    try { refreshContextInstructorDatalists(); } catch(e) {}
+    loadCertLibrary();
 
     // Live validation: DP (Contexte du jour)
     const dpEl = document.getElementById("dive_const_dp");
