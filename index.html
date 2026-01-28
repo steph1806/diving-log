@@ -364,6 +364,26 @@
       -webkit-overflow-scrolling: touch;
     }
 
+    /* Group/PDJ cards: horizontal scroll INSIDE the card (works on iPhone portrait + landscape) */
+    .hscroll{
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x;
+    }
+    .hscroll .diver-card-grid{
+      display: inline-grid;
+      min-width: max-content;
+    }
+    .hscroll .group-diver-name,
+    .hscroll .diver-card-name{
+      white-space: nowrap;
+    }
+
+
     /* AFTER: realised fields row (Runtime / Sortie / Profondeur) — horizontal scroll like the palier table */
     .after-real-row{
       width: 100%;
@@ -608,37 +628,7 @@
       flex-direction: column;
       gap: 6px;
     }
-/* Mobile: PDJ tools et listes de plongeurs (stabilité iPhone/Android)
-   - pas de scroll horizontal pour la liste des plongeurs d'un groupe (trop "perdu" sur petit écran)
-   - on garde une liste verticale lisible
-*/
-@media (max-width: 700px) {
-  /* Outils PDJ: chips sur 2 lignes, filtre aptitude en pleine largeur */
-  #pdj_tools .pdj-row {
-    align-items: stretch;
-  }
-  #pdj_tools .pdj-select {
-    width: 100%;
-  }
 
-  /* Listes des plongeurs par groupe: vertical (pas de nowrap horizontal) */
-  div[id^="group-G"][id$="-list"].group-diver-list {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  div[id^="group-G"][id$="-list"].group-diver-list .group-diver-card {
-    width: max-content;
-    min-width: 100%;
-  }
-
-  div[id^="group-G"][id$="-list"].group-diver-list .group-diver-name {
-    white-space: nowrap;
-  }
-}
-}
 
     .group-diver-card {
       display: flex;
@@ -2100,26 +2090,7 @@
     overflow-x: visible !important;
   }
 
-  /* wrapper scroll horizontal PRO */
-  .hscroll{
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-  }
 
-  .hscroll .diver-card-grid{
-    display: inline-grid;
-    min-width: max-content;
-  }
-
-  .hscroll .group-diver-name,
-  .hscroll .diver-card-name{
-    white-space: nowrap;
-  }
 }
 
 </style>
