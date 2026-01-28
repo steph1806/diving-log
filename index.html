@@ -7430,9 +7430,12 @@ document.addEventListener("click", function(ev){
 
   applyAfterGroupPaliersToDivers(currentGroupId);
 
-  // SYNC état GROUPE (source UI)
-  const gp = getAfterGroupPaliers(currentGroupId);
-  savePaliersGeneric("after_group", currentGroupId, "__GROUP__", gp);
+  // ✅ refresh des statuts (comme le bouton "Sauvegarder" du modal)
+  try { renderPlongeursDuJourSelector(); } catch(e) {}
+  try { renderGroupAssignments(); } catch(e) {}
+
+  // si tu veux absolument “retour groupe” après apply, garde ça :
+  // showMainLayout(currentGroupId);
 }
 
 
