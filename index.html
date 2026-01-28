@@ -8770,6 +8770,7 @@ top.className = "diver-card-grid"; // on réutilise le grid 3 colonnes que tu as
 const nameEl = document.createElement("div");
 nameEl.className = "group-diver-name";
 nameEl.textContent = diverName;
+const d = getDiverByName(diverName);
 
 const aptBox = document.createElement("span");
 aptBox.className = "mini-box mini-apt";
@@ -8786,7 +8787,18 @@ palBox.addEventListener("click", function (ev) {
   openPalierEditorFromPlongeursDuJour(diverName);
 });
 
-top.appendChild(nameEl);
+const certEl = document.createElement("div");
+certEl.className = "diver-card-cert";
+certEl.textContent = (d && d.cert && String(d.cert).trim())
+  ? String(d.cert).trim()
+  : "(aucune certification saisie)";
+
+const nameBlock = document.createElement("div");
+nameBlock.className = "diver-name-block";
+nameBlock.appendChild(nameEl);
+nameBlock.appendChild(certEl);
+
+top.appendChild(nameBlock);
 top.appendChild(aptBox);
 top.appendChild(palBox);
 
@@ -8836,15 +8848,8 @@ hscroll.className = "hscroll";
 
 hscroll.appendChild(top);
 card.appendChild(hscroll);
-const d = getDiverByName(diverName);
 
-const certEl = document.createElement("div");
-certEl.className = "diver-card-cert";
-certEl.textContent = (d && d.cert && String(d.cert).trim())
-  ? String(d.cert).trim()
-  : "(aucune certification saisie)";
 
-card.appendChild(certEl);
 return card;
     }
 
