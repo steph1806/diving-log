@@ -2088,64 +2088,6 @@
   opacity: 0.95;
 }
 
-<!-- === PATCH: iPhone/Android anti-zoom + anti-text-resize (safe) === -->
-<style id="patch-mobile-anti-zoom">
-  /* Stop iOS Safari "text inflation" / auto font resizing */
-  html {
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-  }
-
-  /* iOS zoom on focus happens when font-size < 16px */
-  input, select, textarea, button {
-    font-size: 16px !important;
-    line-height: 1.25;
-  }
-
-  /* Neutralize iOS default styles that can trigger odd zoom/layout */
-  input[type="text"],
-  input[type="number"],
-  input[type="search"],
-  input[type="email"],
-  input[type="tel"],
-  input[type="url"],
-  textarea,
-  select {
-    -webkit-appearance: none;
-    appearance: none;
-    border-radius: 12px;
-    max-width: 100%;
-  }
-
-  /* If you use small UI widgets like search fields / chips / inline inputs */
-  .search input,
-  .search select,
-  .search textarea,
-  .numpad-field input,
-  .form-control,
-  .input,
-  .mini-input {
-    font-size: 16px !important;
-  }
-
-
-<!-- === /PATCH === -->
-
-/* === PATCH iOS/Android: stop zoom on focus (inputs <16px) === */
-@supports (-webkit-touch-callout: none) {
-  /* iOS zoom trigger: font-size < 16px on focus */
-  .palier-row input[type="number"],
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-}
-
-/* garde ton design desktop, mais sur mobile on force 16px */
-@media (max-width: 700px) {
-  .palier-row input[type="number"]{
-    font-size: 16px !important;
-  }
-}
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
