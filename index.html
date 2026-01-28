@@ -7425,12 +7425,15 @@ document.addEventListener("click", function(ev){
     openPalierModal(currentGroupId, "__GROUP__", "after_group");
   }
 
-  if (t.id === "btn_after_group_paliers_apply") {
-    if (!currentGroupId) return;
-    applyAfterGroupPaliersToDivers(currentGroupId);
-   // 🔥 FORCER le même refresh que "Retour groupe"
-    showMainLayout(currentGroupId);
-  }
+ if (t.id === "btn_after_group_paliers_apply") {
+  if (!currentGroupId) return;
+
+  applyAfterGroupPaliersToDivers(currentGroupId);
+
+  // SYNC état GROUPE (source UI)
+  const gp = getAfterGroupPaliers(currentGroupId);
+  savePaliersGeneric("after_group", currentGroupId, "__GROUP__", gp);
+}
 
 
   if (t.id === "btn_after_group_runtime_apply") {
