@@ -1622,17 +1622,6 @@
   background: rgba(255,255,255,0.04);
 }
 
-.pdj-tools { margin: 10px 0 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
-.pdj-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
-.pdj-row:last-child { margin-bottom: 0; }
-.pdj-chip { padding: 8px 10px; }
-.pdj-chip.is-active { outline: 2px solid rgba(255,255,255,0.35); }
-.pdj-select { padding: 8px 10px; border-radius: 8px; }
-.pdj-count { opacity: 0.85; font-size: 0.95rem; }
-.fav-star { margin-left: 8px; font-size: 18px; line-height: 1; background: transparent; border: 0; cursor: pointer; }
-.fav-star.is-on { filter: drop-shadow(0 0 2px rgba(255,255,255,0.35)); }
-
-
 
 /* PDJ Tools: vues + filtre + bulk (chirurgical) */
 .pdj-tools { margin: 10px 0 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
@@ -2088,6 +2077,50 @@
   opacity: 0.95;
 }
 
+<!-- === PATCH: iPhone/Android anti-zoom + anti-text-resize (safe) === -->
+<style id="patch-mobile-anti-zoom">
+  /* Stop iOS Safari "text inflation" / auto font resizing */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* iOS zoom on focus happens when font-size < 16px */
+  input, select, textarea, button {
+    font-size: 16px !important;
+    line-height: 1.25;
+  }
+
+  /* Neutralize iOS default styles that can trigger odd zoom/layout */
+  input[type="text"],
+  input[type="number"],
+  input[type="search"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+
+  /* If you use small UI widgets like search fields / chips / inline inputs */
+  .search input,
+  .search select,
+  .search textarea,
+  .numpad-field input,
+  .form-control,
+  .input,
+  .mini-input {
+    font-size: 16px !important;
+  }
+
+  /* Prevent iOS tap highlight / weird magnifier feel (cosmetic but helps) */
+  * { -webkit-tap-highlight-color: rgba(0,0,0,0); }
+
+<!-- === /PATCH === -->
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
