@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+ 
   <title>DIVING CENTER – Fiche Plongée (GENERIC) v2</title>
 
 
@@ -309,6 +309,10 @@
         justify-content: center;
       }
     }
+
+
+
+
 
     /* ===========================
        PLONGEURS DU JOUR - CARTES
@@ -2088,6 +2092,35 @@
   opacity: 0.95;
 }
 
+@media (max-width: 700px){
+
+  /* ne plus scroller horizontalement la LISTE */
+  div[id^="group-G"][id$="-list"].group-diver-list,
+  #group-disponibles-list.group-diver-list{
+    overflow-x: visible !important;
+  }
+
+  /* wrapper scroll horizontal PRO */
+  .hscroll{
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .hscroll .diver-card-grid{
+    display: inline-grid;
+    min-width: max-content;
+  }
+
+  .hscroll .group-diver-name,
+  .hscroll .diver-card-name{
+    white-space: nowrap;
+  }
+}
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -7919,7 +7952,10 @@ function diverNeedsRT1(diverName) {
     const certTxt = (d.cert && d.cert.trim()) ? d.cert : "(aucune certification saisie)";
     certEl.textContent = certTxt;
 
-    main.appendChild(grid);
+    const h = document.createElement("div");
+    h.className = "hscroll";
+    h.appendChild(grid);
+    main.appendChild(h);
     main.appendChild(certEl);
 
     card.appendChild(cb);
@@ -8824,7 +8860,11 @@ boatSel.addEventListener("click", (ev) => { ev.stopPropagation(); });
 boatWrap.appendChild(boatBadge);
 boatWrap.appendChild(boatSel);
 top.appendChild(boatWrap);
-card.appendChild(top);
+const hscroll = document.createElement("div");
+hscroll.className = "hscroll";
+
+hscroll.appendChild(top);
+card.appendChild(hscroll);
 const d = getDiverByName(diverName);
 
 const certEl = document.createElement("div");
