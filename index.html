@@ -1904,6 +1904,36 @@
   z-index: 1;
 }
 
+/* ===== NUMPAD: mobile only (iPhone + Android) ===== */
+@media (max-width: 600px), (pointer: coarse) {
+
+  .numpad{
+    width: min(336px, calc(100vw - 20px)); /* 420px -> 336px (-20%) */
+    margin: 8px;                           /* 10px -> 8px */
+    border-radius: 13px;                   /* 16px -> 13px */
+    padding: 10px;                         /* 12px -> 10px */
+  }
+
+  .numpad-grid{
+    gap: 8px; /* 10px -> 8px */
+  }
+
+  .numpad-btn{
+    height: 43px;       /* 54px -> 43px */
+    font-size: 16px;    /* 20px -> 16px */
+  }
+
+  .numpad-actions{
+    gap: 8px;           /* 10px -> 8px */
+    margin-top: 8px;    /* 10px -> 8px (si tu veux strict) */
+  }
+
+  .numpad-open{
+    width: 45px;        /* 56px -> 45px */
+    height: 35px;       /* 44px -> 35px */
+  }
+}
+
 /* === SPLASH logo (200ms) === */
 #app_splash{
   position: fixed;
