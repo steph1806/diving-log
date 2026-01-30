@@ -1,0 +1,23 @@
+{
+  "name": "OCEAN INFINITY",
+  "short_name": "OCEAN INFINITY",
+  "description": "OCEAN INFINITY – Diving operations, logs and safety tools",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B5F73",
+  "theme_color": "#0B5F73",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "OCEAN_INFINITY_exact_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "OCEAN_INFINITY_exact_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
