@@ -12737,6 +12737,18 @@ document.addEventListener("DOMContentLoaded", ()=> {
     el.textContent = (c && c.name) ? (c.name + (c.id ? (" — " + c.id) : "")) : "—";
   };
 
+   const btnCreate = document.getElementById("btn_center_create");
+   const btnJoin   = document.getElementById("btn_center_join");
+   const btnJoinOk = document.getElementById("btn_center_join_ok");
+   const keyEl     = document.getElementById("center_join_key_input");
+
+   if (btnCreate) btnCreate.addEventListener("click", () => setAccessMode("create"));
+   if (btnJoin)   btnJoin.addEventListener("click", () => setAccessMode("join"));
+   if (btnJoinOk) btnJoinOk.addEventListener("click", () => handleJoinSubmit());
+
+   if (keyEl) keyEl.addEventListener("input", () => clearJoinError());
+
+
   const btnCfg = document.getElementById("btn_center_setup");
   if (btnCfg) btnCfg.addEventListener("click", () => {
     if (!isStandaloneMode()){
@@ -12777,17 +12789,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
       try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
     }
     // Access mode buttons (Create / Join)
-   const btnCreate = document.getElementById("btn_center_create");
-   const btnJoin   = document.getElementById("btn_center_join");
-   const btnJoinOk = document.getElementById("btn_center_join_ok");
-   const keyEl     = document.getElementById("center_join_key_input");
-
-   if (btnCreate) btnCreate.addEventListener("click", () => setAccessMode("create"));
-   if (btnJoin)   btnJoin.addEventListener("click", () => setAccessMode("join"));
-   if (btnJoinOk) btnJoinOk.addEventListener("click", () => handleJoinSubmit());
-
-   if (keyEl) keyEl.addEventListener("input", () => clearJoinError());
-
+  
   });
 
 // =========================
