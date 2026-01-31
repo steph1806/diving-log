@@ -2168,6 +2168,27 @@
       À faire une seule fois au démarrage. Stocké en local sur cet appareil / navigateur.
     </div>
 
+<!-- ACCESS MODE: Create / Join -->
+<div class="row" style="gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+  <div class="field" style="flex:2; min-width:220px;">
+    <label>Mode d’accès</label>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="btn btn-secondary" id="btn_center_create">➕ Créer</button>
+      <button type="button" class="btn btn-secondary" id="btn_center_join">🔑 Rejoindre</button>
+    </div>
+  </div>
+
+  <div class="field" style="flex:3; min-width:280px;" id="join_block" style="display:none;">
+    <label>Clé centre (collaborateur)</label>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <input id="center_join_key_input" type="text" placeholder="Ex: OI1.XXXX..." style="flex:1; min-width:220px;" />
+      <button type="button" class="btn btn-primary" id="btn_center_join_ok">Valider</button>
+    </div>
+    <div class="pdf-muted" id="center_join_err" style="margin-top:6px; color:#c0392b; display:none;"></div>
+  </div>
+</div>
+<!-- /ACCESS MODE -->
+
     <div class="row" style="gap:10px; flex-wrap:wrap;">
     <div class="field" style="flex:2; min-width:220px;">
       <label>Centre</label>
@@ -3138,6 +3159,8 @@
     const cid = (forceNewId ? "" : (cfg.id || ""));
     if (idEl) idEl.value = cid ? cid : genCenterId();
 
+      // Default: create mode when opening the modal
+    setAccessMode("create");
     overlay.style.display = "flex";
   }
 
@@ -3153,6 +3176,104 @@
     openCenterSetupModal(false);
     return false;
   }
+
+
+// =======================
+// CENTER ACCESS MODE (Create / Join)
+// =======================
+let __centerAccessMode = "create";
+
+function setAccessMode(mode){
+  __centerAccessMode = (mode === "join") ? "join" : "create";
+  applyAccessModeUI();
+  clearJoinError();
+}
+
+function applyAccessModeUI(){
+  const joinBlock = document.getElementById("join_block");
+  const nameEl = document.getElementById("center_name_input");
+  const boatsEl = document.getElementById("center_boats_input");
+  const regenBtn = document.getElementById("btnCenterIdRegen");
+
+  if (joinBlock) joinBlock.style.display = (__centerAccessMode === "join") ? "block" : "none";
+
+  // En mode join: on évite que l’utilisateur modifie des champs “create”
+  if (nameEl)  nameEl.disabled  = (__centerAccessMode === "join");
+  if (boatsEl) boatsEl.disabled = (__centerAccessMode === "join");
+  if (regenBtn) regenBtn.disabled = (__centerAccessMode === "join");
+}
+
+function buildCenterJoinKey(cfg){
+  // Key offline, robuste: OI1.<base64url(json)>
+  // json: {id,name,boatsN}
+  const payload = {
+    id: cfg?.id || "",
+    name: cfg?.name || "",
+    boatsN: cfg?.boatsN || 1
+  };
+  const json = JSON.stringify(payload);
+  const b64 = btoa(unescape(encodeURIComponent(json)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
+  return "OI1." + b64;
+}
+
+function parseCenterJoinKey(key){
+  if (!key || typeof key !== "string") return null;
+  const s = key.trim();
+  if (!s.startsWith("OI1.")) return null;
+  const b64u = s.slice(4).replace(/-/g, "+").replace(/_/g, "/");
+  // re-pad base64
+  const pad = "=".repeat((4 - (b64u.length % 4)) % 4);
+  const b64 = b64u + pad;
+
+  try{
+    const json = decodeURIComponent(escape(atob(b64)));
+    const obj = JSON.parse(json);
+    if (!obj || !obj.id || !obj.name) return null;
+    return { id: String(obj.id), name: String(obj.name), boatsN: Number(obj.boatsN || 1) };
+  } catch(e){
+    return null;
+  }
+}
+
+function showJoinError(msg){
+  const el = document.getElementById("center_join_err");
+  if (!el) return;
+  el.textContent = msg || "Clé invalide.";
+  el.style.display = "block";
+}
+
+function clearJoinError(){
+  const el = document.getElementById("center_join_err");
+  if (!el) return;
+  el.textContent = "";
+  el.style.display = "none";
+}
+
+function handleJoinSubmit(){
+  const keyEl = document.getElementById("center_join_key_input");
+  const key = keyEl ? keyEl.value : "";
+  const data = parseCenterJoinKey(key);
+  if (!data){
+    showJoinError("Clé invalide. Vérifie le copier/coller.");
+    return;
+  }
+
+  // Sauve la config localement via ton mécanisme existant
+  const cfg = loadCenterCfg() || {};
+  cfg.id = data.id;
+  cfg.name = data.name;
+  cfg.boatsN = data.boatsN;
+
+  saveCenterCfg(cfg);
+
+  // Refresh UI visible (center_display etc.)
+  if (typeof refreshCenterDisplay === "function") refreshCenterDisplay();
+
+  // On repasse en create (pour que l’écran soit “normal” ensuite)
+  setAccessMode("create");
+}
+
 
 // =======================
 // INSTALL GATE — Helpers
@@ -12655,6 +12776,18 @@ document.addEventListener("DOMContentLoaded", ()=> {
       // Auto-import if opened from QR URL
       try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
     }
+    // Access mode buttons (Create / Join)
+   const btnCreate = document.getElementById("btn_center_create");
+   const btnJoin   = document.getElementById("btn_center_join");
+   const btnJoinOk = document.getElementById("btn_center_join_ok");
+   const keyEl     = document.getElementById("center_join_key_input");
+
+   if (btnCreate) btnCreate.addEventListener("click", () => setAccessMode("create"));
+   if (btnJoin)   btnJoin.addEventListener("click", () => setAccessMode("join"));
+   if (btnJoinOk) btnJoinOk.addEventListener("click", () => handleJoinSubmit());
+
+   if (keyEl) keyEl.addEventListener("input", () => clearJoinError());
+
   });
 
 // =========================
