@@ -3126,7 +3126,9 @@
       const out = {
         id: (cfg?.id || "").trim(),
         name: (cfg?.name || "").trim(),
-        boatsN: Math.max(1, Math.min(8, Number(cfg?.boatsN || 1) || 1))
+        boatsN: Number.isFinite(Number(cfg?.boatsN))
+          ? Math.max(1, Math.min(8, Number(cfg.boatsN)))
+          : 1
       };
       localStorage.setItem(CENTER_CFG_KEY, JSON.stringify(out));
       return true;
