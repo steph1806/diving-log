@@ -2178,7 +2178,7 @@
     </div>
   </div>
 
-  <div class="field" style="flex:3; min-width:280px;" id="join_block" style="display:none;">
+  <div class="field" id="join_block" style="flex:3; min-width:280px; display:none;">
     <label>Clé centre (collaborateur)</label>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <input id="center_join_key_input" type="text" placeholder="Ex: OI1.XXXX..." style="flex:1; min-width:220px;" />
@@ -2188,7 +2188,7 @@
   </div>
 </div>
 <!-- /ACCESS MODE -->
-
+<div id="create_block" style="display:none;">
     <div class="row" style="gap:10px; flex-wrap:wrap;">
     <div class="field" style="flex:2; min-width:220px;">
       <label>Centre</label>
@@ -2224,6 +2224,7 @@
       <button type="button" class="btn btn-primary" id="btnCenterSetupSave">Enregistrer</button>
     </div>
   </div>
+ </div>
 </div>
 
 
@@ -3160,7 +3161,7 @@
     if (idEl) idEl.value = cid ? cid : genCenterId();
 
       // Default: create mode when opening the modal
-    setAccessMode("create");
+    setAccessMode("none");
     overlay.style.display = "flex";
   }
 
@@ -3181,21 +3182,26 @@
 // =======================
 // CENTER ACCESS MODE (Create / Join)
 // =======================
-let __centerAccessMode = "create";
+let __centerAccessMode = "none";
 
 function setAccessMode(mode){
-  __centerAccessMode = (mode === "join") ? "join" : "create";
+ __centerAccessMode =
+  (mode === "join") ? "join" :
+  (mode === "create") ? "create" :
+  "none";
   applyAccessModeUI();
   clearJoinError();
 }
 
 function applyAccessModeUI(){
+  const createBlock = document.getElementById("create_block");
   const joinBlock = document.getElementById("join_block");
   const nameEl = document.getElementById("center_name_input");
   const boatsEl = document.getElementById("center_boats_input");
   const regenBtn = document.getElementById("btnCenterIdRegen");
 
-  if (joinBlock) joinBlock.style.display = (__centerAccessMode === "join") ? "block" : "none";
+  if (joinBlock)   joinBlock.style.display   = (__centerAccessMode === "join") ? "block" : "none";
+  if (createBlock) createBlock.style.display = (__centerAccessMode === "create") ? "block" : "none";
 
   // En mode join: on évite que l’utilisateur modifie des champs “create”
   if (nameEl)  nameEl.disabled  = (__centerAccessMode === "join");
@@ -12737,6 +12743,18 @@ document.addEventListener("DOMContentLoaded", ()=> {
     el.textContent = (c && c.name) ? (c.name + (c.id ? (" — " + c.id) : "")) : "—";
   };
 
+   const btnCreate = document.getElementById("btn_center_create");
+   const btnJoin   = document.getElementById("btn_center_join");
+   const btnJoinOk = document.getElementById("btn_center_join_ok");
+   const keyEl     = document.getElementById("center_join_key_input");
+
+   if (btnCreate) btnCreate.addEventListener("click", () => setAccessMode("create"));
+   if (btnJoin)   btnJoin.addEventListener("click", () => setAccessMode("join"));
+   if (btnJoinOk) btnJoinOk.addEventListener("click", () => handleJoinSubmit());
+
+   if (keyEl) keyEl.addEventListener("input", () => clearJoinError());
+
+
   const btnCfg = document.getElementById("btn_center_setup");
   if (btnCfg) btnCfg.addEventListener("click", () => {
     if (!isStandaloneMode()){
@@ -12777,17 +12795,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
       try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
     }
     // Access mode buttons (Create / Join)
-   const btnCreate = document.getElementById("btn_center_create");
-   const btnJoin   = document.getElementById("btn_center_join");
-   const btnJoinOk = document.getElementById("btn_center_join_ok");
-   const keyEl     = document.getElementById("center_join_key_input");
-
-   if (btnCreate) btnCreate.addEventListener("click", () => setAccessMode("create"));
-   if (btnJoin)   btnJoin.addEventListener("click", () => setAccessMode("join"));
-   if (btnJoinOk) btnJoinOk.addEventListener("click", () => handleJoinSubmit());
-
-   if (keyEl) keyEl.addEventListener("input", () => clearJoinError());
-
+  
   });
 
 // =========================
