@@ -12858,15 +12858,15 @@ document.addEventListener("DOMContentLoaded", ()=> {
     openCenterSetupModal(false);
   });
 
-  const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
-  if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
-    // (1) Online obligatoire
-    if (!navigator.onLine){
-      alert("Connexion requise pour obtenir la clé centre (online).");
-      return;
-    }
+ const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
+if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
+  // (1) Online obligatoire
+  if (!navigator.onLine){
+    alert("Connexion requise pour obtenir la clé centre (online).");
+    return;
+  }
 
-   // (2) Admin secret requis sur cet appareil (DP)
+  // (2) Admin secret requis sur cet appareil (DP)
   const admin = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
   const adminSecret = admin && admin.adminSecret ? admin.adminSecret : "";
   if (!adminSecret){
@@ -12874,8 +12874,17 @@ document.addEventListener("DOMContentLoaded", ()=> {
     return;
   }
 
+  // (3) CenterId requis (sinon le serveur répond missing_centerid)
+  const cfg = (typeof loadCenterCfg === "function") ? loadCenterCfg() : null;
+  const centerId = cfg && cfg.id ? String(cfg.id).trim() : "";
+  if (!centerId){
+    alert("Center ID manquant sur cet appareil. Ouvre ⚙️ → Configuration centre, puis réessaie.");
+    try { openCenterSetupModal(false); } catch(e) {}
+    return;
+  }
+
   try{
-    const j = await centerApiJson("/.netlify/functions/center_key_get", { adminSecret });
+    const j = await centerApiJson("/.netlify/functions/center_key_get", { adminSecret, centerId });
     const key = j.key || j.centerKey || "";
     if (!key) throw new Error("Réponse serveur invalide (key manquante).");
     await navigator.clipboard.writeText(String(key));
