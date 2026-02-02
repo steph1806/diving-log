@@ -2239,6 +2239,28 @@
     <div class="section-title">Plongée du jour</div>
     <p class="help-text">Renseignez les constantes (DP / bateau / sécurité surface), puis le site et les coordonnées GPS (format marin).</p>
 
+    <!-- Centre (dans l'app) -->
+
+    <div class="row" style="align-items:flex-end; gap:10px; flex-wrap:wrap; margin-top:8px;">
+      <div class="field" style="flex:2; min-width:220px;">
+        <label>Centre</label>
+        <div id="center_display_app" class="mono" style="opacity:0.95; padding:10px 12px; border:1px solid #2a4570; border-radius:10px;     background:#0b172c;">
+          —
+        </div>
+      </div>
+
+      <div class="field" style="flex:1; min-width:160px;">
+        <label>&nbsp;</label>
+        <button type="button" class="btn btn-secondary" id="btn_center_setup_app" style="width:100%;">⚙️ Centre</button>
+      </div>
+
+      <div class="field" style="flex:1; min-width:160px;">
+        <label>&nbsp;</label>
+        <button type="button" class="btn btn-secondary" id="btn_center_copy_key_app" style="width:100%;">🔑 Copier clé</button>
+      </div>
+    </div>
+
+
     <!-- Constantes -->
     <div class="row" style="align-items:flex-end; gap:10px; flex-wrap:wrap;">
       <div class="field" style="flex:1; min-width:160px;">
@@ -3094,6 +3116,8 @@
 
   const CENTER_CFG_KEY      = "seaAngel_center_cfg_v1";
 
+  const CENTER_ADMIN_KEY    = "seaAngel_center_admin_v1"; // adminSecret (DP device only)
+
 
   // =========================
   // Centre (nom + id + option bateaux)
@@ -3135,7 +3159,40 @@
     } catch(e) { return false; }
   }
 
+  function loadCenterAdmin(){
+    try{
+      const raw = localStorage.getItem(CENTER_ADMIN_KEY);
+      const o = raw ? JSON.parse(raw) : null;
+      if (!o || typeof o !== "object") return null;
+      return { adminSecret: String(o.adminSecret || "").trim() };
+    } catch(e){ return null; }
+  }
 
+  function saveCenterAdmin(adminSecret){
+    try{
+      localStorage.setItem(CENTER_ADMIN_KEY, JSON.stringify({
+        adminSecret: String(adminSecret || "").trim()
+      }));
+      return true;
+    } catch(e){ return false; }
+  }
+
+  async function centerApiJson(path, bodyObj){
+    const r = await fetch(path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(bodyObj || {})
+    });
+    const j = await r.json().catch(()=>null);
+    if (!r.ok || !j) {
+      const msg = (j && j.error) ? j.error : ("HTTP " + r.status);
+      throw new Error(msg);
+    }
+    if (j && j.ok === false) {
+      throw new Error(j.error || "API error");
+    }
+    return j;
+  }
 
   function getCenterDisplayName() {
     const c = loadCenterCfg();
@@ -3159,8 +3216,13 @@
     const cfg = loadCenterCfg() || {};
     if (nameEl) nameEl.value = cfg.name || "";
     if (boatsEl) boatsEl.value = String(cfg.boatsN || 1);
+ 
+  // server-generated only: on affiche l'id si présent, sinon vide
     const cid = (forceNewId ? "" : (cfg.id || ""));
-    if (idEl) idEl.value = cid ? cid : genCenterId();
+    if (idEl){
+      idEl.value = cid ? cid : "";
+      idEl.disabled = true; // toujours read-only
+    }
 
       // Default: create mode when opening the modal
     setAccessMode("none");
@@ -3258,28 +3320,46 @@ function clearJoinError(){
   el.style.display = "none";
 }
 
-function handleJoinSubmit(){
+async function handleJoinSubmit(){
   const keyEl = document.getElementById("center_join_key_input");
-  const key = keyEl ? keyEl.value : "";
-  const data = parseCenterJoinKey(key);
-  if (!data){
-    showJoinError("Clé invalide. Vérifie le copier/coller.");
+  const joinKey = keyEl ? String(keyEl.value || "").trim() : "";
+
+  clearJoinError();
+
+  if (!joinKey){
+    showJoinError("Clé manquante.");
+    return;
+  }
+  if (!navigator.onLine){
+    showJoinError("Connexion requise (JOIN online obligatoire).");
     return;
   }
 
-  // Sauve la config localement via ton mécanisme existant
-  const cfg = loadCenterCfg() || {};
-  cfg.id = data.id;
-  cfg.name = data.name;
-  cfg.boatsN = data.boatsN;
+  try{
+    const j = await centerApiJson("/.netlify/functions/center_join", { joinKey });
 
-  saveCenterCfg(cfg);
+    // accepte plusieurs formes de réponse (robuste)
+    const centerId   = String(j.centerId || (j.center && j.center.centerId) || "").trim();
+    const centerName = String(j.centerName || (j.center && j.center.name) || (j.center && j.center.centerName) || "").trim();
+    const boatsN     = Number(j.boatsN || (j.center && j.center.boatsN) || 1) || 1;
 
-  // Refresh UI visible (center_display etc.)
-  if (typeof refreshCenterDisplay === "function") refreshCenterDisplay();
+    if (!centerId || !centerName) throw new Error("Réponse serveur invalide.");
 
-  // On repasse en create (pour que l’écran soit “normal” ensuite)
-  setAccessMode("create");
+    saveCenterCfg({ id: centerId, name: centerName, boatsN: boatsN });
+
+    closeCenterSetupModal();
+    // refresh display (modal + app) via ton refreshCenterDisplay()
+    try { if (typeof refreshCenterDisplay === "function") refreshCenterDisplay(); } catch(_){}
+
+    // Init app once center is configured (même logique que ton Save)
+    if (!window.__dlog_inited) {
+      window.__dlog_inited = true;
+      try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
+      try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
+    }
+  } catch(e){
+    showJoinError(String(e && e.message ? e.message : e));
+  }
 }
 
 
@@ -12739,12 +12819,15 @@ document.addEventListener("DOMContentLoaded", ()=> {
   // Centre setup (UI wiring)
   // =========================
   const refreshCenterDisplay = () => {
-    const el = document.getElementById("center_display");
-    if (!el) return;
     const c = loadCenterCfg();
-    el.textContent = (c && c.name) ? (c.name + (c.id ? (" — " + c.id) : "")) : "—";
-  };
+    const txt = (c && c.name) ? (c.name + (c.id ? (" — " + c.id) : "")) : "—";
 
+    const elModal = document.getElementById("center_display");
+    if (elModal) elModal.textContent = txt;
+
+    const elApp = document.getElementById("center_display_app");
+    if (elApp) elApp.textContent = txt;
+  };
    const btnCreate = document.getElementById("btn_center_create");
    const btnJoin   = document.getElementById("btn_center_join");
    const btnJoinOk = document.getElementById("btn_center_join_ok");
@@ -12766,6 +12849,42 @@ document.addEventListener("DOMContentLoaded", ()=> {
     openCenterSetupModal(false);
   });
 
+  const btnCfgApp = document.getElementById("btn_center_setup_app");
+  if (btnCfgApp) btnCfgApp.addEventListener("click", () => {
+    if (!isStandaloneMode()){
+      openInstallGate();
+      return;
+    }
+    openCenterSetupModal(false);
+  });
+
+  const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
+  if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
+    // (1) Online obligatoire
+    if (!navigator.onLine){
+      alert("Connexion requise pour obtenir la clé centre (online).");
+      return;
+    }
+
+   // (2) Admin secret requis sur cet appareil (DP)
+  const admin = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
+  const adminSecret = admin && admin.adminSecret ? admin.adminSecret : "";
+  if (!adminSecret){
+    alert("Clé admin absente sur cet appareil (DP).");
+    return;
+  }
+
+  try{
+    const j = await centerApiJson("/.netlify/functions/center_key_get", { adminSecret });
+    const key = j.key || j.centerKey || "";
+    if (!key) throw new Error("Réponse serveur invalide (key manquante).");
+    await navigator.clipboard.writeText(String(key));
+    alert("Clé centre copiée ✅");
+  } catch(e){
+    alert(String(e && e.message ? e.message : e));
+  }
+});
+
   const btnClose = document.getElementById("btnCenterSetupClose");
   if (btnClose) btnClose.addEventListener("click", () => { closeCenterSetupModal(); refreshCenterDisplay(); });
 
@@ -12773,32 +12892,46 @@ document.addEventListener("DOMContentLoaded", ()=> {
   if (btnRegen) btnRegen.addEventListener("click", () => { openCenterSetupModal(true); });
 
   const btnSave = document.getElementById("btnCenterSetupSave");
-  if (btnSave) btnSave.addEventListener("click", () => {
-    const nameEl = document.getElementById("center_name_input");
-    const boatsEl = document.getElementById("center_boats_input");
-    const idEl = document.getElementById("center_id_input");
+  if (btnSave) btnSave.addEventListener("click", async () => {
+  const nameEl = document.getElementById("center_name_input");
+  const boatsEl = document.getElementById("center_boats_input");
 
-    const name = (nameEl && nameEl.value) ? String(nameEl.value).trim() : "";
-    const boatsN = boatsEl && boatsEl.value ? Number(boatsEl.value) : 1; 
-    const id = (idEl && idEl.value) ? String(idEl.value).trim() : "";
+  const name = (nameEl && nameEl.value) ? String(nameEl.value).trim() : "";
+  const boatsN = boatsEl && boatsEl.value ? Number(boatsEl.value) : 1;
 
-    if (!name) { alert("Nom du centre requis."); return; }
-    if (!id) { alert("ID centre manquant."); return; }
+  if (!name) { alert("Nom du centre requis."); return; }
+  if (!navigator.onLine){
+    alert("Connexion requise (CREATE online obligatoire).");
+    return;
+  }
 
-    saveCenterCfg({ name, id, boatsN });
+  try{
+    const j = await centerApiJson("/.netlify/functions/center_create", { name, boatsN });
+
+    const centerId   = String(j.centerId || (j.center && j.center.centerId) || "").trim();
+    const centerName = String(j.centerName || (j.center && j.center.name) || (j.center && j.center.centerName) || name).trim();
+    const bN         = Number(j.boatsN || (j.center && j.center.boatsN) || boatsN || 1) || 1;
+
+    if (!centerId || !centerName) throw new Error("Réponse serveur invalide.");
+
+    saveCenterCfg({ id: centerId, name: centerName, boatsN: bN });
+
+    // adminSecret si fourni par le serveur (DP device)
+    const adminSecret = String(j.adminSecret || "").trim();
+    if (adminSecret) saveCenterAdmin(adminSecret);
+
     closeCenterSetupModal();
     refreshCenterDisplay();
 
-    // Init app once center is configured
     if (!window.__dlog_inited) {
       window.__dlog_inited = true;
       try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
-      // Auto-import if opened from QR URL
       try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
     }
-    // Access mode buttons (Create / Join)
-  
-  });
+  } catch(e){
+    alert(String(e && e.message ? e.message : e));
+  }
+});
 
 // =========================
 // Install assistant wiring  ← STEP 3 ICI
