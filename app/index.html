@@ -2249,10 +2249,7 @@
         </div>
       </div>
 
-      <div class="field" style="flex:1; min-width:160px;">
-        <label>&nbsp;</label>
-        <button type="button" class="btn btn-secondary" id="btn_center_setup_app" style="width:100%;">⚙️ Centre</button>
-      </div>
+     
 
       <div class="field" style="flex:1; min-width:160px;">
         <label>&nbsp;</label>
@@ -12840,26 +12837,27 @@ document.addEventListener("DOMContentLoaded", ()=> {
    if (keyEl) keyEl.addEventListener("input", () => clearJoinError());
 
 
+  // Centre button removed from app (setup is boot-only)
   const btnCfg = document.getElementById("btn_center_setup");
-  if (btnCfg) btnCfg.addEventListener("click", () => {
-    if (!isStandaloneMode()){
-      openInstallGate();
-      return;
-    }
-    openCenterSetupModal(false);
-  });
+  if (btnCfg) { try { btnCfg.remove(); } catch(e){ btnCfg.style.display="none"; } }
 
   const btnCfgApp = document.getElementById("btn_center_setup_app");
-  if (btnCfgApp) btnCfgApp.addEventListener("click", () => {
-    if (!isStandaloneMode()){
-      openInstallGate();
-      return;
-    }
-    openCenterSetupModal(false);
-  });
+  if (btnCfgApp) { try { btnCfgApp.remove(); } catch(e){ btnCfgApp.style.display="none"; } }
 
- const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
-if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
+  const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
+  if (btnCopyKeyApp) {
+  const admin = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
+  const isAdmin = !!(admin && admin.adminSecret);
+
+  // UI: master-only
+  btnCopyKeyApp.style.display = isAdmin ? "" : "none";
+  if (!isAdmin) return;
+
+  // Safety: bind once
+  if (btnCopyKeyApp.__oi_bound_copy_key) return;
+  btnCopyKeyApp.__oi_bound_copy_key = true;
+
+  btnCopyKeyApp.addEventListener("click", async () => {
   // (1) Online obligatoire
   if (!navigator.onLine){
     alert("Connexion requise pour obtenir la clé centre (online).");
@@ -12867,7 +12865,6 @@ if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
   }
 
   // (2) Admin secret requis sur cet appareil (DP)
-  const admin = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
   const adminSecret = admin && admin.adminSecret ? admin.adminSecret : "";
   if (!adminSecret){
     alert("Clé admin absente sur cet appareil (DP).");
@@ -12892,13 +12889,29 @@ if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
   } catch(e){
     alert(String(e && e.message ? e.message : e));
   }
-});
+ });
+}
 
   const btnClose = document.getElementById("btnCenterSetupClose");
   if (btnClose) btnClose.addEventListener("click", () => { closeCenterSetupModal(); refreshCenterDisplay(); });
 
-  const btnRegen = document.getElementById("btnCenterIdRegen");
-  if (btnRegen) btnRegen.addEventListener("click", () => { openCenterSetupModal(true); });
+
+ const btnRegen = document.getElementById("btnCenterIdRegen");
+ if (btnRegen) {
+   // Disable regen if center already configured
+   const c0 = (typeof loadCenterCfg === "function") ? loadCenterCfg() : null;
+   if (c0 && c0.id) {
+     try {
+       btnRegen.remove();
+     } catch(e){
+       btnRegen.style.display = "none";
+     }
+   } else {
+     btnRegen.addEventListener("click", () => {
+       openCenterSetupModal(true);
+     });
+   }
+ }
 
   const btnSave = document.getElementById("btnCenterSetupSave");
   if (btnSave) btnSave.addEventListener("click", async () => {
