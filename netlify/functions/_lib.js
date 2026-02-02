@@ -1,8 +1,18 @@
 // netlify/functions/_lib.js
 import crypto from "crypto";
-import { getStore } from "@netlify/blobs";
 
-export const STORE_NAME = "ocean_infinity_centers_v1";
+/*
+  In-memory registry.
+  NOTE:
+  - Persistance par instance (acceptable pour JOIN flow)
+  - Reset possible à froid (clé régénérable)
+*/
+
+const CENTERS = new Map();
+
+/* =========================
+   HTTP helpers
+========================= */
 
 export function json(statusCode, obj) {
   return {
@@ -23,6 +33,10 @@ export function methodNotAllowed() {
   return json(405, { ok: false, error: "method_not_allowed" });
 }
 
+/* =========================
+   Utils
+========================= */
+
 export function normalizeBoatsN(x) {
   const n = Number(x);
   if (!Number.isFinite(n)) return 1;
@@ -30,20 +44,40 @@ export function normalizeBoatsN(x) {
 }
 
 export function makeId(prefix) {
-  // short-ish, URL-safe
-  return (
-    prefix +
-    "_" +
-    crypto.randomBytes(9).toString("base64url") // ~12 chars
-  );
+  return prefix + "_" + crypto.randomBytes(9).toString("base64url");
 }
 
 export function hashSecret(secret) {
-  // simple SHA-256 hash (suffisant ici)
   return crypto.createHash("sha256").update(secret, "utf8").digest("hex");
 }
 
-export async function store() {
-  // Netlify Blobs store
-  return getStore({ name: STORE_NAME });
+/* =========================
+   Registry API
+========================= */
+
+export function createCenter({ centerId, name, boatsN, adminHash }) {
+  CENTERS.set(centerId, {
+    centerId,
+    name,
+    boatsN,
+    adminHash,
+    createdAt: Date.now(),
+    disabled: false,
+  });
+}
+
+export function getCenter(centerId) {
+  return CENTERS.get(centerId) || null;
+}
+
+export function findCenterByAdminHash(adminHash) {
+  for (const c of CENTERS.values()) {
+    if (c.adminHash === adminHash) return c;
+  }
+  return null;
+}
+
+export function disableCenter(centerId) {
+  const c = CENTERS.get(centerId);
+  if (c) c.disabled = true;
 }
