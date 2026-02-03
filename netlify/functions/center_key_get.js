@@ -2,6 +2,10 @@
 import { badRequest, json, methodNotAllowed, store, hashSecret } from "./_lib.js";
 
 export async function handler(event) {
+console.log("[KEY_GET][ENTRY]", {
+  method: event.httpMethod,
+  body: event.body
+});
   if (event.httpMethod !== "POST") return methodNotAllowed();
 
   let body;
