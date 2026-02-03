@@ -48,5 +48,5 @@ catch {
 //  return json(200, { ok:false, error:"center_disabled" });
 // }
 
-  return json(200, { ok: true, joinKey: center.joinKey });
+  return json(200, { ok: true, Key: center.joinKey });
 }
