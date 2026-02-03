@@ -35,6 +35,12 @@ catch {
   return json(200, { ok:false, error:"unauthorized_bad_secret" });
 }
 
+console.log("[KEY_GET][HASH_DEBUG]", {
+  inputHash: hashSecret(adminSecret),
+  storedHash: center.adminSecretHash
+});
+
+
   if (center.status !== "active") {
     return json(200, { ok: false, error: "center_disabled" });
   }
