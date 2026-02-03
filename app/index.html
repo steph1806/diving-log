@@ -3177,6 +3177,40 @@
     } catch(e){ return false; }
   }
 
+
+  // ---- DIAG (temporary) : center state snapshot for debugging unauthorized key-get
+  function diagCenterState(tag){
+    try{
+      const cfg = (typeof loadCenterCfg === "function") ? loadCenterCfg() : null;
+      const adm = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
+      const adminSecret = adm && typeof adm.adminSecret === "string" ? adm.adminSecret : "";
+      const isStandalone = (() => {
+        try { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (navigator.standalone === true); }
+        catch(_) { return false; }
+      })();
+      const isIOS = (() => {
+        try { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+        catch(_) { return false; }
+      })();
+      const snap = {
+        tag: String(tag || ""),
+        href: String((location && location.href) || ""),
+        ts: new Date().toISOString(),
+        isIOS: isIOS,
+        isStandalone: isStandalone,
+        centerCfg: cfg ? { id: (cfg.id || ""), name: (cfg.name || ""), boatsN: cfg.boatsN } : null,
+        adminSecret: adminSecret ? { present: true, len: adminSecret.length } : { present: false, len: 0 }
+      };
+      console.log("[DIAG center]", snap);
+      alert("[DIAG center]\n" + JSON.stringify(snap, null, 2));
+      return snap;
+    } catch(e){
+      console.error("[DIAG center] failed", e);
+      alert("[DIAG center] failed: " + ((e && e.message) ? e.message : String(e)));
+      return null;
+    }
+  }
+
   async function centerApiJson(path, bodyObj){
     const r = await fetch(path, {
       method: "POST",
@@ -3347,6 +3381,9 @@ async function handleJoinSubmit(){
 
     saveCenterCfg({ id: centerId, name: centerName, boatsN: boatsN });
 
+
+    // DIAG snapshot after CREATE response saved
+    diagCenterState("create_post");
     closeCenterSetupModal();
     // refresh display (modal + app) via ton refreshCenterDisplay()
     try { if (typeof refreshCenterDisplay === "function") refreshCenterDisplay(); } catch(_){}
@@ -12860,7 +12897,10 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
  const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
 if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
-  // (1) Online obligatoire
+    // DIAG snapshot before calling center_key_get
+  diagCenterState("copy_key_pre");
+
+// (1) Online obligatoire
   if (!navigator.onLine){
     alert("Connexion requise pour obtenir la clé centre (online).");
     return;
