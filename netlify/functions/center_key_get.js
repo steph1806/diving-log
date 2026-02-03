@@ -25,14 +25,14 @@ console.log("[KEY_GET][INPUT]", {
   const centerRaw = await s.get(`center:${centerId}`);
 if (!centerRaw) {
   console.log("[KEY_GET][UNAUTHORIZED]", { centerId, reason: "center_missing" });
-  return json(200, { ok: false, error: "unauthorized" });
+  return json(200, { ok:false, error:"unauthorized_center_missing" });
 }
 
   let center;
   try { center = JSON.parse(centerRaw); }
 catch {
   console.log("[KEY_GET][UNAUTHORIZED]", { centerId, reason: "center_json_parse_failed" });
-  return json(200, { ok: false, error: "unauthorized" });
+  return json(200, { ok:false, error:"unauthorized_bad_secret" });
 }
 
   if (center.status !== "active") {
@@ -45,7 +45,7 @@ if (center.adminSecretHash !== hashSecret(adminSecret)) {
     reason: "secret_mismatch",
     storedHash_present: !!center.adminSecretHash
   });
-  return json(200, { ok: false, error: "unauthorized" });
+  return json(200, { ok:false, error:"center_disabled" });
 }
 
   return json(200, { ok: true, joinKey: center.joinKey });
