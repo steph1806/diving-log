@@ -12908,7 +12908,7 @@ if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
 
   // (2) Admin secret requis sur cet appareil (DP)
   const admin = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
-  const adminSecret = admin && admin.adminSecret ? admin.adminSecret : "";
+  const adminSecret = centerCfg.adminSecret;
   if (!adminSecret){
     alert("Clé admin absente sur cet appareil (DP).");
     return;
