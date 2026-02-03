@@ -16,6 +16,7 @@ export async function handler(event) {
   const centerId = makeId("C");
   const joinKey  = "OI1_" + makeId("J").slice(2); // OI1_<random>
   const adminSecret = "A_" + makeId("S").slice(2);
+console.log("[CREATE]", { centerId, adminSecret_len: String(adminSecret||"").length });
 
   const rec = {
     centerId,
