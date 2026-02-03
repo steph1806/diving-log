@@ -12933,8 +12933,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
             "centerId=" + centerId,
             "adminSecret=" + (adminSecret ? ("present(len=" + adminSecret.length + ")") : "MISSING"),
             "note: si 'Unauthorized', le server ne reconnaît pas adminSecret pour ce centerId."
-          ].join("
-");
+          ].join("\n");
           alert(diag);
         }
       });
@@ -13063,8 +13062,9 @@ window.addEventListener("beforeinstallprompt", (e) => {
       }
     } catch(e) { console.warn('splash kill', e); }
 
-    // Gate 0: require installed (standalone) before ANY center configuration
-    if (!isStandaloneMode()){
+    // Gate 0: require installed (standalone) ONLY on iOS Safari.
+    // Desktop (Mac/Windows) and Android can continue in browser.
+    if (isIOS() && !isStandaloneMode()){
       openInstallGate();
       return;
     }
