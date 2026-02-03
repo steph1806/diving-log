@@ -12928,7 +12928,14 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
         } catch (e) {
           const msg = String(e && e.message ? e.message : e);
-          alert(msg);
+          const diag = [
+            "Erreur clé centre: " + msg,
+            "centerId=" + centerId,
+            "adminSecret=" + (adminSecret ? ("present(len=" + adminSecret.length + ")") : "MISSING"),
+            "note: si 'Unauthorized', le server ne reconnaît pas adminSecret pour ce centerId."
+          ].join("
+");
+          alert(diag);
         }
       });
     }
@@ -12982,7 +12989,18 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
     // adminSecret si fourni par le serveur (DP device)
     const adminSecret = String(j.adminSecret || "").trim();
-    if (adminSecret) saveCenterAdmin(adminSecret);
+
+    // CREATE creates a fresh center: never keep any previous adminSecret
+    try { if (typeof clearCenterAdmin === "function") clearCenterAdmin(); } catch(_) {}
+
+    if (adminSecret) {
+      saveCenterAdmin(adminSecret);
+    } else {
+      // If server does not return an adminSecret, we cannot fetch the join key.
+      // Keep UI consistent (copy-key button hidden).
+      try { if (typeof refreshCopyKeyUI === "function") refreshCopyKeyUI(); } catch(_) {}
+    }
+
     try { if (typeof refreshCopyKeyUI === "function") refreshCopyKeyUI(); } catch(_) {}
 
     closeCenterSetupModal();
