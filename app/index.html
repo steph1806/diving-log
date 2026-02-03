@@ -3346,7 +3346,9 @@ async function handleJoinSubmit(){
 
     closeCenterSetupModal();
     // refresh display (modal + app) via ton refreshCenterDisplay()
+   
     try { if (typeof refreshCenterDisplay === "function") refreshCenterDisplay(); } catch(_){}
+    try { ensureGaExportQrWiring(); } catch(e) {}
 
     // Init app once center is configured (même logique que ton Save)
     if (!window.__dlog_inited) {
@@ -4865,8 +4867,6 @@ function renderCurrentGaQr() {
 
 
 function ensureGaExportQrWiring() {
-  if (gaExportWired) return;
-
   const sel = document.getElementById("ga_export_boat_sel");
   const btn = document.getElementById("btn_ga_export_qr");
   const wrap = document.getElementById("ga_export_qr_wrap");
@@ -4876,7 +4876,7 @@ function ensureGaExportQrWiring() {
 
   if (!sel || !btn || !wrap || !status || !btnPrev || !btnNext) return;
 
-  // Populate boats options once
+  // (A) Toujours re-peupler les bateaux selon boatsN courant
   const n = (typeof getCenterBoatsN === "function") ? getCenterBoatsN() : 1;
   sel.innerHTML = '<option value="">—</option>';
   for (let i = 1; i <= n; i++) {
@@ -4885,21 +4885,27 @@ function ensureGaExportQrWiring() {
     o.textContent = "B" + i;
     sel.appendChild(o);
   }
-// Sync default selection with "Bateau (masse)" if present
-const selMass = document.getElementById("ga_bulk_boat");
-try {
-  const massVal = selMass && selMass.value ? String(selMass.value) : "";
-  if (massVal && !sel.value) sel.value = massVal;
-} catch(e) {}
-if (selMass) {
-  selMass.addEventListener("change", () => {
-    try {
-      const massVal = selMass.value ? String(selMass.value) : "";
-      if (massVal) sel.value = massVal;
-    } catch(e) {}
-  });
-}
 
+  // (B) Sync avec "Bateau (masse)" si présent (sans multi-bind)
+  const selMass = document.getElementById("ga_bulk_boat");
+  try {
+    const massVal = selMass && selMass.value ? String(selMass.value) : "";
+    if (massVal && !sel.value) sel.value = massVal;
+  } catch(e) {}
+
+  if (selMass && !selMass.__oi_bound_ga_bulk) {
+    selMass.__oi_bound_ga_bulk = true;
+    selMass.addEventListener("change", () => {
+      try {
+        const massVal = selMass.value ? String(selMass.value) : "";
+        if (massVal) sel.value = massVal;
+      } catch(e) {}
+    });
+  }
+
+  // (C) Les listeners UI ne doivent être bindés qu’une seule fois
+  if (gaExportWired) return;
+  gaExportWired = true;
 
   btn.addEventListener("click", async (ev) => {
     if (ev) ev.stopPropagation();
@@ -12844,53 +12850,75 @@ document.addEventListener("DOMContentLoaded", ()=> {
   const btnCfgApp = document.getElementById("btn_center_setup_app");
   if (btnCfgApp) { try { btnCfgApp.remove(); } catch(e){ btnCfgApp.style.display="none"; } }
 
-  const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
+   const btnCopyKeyApp = document.getElementById("btn_center_copy_key_app");
+
+  function refreshCopyKeyUI(){
+    if (!btnCopyKeyApp) return;
+    const adminNow = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
+    const isAdminNow = !!(adminNow && adminNow.adminSecret);
+    btnCopyKeyApp.style.display = isAdminNow ? "" : "none";
+  }
+
   if (btnCopyKeyApp) {
-    const admin = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
-    const isAdmin = !!(admin && admin.adminSecret);
+    // UI state now + later (after CREATE/JOIN)
+    refreshCopyKeyUI();
 
-    // UI: master-only (mais ne jamais return du DOMContentLoaded)
-    btnCopyKeyApp.style.display = isAdmin ? "" : "none";
+    // Safety: bind once (handler checks admin at click time)
+    if (!btnCopyKeyApp.__oi_bound_copy_key) {
+      btnCopyKeyApp.__oi_bound_copy_key = true;
 
-    if (isAdmin) {
-      // Safety: bind once (sans return global)
-      if (!btnCopyKeyApp.__oi_bound_copy_key) {
-        btnCopyKeyApp.__oi_bound_copy_key = true;
+      btnCopyKeyApp.addEventListener("click", async () => {
+        // Re-read at click time (no Ctrl+R needed)
+        const c = (typeof loadCenterCfg === "function") ? loadCenterCfg() : null;
+        const adminNow = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
+        const isAdminNow = !!(adminNow && adminNow.adminSecret);
 
-        btnCopyKeyApp.addEventListener("click", async () => {
-          // (1) Online obligatoire
-          if (!navigator.onLine){
-            alert("Connexion requise pour obtenir la clé centre (online).");
-            return;
-          }
+        if (!isAdminNow) {
+          alert("Accès refusé (clé centre : admin requis).");
+          refreshCopyKeyUI();
+          return;
+        }
 
-          // (2) Admin secret requis sur cet appareil (DP)
-          const adminSecret = admin && admin.adminSecret ? admin.adminSecret : "";
-          if (!adminSecret){
-            alert("Clé admin absente sur cet appareil (DP).");
-            return;
-          }
+        if (!navigator.onLine) {
+          alert("Connexion requise pour obtenir la clé centre (online).");
+          return;
+        }
 
-          // (3) CenterId requis (sinon le serveur répond missing_centerid)
-          const cfg = (typeof loadCenterCfg === "function") ? loadCenterCfg() : null;
-          const centerId = cfg && cfg.id ? String(cfg.id).trim() : "";
-          if (!centerId){
-            alert("Center ID manquant sur cet appareil. Ouvre ⚙️ → Configuration centre, puis réessaie.");
-            try { openCenterSetupModal(false); } catch(e) {}
-            return;
-          }
+        const centerId = c && c.id ? String(c.id).trim() : "";
+        const adminSecret = String(adminNow.adminSecret || "");
 
-          try{
-            const j = await centerApiJson("/.netlify/functions/center_key_get", { adminSecret, centerId });
-            const key = j.key || j.centerKey || "";
-            if (!key) throw new Error("Réponse serveur invalide (key manquante).");
-            await navigator.clipboard.writeText(String(key));
+        if (!centerId || !adminSecret) {
+          alert("Configuration centre incomplète (id/admin).");
+          refreshCopyKeyUI();
+          return;
+        }
+
+        try {
+          const j = await centerApiJson("/.netlify/functions/center_key_get", { centerId, adminSecret });
+          const key = String(j && (j.key || j.centerKey || "") || "").trim();
+          if (!key) throw new Error("Réponse serveur invalide.");
+
+          try {
+            await navigator.clipboard.writeText(key);
             alert("Clé centre copiée ✅");
-          } catch(e){
-            alert(String(e && e.message ? e.message : e));
+          } catch (e) {
+            // fallback iOS / permissions
+            const ta = document.createElement("textarea");
+            ta.value = key;
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            alert("Clé centre copiée ✅");
           }
-        });
-      }
+
+        } catch (e) {
+          const msg = String(e && e.message ? e.message : e);
+          alert(msg);
+        }
+      });
     }
   }
 
@@ -12945,7 +12973,8 @@ document.addEventListener("DOMContentLoaded", ()=> {
     if (adminSecret) saveCenterAdmin(adminSecret);
 
     closeCenterSetupModal();
-    refreshCenterDisplay();
+    try { if (typeof refreshCenterDisplay === "function") refreshCenterDisplay(); } catch(_) {}
+    try { ensureGaExportQrWiring(); } catch(e) {}
 
     if (!window.__dlog_inited) {
       window.__dlog_inited = true;
