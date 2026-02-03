@@ -3158,19 +3158,28 @@
 
   function loadCenterAdmin(){
     try{
-      // (A) Nouveau stockage (string)
-      const s = localStorage.getItem("centerAdminSecret");
-      if (s && String(s).trim()) return String(s).trim();
+      const raw = localStorage.getItem(CENTER_ADMIN_KEY);
+      const o = raw ? JSON.parse(raw) : null;
+      if (!o || typeof o !== "object") return null;
+      return { adminSecret: String(o.adminSecret || "").trim() };
+    } catch(e){ return null; }
+  }
 
-      // (B) Ancien stockage (JSON sous CENTER_ADMIN_KEY)
-      if (typeof CENTER_ADMIN_KEY !== "undefined") {
-        const raw = localStorage.getItem(CENTER_ADMIN_KEY);
-        const o = raw ? JSON.parse(raw) : null;
-        const sec = o && typeof o === "object" ? String(o.adminSecret || "").trim() : "";
-        if (sec) return sec;
-      }
-    }catch(e){}
-    return "";
+  function saveCenterAdmin(adminSecret){
+    try{
+      localStorage.setItem(CENTER_ADMIN_KEY, JSON.stringify({
+        adminSecret: String(adminSecret || "").trim()
+      }));
+      return true;
+    } catch(e){ return false; }
+  }
+
+
+  function clearCenterAdmin(){
+    try{
+      localStorage.removeItem(CENTER_ADMIN_KEY);
+      return true;
+    } catch(e){ return false; }
   }
 
   async function centerApiJson(path, bodyObj){
@@ -3342,6 +3351,10 @@ async function handleJoinSubmit(){
     if (!centerId || !centerName) throw new Error("Réponse serveur invalide.");
 
     saveCenterCfg({ id: centerId, name: centerName, boatsN: boatsN });
+
+    // JOIN device must NEVER keep any previous adminSecret
+    try { if (typeof clearCenterAdmin === "function") clearCenterAdmin(); } catch(_) {}
+    try { if (typeof refreshCopyKeyUI === "function") refreshCopyKeyUI(); } catch(_) {}
 
     closeCenterSetupModal();
     // refresh display (modal + app) via ton refreshCenterDisplay()
@@ -12853,8 +12866,9 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
   function refreshCopyKeyUI(){
     if (!btnCopyKeyApp) return;
-    const adminSecret = String(loadCenterAdmin() || "").trim();
-    btnCopyKeyApp.style.display = adminSecret ? "" : "none";
+    const adminNow = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
+    const isAdminNow = !!(adminNow && adminNow.adminSecret);
+    btnCopyKeyApp.style.display = isAdminNow ? "" : "none";
   }
 
   if (btnCopyKeyApp) {
@@ -12868,12 +12882,11 @@ document.addEventListener("DOMContentLoaded", ()=> {
       btnCopyKeyApp.addEventListener("click", async () => {
         // Re-read at click time (no Ctrl+R needed)
         const c = (typeof loadCenterCfg === "function") ? loadCenterCfg() : null;
-        const adminSecret = String(
-          (typeof loadCenterAdmin === "function" ? loadCenterAdmin() : "") || ""
-).trim();
+        const adminNow = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
+        const isAdminNow = !!(adminNow && adminNow.adminSecret);
 
-        if (!adminSecret) {
-          alert("Accès refusé (clé centre : admin requis.)");
+        if (!isAdminNow) {
+          alert("Accès refusé (clé centre : admin requis).");
           refreshCopyKeyUI();
           return;
         }
@@ -12884,7 +12897,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
         }
 
         const centerId = c && c.id ? String(c.id).trim() : "";
-        // adminSecret déjà calculé plus haut → ne pas redéclarer
+        const adminSecret = String(adminNow.adminSecret || "");
 
         if (!centerId || !adminSecret) {
           alert("Configuration centre incomplète (id/admin).");
@@ -12970,6 +12983,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
     // adminSecret si fourni par le serveur (DP device)
     const adminSecret = String(j.adminSecret || "").trim();
     if (adminSecret) saveCenterAdmin(adminSecret);
+    try { if (typeof refreshCopyKeyUI === "function") refreshCopyKeyUI(); } catch(_) {}
 
     closeCenterSetupModal();
     try { if (typeof refreshCenterDisplay === "function") refreshCenterDisplay(); } catch(_) {}
