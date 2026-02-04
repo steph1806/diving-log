@@ -12927,7 +12927,6 @@ if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
 
   try{
     const j = await centerApiJson("/.netlify/functions/center_key_get", {
-  method: "POST",
   adminSecret,
   centerId
 });
