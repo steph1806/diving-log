@@ -1,10 +1,9 @@
 // netlify/functions/_lib.js
 import crypto from "crypto";
 
-
 export const STORE_NAME = "ocean_infinity_centers_v1";
 
-// In-memory fallback (local/dev only)
+// In-memory fallback (used when blobs fail)
 const MEM = new Map();
 
 function memStore() {
@@ -15,11 +14,32 @@ function memStore() {
   };
 }
 
-// Blobs-backed store (prod)
+// --- IDs / hashing / normalization (REQUIRED by center_* functions)
+
+export function makeId(prefix = "") {
+  // 12 bytes => 24 hex chars
+  return `${prefix}${crypto.randomBytes(12).toString("hex")}`;
+}
+
+export function hashSecret(secret) {
+  return crypto.createHash("sha256").update(String(secret || ""), "utf8").digest("hex");
+}
+
+export function normalizeBoatsN(v) {
+  let n = Number(v);
+  if (!Number.isFinite(n)) n = 1;
+  n = Math.round(n);
+  if (n < 1) n = 1;
+  if (n > 40) n = 40; // hard cap (safe)
+  return n;
+}
+
+// --- Netlify Blobs store (prod)
+
 async function getBlobsStore() {
-  const mod = await import("@netlify/blobs"); // <-- si ça manque, on catch au runtime
-  const getStore = mod.getStore || mod.getStore?.default || mod.getStore;
-  if (!getStore) throw new Error("blobs_getStore_missing");
+  const mod = await import("@netlify/blobs");
+  const getStore = mod && mod.getStore;
+  if (typeof getStore !== "function") throw new Error("blobs_getStore_missing");
   return getStore(STORE_NAME);
 }
 
@@ -56,10 +76,13 @@ function blobsStore() {
   };
 }
 
-export function store() {
+// NOTE: center_* code does: const s = await store();
+// so store() MUST be async.
+export async function store() {
   return blobsStore();
 }
 
+// --- HTTP helpers
 
 export function json(statusCode, obj) {
   return {
