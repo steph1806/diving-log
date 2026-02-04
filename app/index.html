@@ -12865,6 +12865,8 @@ document.addEventListener("DOMContentLoaded", ()=> {
     const elApp = document.getElementById("center_display_app");
     if (elApp) elApp.textContent = txt;
   };
+   window.refreshCenterDisplay = refreshCenterDisplay;
+
    const btnCreate = document.getElementById("btn_center_create");
    const btnJoin   = document.getElementById("btn_center_join");
    const btnJoinOk = document.getElementById("btn_center_join_ok");
@@ -12880,7 +12882,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
   const btnCfg = document.getElementById("btn_center_setup");
   if (btnCfg) btnCfg.addEventListener("click", () => {
     if (!isStandaloneMode()){
-      openInstallGate();
+//    openInstallGate();
       return;
     }
     openCenterSetupModal(false);
@@ -12908,7 +12910,7 @@ if (btnCopyKeyApp) btnCopyKeyApp.addEventListener("click", async () => {
 
   // (2) Admin secret requis sur cet appareil (DP)
   const admin = (typeof loadCenterAdmin === "function") ? loadCenterAdmin() : null;
-  const adminSecret = centerCfg.adminSecret;
+  const adminSecret = admin && admin.adminSecret ? String(admin.adminSecret).trim() : "";
   if (!adminSecret){
     alert("Clé admin absente sur cet appareil (DP).");
     return;
