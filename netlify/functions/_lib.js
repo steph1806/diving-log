@@ -1,5 +1,6 @@
 // netlify/functions/_lib.js
 import crypto from "crypto";
+import { getStore as getBlobStore } from "@netlify/blobs";
 
 export const STORE_NAME = "ocean_infinity_centers_v1"; // gardé pour compat / debug
 
@@ -39,17 +40,39 @@ export function hashSecret(secret) {
   return crypto.createHash("sha256").update(secret, "utf8").digest("hex");
 }
 
-// Matches your center_* usage: await s.get(key), await s.set(key, value)
+
+// Durable store (Netlify Blobs). In prod this is the only correct way.
+// Docs: getStore/set/get/delete  [oai_citation:1‡Netlify Docs](https://docs.netlify.com/blobs/overview/)
 export async function store() {
-  return {
-    async get(k) {
-      return MEM.has(k) ? MEM.get(k) : null;
-    },
-    async set(k, v) {
-      MEM.set(k, v);
-    },
-    async delete(k) {
-      MEM.delete(k);
-    },
-  };
+  try {
+    // PROD: Netlify Blobs (persistant, partagé)
+    const { getStore } = await import("@netlify/blobs");
+    const B = getStore(STORE_NAME);
+
+    return {
+      async get(k) {
+        const v = await B.get(k, { type: "text" });
+        return v == null ? null : v;
+      },
+      async set(k, v) {
+        await B.set(k, v);
+      },
+      async delete(k) {
+        await B.delete(k);
+      },
+    };
+  } catch (e) {
+    // DEV fallback (netlify dev)
+    return {
+      async get(k) {
+        return MEM.has(k) ? MEM.get(k) : null;
+      },
+      async set(k, v) {
+        MEM.set(k, v);
+      },
+      async delete(k) {
+        MEM.delete(k);
+      },
+    };
+  }
 }
