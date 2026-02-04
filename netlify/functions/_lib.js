@@ -18,21 +18,38 @@ function memStore() {
 // Blobs-backed store (prod)
 function blobsStore() {
   const s = getBlobStore(STORE_NAME);
+
   return {
     async get(k) {
-      const v = await s.get(k, { type: "text" });
-      return v == null ? null : v;
+      try {
+        const v = await s.get(k, { type: "text" });
+        return v == null ? null : v;
+      } catch (e) {
+        console.log("[BLOBS_GET_FAIL]", e?.message || e);
+        return MEM.get(k) ?? null;
+      }
     },
-    async set(k, v) { await s.set(k, v); },
-    async delete(k) { await s.delete(k); },
+
+    async set(k, v) {
+      try {
+        await s.set(k, v);
+      } catch (e) {
+        console.log("[BLOBS_SET_FAIL]", e?.message || e);
+        MEM.set(k, v);
+      }
+    },
+
+    async delete(k) {
+      try {
+        await s.delete(k);
+      } catch (e) {
+        console.log("[BLOBS_DEL_FAIL]", e?.message || e);
+        MEM.delete(k);
+      }
+    },
   };
 }
 
-export async function store() {
-  try {
-    return blobsStore();
-  } catch (e) {
-    console.log("[STORE_FALLBACK_MEM]", String(e && e.message ? e.message : e));
-    return memStore();
-  }
+export function store() {
+  return blobsStore(); // PLUS DE try/catch ICI
 }
