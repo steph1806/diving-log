@@ -9,3 +9,9 @@
 node_modules/
 package.json
 package-lock.json
+
+# Node
+node_modules/
+
+# Netlify local
+.netlify/
