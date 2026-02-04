@@ -59,3 +59,23 @@ function blobsStore() {
 export function store() {
   return blobsStore();
 }
+
+
+export function json(statusCode, obj) {
+  return {
+    statusCode,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+    body: JSON.stringify(obj),
+  };
+}
+
+export function badRequest(msg = "bad_request") {
+  return json(400, { ok: false, error: msg });
+}
+
+export function methodNotAllowed() {
+  return json(405, { ok: false, error: "method_not_allowed" });
+}
