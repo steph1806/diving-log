@@ -5,16 +5,22 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-[edge_functions]
-  directory = "netlify/edge-functions"
+# Edge Functions (QR)
+[[edge_functions]]
+  path = "/.netlify/functions/qr_put"
+  function = "qr_put"
 
-# 1) fallback SPA de l’app
+[[edge_functions]]
+  path = "/.netlify/functions/qr_get"
+  function = "qr_get"
+
+# SPA app fallback
 [[redirects]]
   from = "/app/*"
   to = "/app/index.html"
   status = 200
 
-# 2) fallback SPA du site
+# SPA site fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
