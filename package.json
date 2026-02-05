@@ -1,0 +1,24 @@
+{
+  "name": "project-diving-center-copy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steph1806/diving-log.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+
+  "bugs": {
+    "url": "https://github.com/steph1806/diving-log/issues"
+  },
+  "homepage": "https://github.com/steph1806/diving-log#readme",
+  "dependencies": {
+    "@netlify/blobs": "^10.5.0"
+  }
+}
