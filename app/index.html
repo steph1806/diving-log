@@ -2168,24 +2168,15 @@
       À faire une seule fois au démarrage. Stocké en local sur cet appareil / navigateur.
     </div>
 
-<!-- ACCESS MODE: Create / Join -->
+<!-- ACCESS MODE: Create -->
 <div class="row" style="gap:10px; flex-wrap:wrap; margin-bottom:10px;">
   <div class="field" style="flex:2; min-width:220px;">
-    <label>Mode d’accès</label>
+    <label>Configuration centre</label>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button type="button" class="btn btn-secondary" id="btn_center_create">➕ Créer</button>
-      <button type="button" class="btn btn-secondary" id="btn_center_join">🔑 Rejoindre</button>
     </div>
   </div>
 
-  <div class="field" id="join_block" style="flex:3; min-width:280px; display:none;">
-    <label>Clé centre (collaborateur)</label>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <input id="center_join_key_input" type="text" placeholder="Ex: OI1.XXXX..." style="flex:1; min-width:220px;" />
-      <button type="button" class="btn btn-primary" id="btn_center_join_ok">Valider</button>
-    </div>
-    <div class="pdf-muted" id="center_join_err" style="margin-top:6px; color:#c0392b; display:none;"></div>
-  </div>
 </div>
 <!-- /ACCESS MODE -->
 <div id="create_block" style="display:none;">
@@ -3137,9 +3128,139 @@
 
 
 
-  function getCenterDisplayName() {
+  
+  // ==========================
+  // CENTER STATE (single source of truth)
+  // Rules:
+  // - Only hydrateStateFromStorage() reads localStorage via loadCenterCfg()
+  // - Only updateCenter() writes localStorage via saveCenterCfg()
+  // - UI must read STATE only
+  // ==========================
+  const STATE = {
+    centerId: null,
+    centerName: null,
+    boatsN: 1,
+    configured: false
+  };
+
+  function clampBoatsN(n){
+    const x = Number(n);
+    if (!Number.isFinite(x)) return 1;
+    return Math.max(1, Math.min(8, Math.floor(x)));
+  }
+
+  function hydrateStateFromStorage(){
     const c = loadCenterCfg();
-    return (c && c.name) ? c.name : "—";
+    if (c && typeof c === "object"){
+      STATE.centerId = (c.id || "").trim() || null;
+      STATE.centerName = (c.name || "").trim() || null;
+      STATE.boatsN = clampBoatsN(c.boatsN || 1);
+      STATE.configured = !!(STATE.centerId && STATE.centerName);
+      return true;
+    }
+    STATE.centerId = null;
+    STATE.centerName = null;
+    STATE.boatsN = 1;
+    STATE.configured = false;
+    return false;
+  }
+
+  function persistStateToStorage(){
+    // Keep the existing storage contract {id,name,boatsN}
+    return saveCenterCfg({
+      id: STATE.centerId || "",
+      name: STATE.centerName || "",
+      boatsN: STATE.boatsN || 1
+    });
+  }
+
+  function renderCenterDisplay(){
+    const el = document.getElementById("center_display");
+    if (!el) return;
+    const nm = STATE.centerName ? String(STATE.centerName) : "—";
+    const id = STATE.centerId ? String(STATE.centerId) : "";
+    el.textContent = id ? (nm + " — " + id) : nm;
+  }
+
+  function renderBoatOptionsBasic(sel, keepFirstN){
+    if (!sel) return;
+    const keep = Number.isFinite(Number(keepFirstN)) ? Math.max(0, Math.floor(keepFirstN)) : 0;
+
+    // Keep first N existing options if requested
+    let kept = [];
+    try {
+      for (let i = 0; i < keep && i < sel.options.length; i++){
+        kept.push(sel.options[i]);
+      }
+    } catch(e) {}
+
+    sel.innerHTML = "";
+    for (const o of kept) sel.appendChild(o);
+
+    for (let i = 1; i <= STATE.boatsN; i++){
+      const opt = document.createElement("option");
+      opt.value = "B" + i;
+      opt.textContent = "B" + i;
+      sel.appendChild(opt);
+    }
+  }
+
+  function renderGaExportBoatSelect(){
+    const sel = document.getElementById("ga_export_boat_sel");
+    if (!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">—</option>';
+    for (let i = 1; i <= STATE.boatsN; i++){
+      const o = document.createElement("option");
+      o.value = "B" + i;
+      o.textContent = "B" + i;
+      sel.appendChild(o);
+    }
+    // restore selection if still valid
+    try {
+      if (keep) sel.value = keep;
+    } catch(e) {}
+  }
+
+  function renderApp(){
+    // Center info
+    renderCenterDisplay();
+
+    // Boat-dependent UI bits
+    try { renderGaExportBoatSelect(); } catch(e) {}
+    try { if (typeof window.__refreshBoatOptions === "function") window.__refreshBoatOptions(); } catch(e) {}
+  }
+
+  function updateCenter(patch){
+    if (!patch || typeof patch !== "object") return false;
+
+    if ("centerId" in patch){
+      const v = String(patch.centerId || "").trim();
+      STATE.centerId = v ? v : null;
+    }
+    if ("centerName" in patch){
+      const v = String(patch.centerName || "").trim();
+      STATE.centerName = v ? v : null;
+    }
+    if ("boatsN" in patch){
+      STATE.boatsN = clampBoatsN(patch.boatsN);
+    }
+    STATE.configured = !!(STATE.centerId && STATE.centerName);
+
+    persistStateToStorage();
+    renderApp();
+
+    // Init app once center is configured (centralized)
+    if (STATE.configured && !window.__dlog_inited){
+      window.__dlog_inited = true;
+      try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
+      try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
+    }
+    return true;
+  }
+
+function getCenterDisplayName() {
+    return STATE.centerName ? String(STATE.centerName) : "—";
   }
 
   function openCenterSetupModal(forceNewId) {
@@ -3156,10 +3277,9 @@
     const boatsEl = document.getElementById("center_boats_input");
     const idEl = document.getElementById("center_id_input");
 
-    const cfg = loadCenterCfg() || {};
-    if (nameEl) nameEl.value = cfg.name || "";
-    if (boatsEl) boatsEl.value = String(cfg.boatsN || 1);
-    const cid = (forceNewId ? "" : (cfg.id || ""));
+    const cid = (forceNewId ? "" : (STATE.centerId || ""));
+    if (nameEl) nameEl.value = STATE.centerName ? String(STATE.centerName) : "";
+    if (boatsEl) boatsEl.value = String(STATE.boatsN || 1);
     if (idEl) idEl.value = cid ? cid : genCenterId();
 
       // Default: create mode when opening the modal
@@ -3174,116 +3294,28 @@
 
   // Return true if ok; if missing, opens modal and returns false.
   function ensureCenterCfgOrPrompt() {
-    const cfg = loadCenterCfg();
-    if (cfg && cfg.name && cfg.id) return true;
+    if (STATE.centerName && STATE.centerId) return true;
     openCenterSetupModal(false);
     return false;
   }
 
 
 // =======================
-// CENTER ACCESS MODE (Create / Join)
+// =======================
+// CENTER ACCESS MODE (Create only — Join removed)
 // =======================
 let __centerAccessMode = "none";
 
 function setAccessMode(mode){
- __centerAccessMode =
-  (mode === "join") ? "join" :
-  (mode === "create") ? "create" :
-  "none";
+  __centerAccessMode = (mode === "create") ? "create" : "none";
   applyAccessModeUI();
-  clearJoinError();
 }
 
 function applyAccessModeUI(){
   const createBlock = document.getElementById("create_block");
-  const joinBlock = document.getElementById("join_block");
-  const nameEl = document.getElementById("center_name_input");
-  const boatsEl = document.getElementById("center_boats_input");
-  const regenBtn = document.getElementById("btnCenterIdRegen");
-
-  if (joinBlock)   joinBlock.style.display   = (__centerAccessMode === "join") ? "block" : "none";
   if (createBlock) createBlock.style.display = (__centerAccessMode === "create") ? "block" : "none";
-
-  // En mode join: on évite que l’utilisateur modifie des champs “create”
-  if (nameEl)  nameEl.disabled  = (__centerAccessMode === "join");
-  if (boatsEl) boatsEl.disabled = (__centerAccessMode === "join");
-  if (regenBtn) regenBtn.disabled = (__centerAccessMode === "join");
 }
 
-function buildCenterJoinKey(cfg){
-  // Key offline, robuste: OI1.<base64url(json)>
-  // json: {id,name,boatsN}
-  const payload = {
-    id: cfg?.id || "",
-    name: cfg?.name || "",
-    boatsN: cfg?.boatsN || 1
-  };
-  const json = JSON.stringify(payload);
-  const b64 = btoa(unescape(encodeURIComponent(json)))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
-  return "OI1." + b64;
-}
-
-function parseCenterJoinKey(key){
-  if (!key || typeof key !== "string") return null;
-  const s = key.trim();
-  if (!s.startsWith("OI1.")) return null;
-  const b64u = s.slice(4).replace(/-/g, "+").replace(/_/g, "/");
-  // re-pad base64
-  const pad = "=".repeat((4 - (b64u.length % 4)) % 4);
-  const b64 = b64u + pad;
-
-  try{
-    const json = decodeURIComponent(escape(atob(b64)));
-    const obj = JSON.parse(json);
-    if (!obj || !obj.id || !obj.name) return null;
-    return { id: String(obj.id), name: String(obj.name), boatsN: Number(obj.boatsN || 1) };
-  } catch(e){
-    return null;
-  }
-}
-
-function showJoinError(msg){
-  const el = document.getElementById("center_join_err");
-  if (!el) return;
-  el.textContent = msg || "Clé invalide.";
-  el.style.display = "block";
-}
-
-function clearJoinError(){
-  const el = document.getElementById("center_join_err");
-  if (!el) return;
-  el.textContent = "";
-  el.style.display = "none";
-}
-
-function handleJoinSubmit(){
-  const keyEl = document.getElementById("center_join_key_input");
-  const key = keyEl ? keyEl.value : "";
-  const data = parseCenterJoinKey(key);
-  if (!data){
-    showJoinError("Clé invalide. Vérifie le copier/coller.");
-    return;
-  }
-
-  // Sauve la config localement via ton mécanisme existant
-  const cfg = loadCenterCfg() || {};
-  cfg.id = data.id;
-  cfg.name = data.name;
-  cfg.boatsN = data.boatsN;
-
-  saveCenterCfg(cfg);
-
-  // Refresh UI visible (center_display etc.)
-  if (typeof refreshCenterDisplay === "function") refreshCenterDisplay();
-
-  // On repasse en create (pour que l’écran soit “normal” ensuite)
-  setAccessMode("create");
-}
-
-
-// =======================
 // INSTALL GATE — Helpers
 // =======================
 function isIOS(){
@@ -4577,9 +4609,8 @@ const DIVERS_DU_JOUR_UNITS_KEY = "seaAngel_diversDuJourUnits_v1";
 let diversDuJourUnits = {}; // { "<diverName>": "B1" | "B2" | ... }
 
 function getCenterBoatsN() {
-  const cfg = loadCenterCfg && loadCenterCfg();
-  const n = cfg && Number(cfg.boatsN);
-  return Math.max(1, Math.min(8, n || 1));
+  // Backward-compat: boatsN now comes from STATE
+  return (STATE && Number.isFinite(Number(STATE.boatsN))) ? clampBoatsN(STATE.boatsN) : 1;
 }
 
 function normalizeUnitId(unitId) {
@@ -4672,9 +4703,8 @@ function buildBoatManifest(boatId) {
 }
 
 function buildQrPayloadForBoat(boatId) {
-  const cfg = (typeof loadCenterCfg === "function") ? loadCenterCfg() : {};
-  const centerName = cfg && (cfg.name || cfg.centerName) ? String(cfg.name || cfg.centerName) : "";
-  const centerId   = cfg && (cfg.id || cfg.centerId) ? String(cfg.id || cfg.centerId) : "";
+  const centerName = STATE.centerName ? String(STATE.centerName) : "";
+  const centerId   = STATE.centerId ? String(STATE.centerId) : "";
 
   return {
     v: 1,
@@ -4799,15 +4829,8 @@ function ensureGaExportQrWiring() {
 
   if (!sel || !btn || !wrap || !status || !btnPrev || !btnNext) return;
 
-  // Populate boats options once
-  const n = (typeof getCenterBoatsN === "function") ? getCenterBoatsN() : 1;
-  sel.innerHTML = '<option value="">—</option>';
-  for (let i = 1; i <= n; i++) {
-    const o = document.createElement("option");
-    o.value = "B" + i;
-    o.textContent = "B" + i;
-    sel.appendChild(o);
-  }
+  // Populate boats options (rendered from STATE)
+  renderGaExportBoatSelect();
 // Sync default selection with "Bateau (masse)" if present
 const selMass = document.getElementById("ga_bulk_boat");
 try {
@@ -4996,7 +5019,7 @@ function initPDJTools() {
   function refreshBoatOptions() {
     if (!selBoat) return;
     const keep = selBoat.value;
-    const n = (typeof getCenterBoatsN === "function") ? getCenterBoatsN() : 1;
+    const n = (STATE && Number.isFinite(Number(STATE.boatsN))) ? STATE.boatsN : 1;
     // Rebuild options (keep the first two)
     const first0 = selBoat.options[0];
     const first1 = selBoat.options[1];
@@ -5011,6 +5034,9 @@ function initPDJTools() {
     }
     if (keep) selBoat.value = keep;
   }
+  // Expose for renderApp()
+  try { window.__refreshBoatOptions = refreshBoatOptions; } catch(e) {}
+
 
   if (selBoat) {
     refreshBoatOptions();
@@ -5663,8 +5689,7 @@ function addDiverToDiversDuJour(name) {
 }
 
 function importBoatManifestToPDJ(manifest, forcedBoatId) {
-  const cfg = (typeof loadCenterCfg === "function") ? loadCenterCfg() : {};
-  const localCenterId = cfg && (cfg.id || cfg.centerId) ? String(cfg.id || cfg.centerId) : "";
+  const localCenterId = STATE.centerId ? String(STATE.centerId) : "";
   const incomingCenterId = manifest && manifest.center && manifest.center.id ? String(manifest.center.id) : "";
 
   // Safety: refuse cross-center if both are set and mismatch
@@ -9220,8 +9245,7 @@ return card;
   
 function buildPdfMock() {
   // ===== PDF v0 (rebuild from scratch) — Phase 2: PAGE 1 only =====
-    const __centerCfg = loadCenterCfg ? loadCenterCfg() : null;
-  const centerName = (__centerCfg && __centerCfg.name) ? __centerCfg.name : "—";
+    const centerName = STATE.centerName ? String(STATE.centerName) : "—";
   const centerId = (__centerCfg && __centerCfg.id) ? __centerCfg.id : "";
 
   // ---- small helpers (local to PDF only) ----
@@ -12318,7 +12342,7 @@ if (parsed.plannedRuntimeMin != null) {
   const sel = document.getElementById("ga_bulk_boat");
   if (!sel) return;
   // populate options
-  const n = (typeof getCenterBoatsN === "function") ? getCenterBoatsN() : 1;
+  const n = (STATE && Number.isFinite(Number(STATE.boatsN))) ? STATE.boatsN : 1;
   sel.innerHTML = '<option value="">—</option>';
   for (let i = 1; i <= n; i++) {
     const o = document.createElement("option");
@@ -12730,6 +12754,11 @@ async function gaUploadQrPageAndMakeUrl(pageObj) {
 
 
 document.addEventListener("DOMContentLoaded", ()=> {
+
+  // Boot: hydrate state once, then render
+  try { hydrateStateFromStorage(); } catch(e) {}
+  try { renderApp(); } catch(e) {}
+
  
    // A1: Scanner QR web désactivé (QR = URL + caméra native)
   // PATCH 2 — lock / unlock Center ID input (deterministic)
@@ -12739,23 +12768,12 @@ document.addEventListener("DOMContentLoaded", ()=> {
   // Centre setup (UI wiring)
   // =========================
   const refreshCenterDisplay = () => {
-    const el = document.getElementById("center_display");
-    if (!el) return;
-    const c = loadCenterCfg();
-    el.textContent = (c && c.name) ? (c.name + (c.id ? (" — " + c.id) : "")) : "—";
+    // Backward-compat wrapper: now reads STATE only
+    try { renderCenterDisplay(); } catch(e) {}
   };
 
    const btnCreate = document.getElementById("btn_center_create");
-   const btnJoin   = document.getElementById("btn_center_join");
-   const btnJoinOk = document.getElementById("btn_center_join_ok");
-   const keyEl     = document.getElementById("center_join_key_input");
-
    if (btnCreate) btnCreate.addEventListener("click", () => setAccessMode("create"));
-   if (btnJoin)   btnJoin.addEventListener("click", () => setAccessMode("join"));
-   if (btnJoinOk) btnJoinOk.addEventListener("click", () => handleJoinSubmit());
-
-   if (keyEl) keyEl.addEventListener("input", () => clearJoinError());
-
 
   const btnCfg = document.getElementById("btn_center_setup");
   if (btnCfg) btnCfg.addEventListener("click", () => {
@@ -12785,18 +12803,10 @@ document.addEventListener("DOMContentLoaded", ()=> {
     if (!name) { alert("Nom du centre requis."); return; }
     if (!id) { alert("ID centre manquant."); return; }
 
-    saveCenterCfg({ name, id, boatsN });
+    updateCenter({ centerName: name, centerId: id, boatsN });
     closeCenterSetupModal();
     refreshCenterDisplay();
-
-    // Init app once center is configured
-    if (!window.__dlog_inited) {
-      window.__dlog_inited = true;
-      try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
-      // Auto-import if opened from QR URL
-      try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
-    }
-    // Access mode buttons (Create / Join)
+// Access mode buttons (Create / Join)
   
   });
 
@@ -12921,4 +12931,3 @@ window.addEventListener("beforeinstallprompt", (e) => {
 
 </body>
 </html>
-
