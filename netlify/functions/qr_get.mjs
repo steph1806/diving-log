@@ -23,13 +23,16 @@ export default async (req) => {
     if (!id) return json(400, { ok: false, error: "missing_id" });
 
     const store = getStore("qr");
-    const raw = await store.get(id, { type: "text" });
-    if (!raw) return json(404, { ok: false, error: "not_found" });
 
-    // raw = {"createdAt":...,"body":"{...payload...}"}
-    const parsed = JSON.parse(raw);
-    return json(200, { ok: true, createdAt: parsed.createdAt, body: parsed.body });
-  } catch (e) {
-    return json(500, { ok: false, error: String(e?.message || e) });
-  }
+    let raw = await store.get(id, { type: "text" });
+
+    if (!raw) {
+      // Edge propagation delay (Netlify Blobs)
+      await new Promise(r => setTimeout(r, 80));
+      raw = await store.get(id, { type: "text" });
+    }
+
+    if (!raw) {
+      return json(404, { ok: false, error: "not_found" });
+    }
 };
