@@ -1,37 +1,32 @@
-import { getStore } from "@netlify/blobs";
+// netlify/functions/qr_get.js
+const { getStore } = require("@netlify/blobs");
 
-export async function handler(event) {
-  try {
-    const params = event.queryStringParameters || {};
-    const { centerid, boat } = params;
-
-    if (!centerid || !boat) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "missing centerid / boat" }),
-      };
-    }
-
-    const store = getStore("qr-store");
-    const key = `${centerid}/boat_${boat}`;
-
-    const data = await store.get(key);
-
-    if (!data) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "not found" }),
-      };
-    }
-
-    return {
-      statusCode: 200,
-      body: data,
-    };
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
-  }
+function json(statusCode, obj) {
+  return {
+    statusCode,
+    headers: { "content-type": "application/json; charset=utf-8" },
+    body: JSON.stringify(obj),
+  };
 }
+
+exports.handler = async (event) => {
+  try {
+    if (event.httpMethod !== "GET") {
+      return json(405, { ok: false, error: "method_not_allowed" });
+    }
+
+    const id = event.queryStringParameters && event.queryStringParameters.id;
+    if (!id) return json(400, { ok: false, error: "missing id" });
+
+    // IMPORTANT: init store INSIDE handler (avoid MissingBlobsEnvironmentError)
+    const store = getStore("qr-store");
+
+    const data = await store.get(id);
+    if (!data) return json(404, { ok: false, error: "not_found" });
+
+    // Return exactly what your index expects
+    return json(200, { ok: true, body: data });
+  } catch (e) {
+    return json(500, { ok: false, error: String(e && e.message ? e.message : e) });
+  }
+};
