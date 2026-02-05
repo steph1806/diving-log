@@ -1,42 +1,42 @@
-// netlify/functions/qr_put.js
-const { getStore } = require("@netlify/blobs");
+import { getStore } from "@netlify/blobs";
+import crypto from "crypto";
 
 function json(statusCode, obj) {
   return {
     statusCode,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "cache-control": "no-store",
+    },
     body: JSON.stringify(obj),
   };
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   try {
-    if (event.httpMethod !== "POST") {
-      return json(405, { ok: false, error: "method_not_allowed" });
+    if (event.httpMethod === "OPTIONS") return json(200, { ok: true });
+    if (event.httpMethod !== "POST") return json(405, { ok: false, error: "Method not allowed" });
+
+    const raw = event.body || "";
+    // index envoie du JSON (pageObj) -> on stocke le JSON string tel quel
+    let pageObj;
+    try {
+      pageObj = JSON.parse(raw);
+    } catch {
+      return json(400, { ok: false, error: "Invalid JSON body" });
     }
 
-    const body = event.body ? JSON.parse(event.body) : null;
-    const centerid = body && body.centerid;
-    const boat = body && body.boat;
-    const payload = body && body.payload;
+    const store = getStore("qr"); // IMPORTANT: store = "qr" (comme ton UI Netlify)
+    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
 
-    if (!centerid || !boat || !payload) {
-      return json(400, { ok: false, error: "missing centerid / boat / payload" });
-    }
+    await store.set(id, JSON.stringify(pageObj));
 
-    // IMPORTANT: init store INSIDE handler (avoid MissingBlobsEnvironmentError)
-    const store = getStore("qr-store");
-
-    // Unique id used by the app URL (#import=id)
-    const id = `${centerid}_${boat}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-    // Store RAW JSON STRING that your app expects to re-import
-    const raw = JSON.stringify(payload);
-
-    await store.set(id, raw);
-
+    // IMPORTANT: l’index attend { ok:true, id }
     return json(200, { ok: true, id });
   } catch (e) {
-    return json(500, { ok: false, error: String(e && e.message ? e.message : e) });
+    return json(500, { ok: false, error: String(e?.message || e) });
   }
 };
