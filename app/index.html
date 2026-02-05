@@ -4835,7 +4835,13 @@ function renderCurrentGaQr() {
     const page = gaQrPages[gaQrIndex];
     const url = gaAssertQrUrlOnly(page);
     // Use remote image QR generator: no CDN JS, works in file:// and https
-    img.src = "https://api.qrserver.com/v1/create-qr-code/?size="+QR_IMG_SIZE+"x"+QR_IMG_SIZE+"&data=" + encodeURIComponent(url);
+ // Force repaint / reload (Safari / async-safe)
+    img.removeAttribute("src");
+
+    img.src = "https://api.qrserver.com/v1/create-qr-code/?" +
+              "size=" + QR_IMG_SIZE + "x" + QR_IMG_SIZE +
+              "&data=" + encodeURIComponent(url);
+
     if (status) status.textContent = "QR URL généré.";
   } catch (e) {
     console.warn("QR render error:", e);
@@ -4912,8 +4918,9 @@ if (selMass) {
         ? ("QR URL générés : " + gaQrPages.length + " (découpé).")
         : "QR URL généré.";
 
+      renderCurrentGaQr();      
       wrap.style.display = "block";
-      renderCurrentGaQr();
+      
     } catch (e) {
       console.warn("QR URL export error:", e);
       status.textContent = "Erreur export QR (upload).";
