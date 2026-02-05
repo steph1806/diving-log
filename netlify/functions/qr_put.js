@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import crypto from "crypto";
+import { randomBytes } from "crypto";
 
 function json(statusCode, obj) {
   return {
@@ -15,26 +15,38 @@ function json(statusCode, obj) {
   };
 }
 
+function makeId(len = 12) {
+  // 12 chars base32-ish (A-Z2-7) stable for QR / URL
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const bytes = randomBytes(len);
+  let out = "";
+  for (let i = 0; i < len; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+
 export const handler = async (event) => {
   try {
     if (event.httpMethod === "OPTIONS") return json(200, { ok: true });
-    if (event.httpMethod !== "POST") return json(405, { ok: false, error: "Method not allowed" });
+    if (event.httpMethod !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
 
-    const raw = event.body || "";
-    // index envoie du JSON (pageObj) -> on stocke le JSON string tel quel
-    let pageObj;
-    try {
-      pageObj = JSON.parse(raw);
-    } catch {
-      return json(400, { ok: false, error: "Invalid JSON body" });
+    if (!event.body || typeof event.body !== "string") {
+      return json(400, { ok: false, error: "missing_body" });
     }
 
-    const store = getStore("qr"); // IMPORTANT: store = "qr" (comme ton UI Netlify)
-    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+    // Safety: limit size (QR payload stored server-side, but avoid abuse)
+    if (event.body.length > 200_000) {
+      return json(413, { ok: false, error: "payload_too_large" });
+    }
 
-    await store.set(id, JSON.stringify(pageObj));
+    // Validate JSON (front sends JSON.stringify(pageObj))
+    try { JSON.parse(event.body); } catch { return json(400, { ok: false, error: "invalid_json" }); }
 
-    // IMPORTANT: l’index attend { ok:true, id }
+    const store = getStore("qr"); // IMPORTANT: store name = "qr" (as in Netlify UI)
+    const id = makeId(12);
+
+    // Store raw JSON string (front expects j.body to be a string later)
+    await store.set(id, event.body);
+
     return json(200, { ok: true, id });
   } catch (e) {
     return json(500, { ok: false, error: String(e?.message || e) });

@@ -17,17 +17,16 @@ function json(statusCode, obj) {
 export const handler = async (event) => {
   try {
     if (event.httpMethod === "OPTIONS") return json(200, { ok: true });
-    if (event.httpMethod !== "GET") return json(405, { ok: false, error: "Method not allowed" });
+    if (event.httpMethod !== "GET") return json(405, { ok: false, error: "method_not_allowed" });
 
     const id = event.queryStringParameters?.id;
-    if (!id) return json(400, { ok: false, error: "Missing id" });
+    if (!id) return json(400, { ok: false, error: "missing_id" });
 
-    const store = getStore("qr"); // IMPORTANT: store = "qr"
-    const body = await store.get(id);
+    const store = getStore("qr"); // IMPORTANT: store name = "qr"
+    const body = await store.get(id, { type: "text" });
 
-    if (!body) return json(404, { ok: false, error: "Not found" });
+    if (!body) return json(404, { ok: false, error: "not_found" });
 
-    // IMPORTANT: resolveScannedQrText attend { ok:true, body: "...." }
     return json(200, { ok: true, body });
   } catch (e) {
     return json(500, { ok: false, error: String(e?.message || e) });
