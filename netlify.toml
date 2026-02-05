@@ -1,18 +1,20 @@
 [build]
-  functions = "netlify/functions"
   publish = "."
 
 [functions]
+  directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["@netlify/blobs"]
 
-# 1) l'app sous /app (fallback SPA de l'app)
+[edge_functions]
+  directory = "netlify/edge-functions"
+
+# 1) fallback SPA de l’app
 [[redirects]]
   from = "/app/*"
   to = "/app/index.html"
   status = 200
 
-# 2) le site (fallback SPA du site)
+# 2) fallback SPA du site
 [[redirects]]
   from = "/*"
   to = "/index.html"
