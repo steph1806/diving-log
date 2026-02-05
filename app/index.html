@@ -3165,6 +3165,11 @@
     return false;
   }
 
+
+  // EARLY HYDRATE: some initializers (boat selects, QR widgets) run before DOMContentLoaded.
+  // If STATE isn't hydrated here, they will see boatsN=1 until a hard refresh.
+  try { hydrateStateFromStorage(); } catch(e) { console.warn('hydrate early', e); }
+
   function persistStateToStorage(){
     // Keep the existing storage contract {id,name,boatsN}
     return saveCenterCfg({
@@ -3222,17 +3227,40 @@
     } catch(e) {}
   }
 
+function renderGaBulkBoatSelect(){
+  const sel = document.getElementById("ga_bulk_boat");
+  if (!sel) return;
+
+  const keep = sel.value || "";
+  // Keep the first option "—" and rebuild B1..Bn
+  sel.innerHTML = '<option value="">—</option>';
+  for (let i = 1; i <= STATE.boatsN; i++){
+    const o = document.createElement("option");
+    o.value = "B" + i;
+    o.textContent = "B" + i;
+    sel.appendChild(o);
+  }
+
+  // restore selection if still valid
+  try { if (keep) sel.value = keep; } catch(e) {}
+}
+
   function renderApp(){
     // Center info
     renderCenterDisplay();
 
     // Boat-dependent UI bits
     try { renderGaExportBoatSelect(); } catch(e) {}
+    try { renderGaBulkBoatSelect(); } catch(e) {}
     try { if (typeof window.__refreshBoatOptions === "function") window.__refreshBoatOptions(); } catch(e) {}
   }
 
   function updateCenter(patch){
     if (!patch || typeof patch !== "object") return false;
+
+    // Backward-compat: accept both {centerId,centerName,boatsN} and legacy {id,name,boatsN}
+    if ("id" in patch && !("centerId" in patch)) patch.centerId = patch.id;
+    if ("name" in patch && !("centerName" in patch)) patch.centerName = patch.name;
 
     if ("centerId" in patch){
       const v = String(patch.centerId || "").trim();
@@ -9245,8 +9273,8 @@ return card;
   
 function buildPdfMock() {
   // ===== PDF v0 (rebuild from scratch) — Phase 2: PAGE 1 only =====
-    const centerName = STATE.centerName ? String(STATE.centerName) : "—";
-  const centerId = (__centerCfg && __centerCfg.id) ? __centerCfg.id : "";
+  const centerName = STATE.centerName ? String(STATE.centerName) : "—";
+  const centerId = STATE.centerId ? String(STATE.centerId) : "";
 
   // ---- small helpers (local to PDF only) ----
   const esc = (v)=> escapeHtml(v == null ? "" : String(v));
