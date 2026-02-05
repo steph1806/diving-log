@@ -35,4 +35,18 @@ export default async (req) => {
     if (!raw) {
       return json(404, { ok: false, error: "not_found" });
     }
+
+    return json(200, {
+      ok: true,
+      createdAt: Date.now(),
+      body: raw
+    });
+
+  } catch (e) {
+    return json(500, {
+      ok: false,
+      error: "internal_error",
+      message: e?.message || String(e)
+    });
+  }
 };
