@@ -15,7 +15,7 @@ export const handler = async (event) => {
   const centerKey = (body.centerKey || "").trim();
   if (!centerKey) return bad(400, "missing_centerKey");
 
- const store = getStore("ocean-infinity");
+ const store = getStore("qr");
 
   const keyRec = await store.getJSON(`centerKeys/${centerKey}`);
   if (!keyRec) return bad(404, "unknown_centerKey");

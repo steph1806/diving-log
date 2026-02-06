@@ -33,7 +33,7 @@ export const handler = async (event) => {
   if (!name) return bad(400, "missing_name");
   if (!Number.isInteger(boatsN) || boatsN < 1 || boatsN > 20) return bad(400, "invalid_boatsN");
 
-  const store = getStore("ocean-infinity"); // Blobs store  [oai_citation:1‡Netlify Docs](https://docs.netlify.com/build/data-and-storage/netlify-blobs/?utm_source=chatgpt.com)
+  const store = getStore("qr"); // Blobs store  [oai_citation:1‡Netlify Docs](https://docs.netlify.com/build/data-and-storage/netlify-blobs/?utm_source=chatgpt.com)
 
   const centerId = makeCenterId();
   const centerKey = makeCenterKey();
