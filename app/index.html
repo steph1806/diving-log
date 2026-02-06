@@ -10364,8 +10364,10 @@ function closePdfPreview() {
     requestAnimationFrame(() => {
       try {
         const col = document.querySelector('.group-column[data-group="' + gid + '"]');
-        if (col && typeof col.scrollIntoView === "function") {
-          col.scrollIntoView({ block: "start", behavior: "auto" });
+        const header = col ? col.querySelector('.group-header') : null;
+        const target = header || col;
+        if (target && typeof target.scrollIntoView === "function") {
+          target.scrollIntoView({ block: "start", behavior: "auto" });
         }
       } catch(e) {}
     });
