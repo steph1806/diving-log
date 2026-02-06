@@ -1,31 +1,41 @@
-// netlify/functions/center_key_get.mjs
 import { getStore } from "@netlify/blobs";
 
-function bad(statusCode, msg) {
-  return { statusCode, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: msg }) };
+function json(status, obj) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "cache-control": "no-store",
+    },
+  });
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod !== "POST") return bad(405, "method_not_allowed");
+export default async (req) => {
+  try {
+    if (req.method === "OPTIONS") return json(204, { ok: true });
+    if (req.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
 
-  let body;
-  try { body = JSON.parse(event.body || "{}"); }
-  catch { return bad(400, "invalid_json"); }
+    let body = {};
+    try { body = await req.json(); }
+    catch { return json(400, { ok: false, error: "invalid_json" }); }
 
-  const centerId = (body.centerId || "").trim();
-  if (!centerId) return bad(400, "missing_centerId");
+    const centerId = (body.centerId || "").trim();
+    if (!centerId) return json(400, { ok: false, error: "missing_centerId" });
 
-  const store = getStore("qr");
-  const centerRec = await store.getJSON(`centers/${centerId}`);
-  if (!centerRec) return bad(404, "center_not_found");
-  if (centerRec.status !== "active") return bad(403, "center_disabled");
+    const store = getStore("qr");
+    const centerRec = await store.getJSON(`centers/${centerId}`);
+    if (!centerRec) return json(404, { ok: false, error: "center_not_found" });
+    if (centerRec.status !== "active") return json(403, { ok: false, error: "center_disabled" });
 
-  const centerKey = centerRec.centerKeyActive;
-  if (!centerKey) return bad(404, "centerKey_missing");
+    const centerKey = centerRec.centerKeyActive;
+    if (!centerKey) return json(404, { ok: false, error: "centerKey_missing" });
 
-  return {
-    statusCode: 200,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ centerKey }),
-  };
+    return json(200, { ok: true, centerKey });
+
+  } catch (e) {
+    return json(500, { ok: false, error: "internal_error", message: e?.message || String(e) });
+  }
 };

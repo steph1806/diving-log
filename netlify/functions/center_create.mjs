@@ -1,67 +1,74 @@
-// netlify/functions/center_create.mjs
 import { getStore } from "@netlify/blobs";
-import crypto from "node:crypto";
+
+function json(status, obj) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "cache-control": "no-store",
+    },
+  });
+}
 
 function nowIso() { return new Date().toISOString(); }
 
-function makeCenterId() {
-  // stable-ish, opaque
-  return "c_" + crypto.randomBytes(12).toString("hex");
+// Sans dépendance crypto (simple + suffisant)
+function rand(len = 16) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
 }
 
-function makeCenterKey() {
-  // shareable secret, readable enough
-  // ex: OI-XXXX-XXXX-XXXX (base32-ish)
-  const raw = crypto.randomBytes(16).toString("hex").toUpperCase();
-  return `OI-${raw.slice(0,4)}-${raw.slice(4,8)}-${raw.slice(8,12)}-${raw.slice(12,16)}`;
-}
+export default async (req) => {
+  try {
+    if (req.method === "OPTIONS") return json(204, { ok: true });
+    if (req.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
 
-function bad(statusCode, msg) {
-  return { statusCode, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: msg }) };
-}
+    let body = {};
+    try { body = await req.json(); }
+    catch { return json(400, { ok: false, error: "invalid_json" }); }
 
-export const handler = async (event) => {
-  if (event.httpMethod !== "POST") return bad(405, "method_not_allowed");
+    const name = (body.name || "").trim();
+    const boatsN = Number(body.boatsN);
 
-  let body;
-  try { body = JSON.parse(event.body || "{}"); }
-  catch { return bad(400, "invalid_json"); }
+    if (!name) return json(400, { ok: false, error: "missing_name" });
+    if (!Number.isInteger(boatsN) || boatsN < 1 || boatsN > 20) {
+      return json(400, { ok: false, error: "invalid_boatsN" });
+    }
 
-  const name = (body.name || "").trim();
-  const boatsN = Number.isFinite(body.boatsN) ? body.boatsN : Number(body.boatsN);
+    const store = getStore("qr"); // aligné QR
 
-  if (!name) return bad(400, "missing_name");
-  if (!Number.isInteger(boatsN) || boatsN < 1 || boatsN > 20) return bad(400, "invalid_boatsN");
+    const centerId = "c_" + rand(24);
+    const centerKey = "OI-" + rand(4).toUpperCase() + "-" + rand(4).toUpperCase() + "-" + rand(4).toUpperCase();
+    const t = nowIso();
 
-  const store = getStore("qr"); // Blobs store  [oai_citation:1‡Netlify Docs](https://docs.netlify.com/build/data-and-storage/netlify-blobs/?utm_source=chatgpt.com)
+    const centerRecord = {
+      centerId,
+      centerName: name,
+      boatsN,
+      status: "active",
+      createdAt: t,
+      updatedAt: t,
+      centerKeyActive: centerKey,
+    };
 
-  const centerId = makeCenterId();
-  const centerKey = makeCenterKey();
-  const t = nowIso();
+    const centerKeyRecord = {
+      centerKey,
+      centerId,
+      status: "active",
+      createdAt: t,
+    };
 
-  const centerRecord = {
-    centerId,
-    centerName: name,
-    boatsN,
-    status: "active",
-    createdAt: t,
-    updatedAt: t,
-  };
+    await store.setJSON(`centers/${centerId}`, centerRecord);
+    await store.setJSON(`centerKeys/${centerKey}`, centerKeyRecord);
 
-  const centerKeyRecord = {
-    centerKey,
-    centerId,
-    status: "active",
-    createdAt: t,
-  };
+    return json(200, { ok: true, centerId, centerName: name, boatsN, centerKey });
 
-  // Persist
-  await store.setJSON(`centers/${centerId}`, centerRecord);
-  await store.setJSON(`centerKeys/${centerKey}`, centerKeyRecord);
-
-  return {
-    statusCode: 200,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ centerId, centerName: name, boatsN, centerKey }),
-  };
+  } catch (e) {
+    return json(500, { ok: false, error: "internal_error", message: e?.message || String(e) });
+  }
 };
