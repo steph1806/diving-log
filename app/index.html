@@ -2227,7 +2227,9 @@
 <div class="container">
 <!-- SECTION: CONTEXTE (CONSTANTES + SITE + GPS) -->
   <section class="section" id="sec-site-gps">
-    <div class="section-title">Plongée du jour</div>
+    <div class="section-title">
+  Plongée du jour <span id="pdj_center_name" class="pdj-center-name"></span>
+</div>
     <p class="help-text">Renseignez les constantes (DP / bateau / sécurité surface), puis le site et les coordonnées GPS (format marin).</p>
 
     <!-- Constantes -->
@@ -3182,9 +3184,16 @@
   function renderCenterDisplay(){
     const el = document.getElementById("center_display");
     if (!el) return;
+
     const nm = STATE.centerName ? String(STATE.centerName) : "—";
     const id = STATE.centerId ? String(STATE.centerId) : "";
     el.textContent = id ? (nm + " — " + id) : nm;
+
+    // Bandeau "Plongée du jour" : nom uniquement (pas d'ID)
+    const t = document.getElementById("pdj_center_name");
+    if (t) {
+      t.textContent = (nm && nm !== "—") ? ("— " + nm) : "";
+    }
   }
 
   function renderBoatOptionsBasic(sel, keepFirstN){
