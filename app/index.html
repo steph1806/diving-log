@@ -10362,14 +10362,20 @@ function closePdfPreview() {
   const gid = focusGroupId || currentGroupId;
   if (gid) {
     requestAnimationFrame(() => {
-      try {
-        const col = document.querySelector('.group-column[data-group="' + gid + '"]');
-        const header = col ? col.querySelector('.group-header') : null;
-        const target = header || col;
-        if (target && typeof target.scrollIntoView === "function") {
-          target.scrollIntoView({ block: "start", behavior: "auto" });
-        }
-      } catch(e) {}
+      requestAnimationFrame(() => {
+        try {
+          const col = document.querySelector('.group-column[data-group="' + gid + '"]');
+          if (!col) return;
+
+          // CIBLE = header du groupe (pas la colonne entière)
+          const header = col.querySelector(".group-header");
+          const target = header || col;
+
+          if (target && typeof target.scrollIntoView === "function") {
+            target.scrollIntoView({ block: "start", behavior: "auto" });
+          }
+        } catch(e) {}
+      });
     });
   }
 }
