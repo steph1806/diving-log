@@ -15,7 +15,7 @@ export const handler = async (event) => {
   const centerId = (body.centerId || "").trim();
   if (!centerId) return bad(400, "missing_centerId");
 
-  const store = getStore("ocean-infinity");  [oai_citation:3‡Netlify Docs](https://docs.netlify.com/build/data-and-storage/netlify-blobs/?utm_source=chatgpt.com)
+  const store = getStore("ocean-infinity");
   const centerRec = await store.getJSON(`centers/${centerId}`);
   if (!centerRec) return bad(404, "center_not_found");
   if (centerRec.status !== "active") return bad(403, "center_disabled");
