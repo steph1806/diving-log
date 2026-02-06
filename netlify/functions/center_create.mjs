@@ -63,8 +63,8 @@ export default async (req) => {
       createdAt: t,
     };
 
-    await store.setJSON(`centers/${centerId}`, centerRecord);
-    await store.setJSON(`centerKeys/${centerKey}`, centerKeyRecord);
+    await store.set(`centers/${centerId}`, JSON.stringify(centerRecord));
+    await store.set(`centerKeys/${centerKey}`, JSON.stringify(centerKeyRecord));
 
     return json(200, { ok: true, centerId, centerName: name, boatsN, centerKey });
 

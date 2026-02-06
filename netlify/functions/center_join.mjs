@@ -27,12 +27,14 @@ export default async (req) => {
 
     const store = getStore("qr");
 
-    const keyRec = await store.getJSON(`centerKeys/${centerKey}`);
-    if (!keyRec) return json(404, { ok: false, error: "unknown_centerKey" });
+    const keyRaw = await store.get(`centerKeys/${centerKey}`);
+    if (!keyRaw) return json(404, { ok:false, error:"unknown_centerKey" });
+    const keyRec = JSON.parse(keyRaw);
     if (keyRec.status !== "active") return json(403, { ok: false, error: "centerKey_disabled" });
 
-    const centerRec = await store.getJSON(`centers/${keyRec.centerId}`);
-    if (!centerRec) return json(404, { ok: false, error: "center_not_found" });
+    const centerRaw = await store.get(`centers/${keyRec.centerId}`);
+    if (!centerRaw) return json(404, { ok:false, error:"center_not_found" });
+    const centerRec = JSON.parse(centerRaw);
     if (centerRec.status !== "active") return json(403, { ok: false, error: "center_disabled" });
 
     return json(200, {

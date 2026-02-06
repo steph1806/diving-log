@@ -26,8 +26,9 @@ export default async (req) => {
     if (!centerId) return json(400, { ok: false, error: "missing_centerId" });
 
     const store = getStore("qr");
-    const centerRec = await store.getJSON(`centers/${centerId}`);
-    if (!centerRec) return json(404, { ok: false, error: "center_not_found" });
+    const centerRaw = await store.get(`centers/${centerId}`);
+    if (!centerRaw) return json(404, { ok:false, error:"center_not_found" });
+    const centerRec = JSON.parse(centerRaw);
     if (centerRec.status !== "active") return json(403, { ok: false, error: "center_disabled" });
 
     const centerKey = centerRec.centerKeyActive;
