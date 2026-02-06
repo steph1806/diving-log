@@ -2341,11 +2341,14 @@
         <button type="button" class="btn btn-secondary btn-ellipsis" id="btn_library_menu" title="Outils bibliothèque">⋯</button>
         <div class="lib-menu" id="library_menu" style="display:none;">
           <button type="button" class="lib-menu-item" id="btn_export_library" title="Exporter la bibliothèque (plongeurs + DP/instructeurs)">⬇️ Exporter bibliothèque</button>
-
+//
           <button type="button" class="lib-menu-item" id="btn_import_library" title="Importer une bibliothèque (merge non destructif)">⬆️ Importer bibliothèque</button>
 
-
+//
           <button type="button" class="lib-menu-item" id="btn_import_csv" title="Importer votre base clients / plongeurs (outil avancé)">⬆️ Importer base clients / plongeurs</button>
+
+         <button type="button" class="lib-menu-item" id="btn_copy_center_key" title="Copier l'ID centre (clé) utilisé dans le PDF">📋 Copier clé centre</button>
+
         </div>
       </span>
       <input type="file" id="file_import_library" accept="application/json" style="display:none;" />
@@ -5276,6 +5279,40 @@ function initPDJTools() {
       try { closeLibMenu(); } catch (_) {}
       // Ouvre l’outil CSV v5 (export JSON) — import JSON ensuite via "Importer bibliothèque"
       window.open("csv_multi-diving-agency_v5.html", "_blank", "noopener");
+    };
+  }
+
+  const btnCopyKey = document.getElementById("btn_copy_center_key");
+  if (btnCopyKey) {
+    btnCopyKey.onclick = async () => {
+      try { closeLibMenu(); } catch (_) {}
+
+      const key = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+      if (!key) { alert("Clé centre indisponible (centerId manquant)."); return; }
+
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(key);
+          alert("Clé centre copiée.");
+          return;
+        }
+      } catch(e) {}
+
+      // Fallback iOS / anciens navigateurs
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = key;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        alert("Clé centre copiée.");
+      } catch(e) {
+        alert("Impossible de copier automatiquement. Clé centre: " + key);
+      }
     };
   }
 
