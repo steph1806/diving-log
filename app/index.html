@@ -5301,84 +5301,76 @@ function initPDJTools() {
     };
   }
 
-const btnCopyKey = document.getElementById("btn_copy_center_key");
-if (btnCopyKey) {
-  btnCopyKey.onclick = async () => {
-    try { closeLibMenu(); } catch (_) {}
+  const btnCopyKey = document.getElementById("btn_copy_center_key");
+  if (btnCopyKey) {
+    btnCopyKey.onclick = async () => {
+      try { closeLibMenu(); } catch (_) {}
 
-    const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
-    if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
+      const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+      if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
 
-    // 1) Ask server for the centerKey (volatile)
-    const fetchCenterKey = async (centerId) => {
-      const tries = [
-        { url: "/.netlify/functions/center_key_get", method: "POST", body: { centerId } },
-        { url: "/.netlify/functions/center_key_get?centerId=" + encodeURIComponent(centerId), method: "GET" },
-        { url: "/.netlify/functions/center_key", method: "POST", body: { centerId } },
-        { url: "/.netlify/functions/center_key?centerId=" + encodeURIComponent(centerId), method: "GET" },
-      ];
+      // Cache volatile (RAM only) : architecture OK (key server-only)
+      if (!STATE.__centerKeyCache) STATE.__centerKeyCache = null;
+      if (!STATE.__centerKeyCacheCenterId) STATE.__centerKeyCacheCenterId = null;
 
-      for (const t of tries) {
+      // 1) Si déjà en cache -> COPIE IMMÉDIATE (sans await avant)
+      if (STATE.__centerKeyCache && STATE.__centerKeyCacheCenterId === centerId) {
+        const k = String(STATE.__centerKeyCache).trim();
+
+        // iOS-first copy (execCommand)
         try {
-          const opt = { method: t.method, headers: {} };
-          if (t.method === "POST") {
-            opt.headers["content-type"] = "application/json";
-            opt.body = JSON.stringify(t.body);
+          const ta = document.createElement("textarea");
+          ta.value = k;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.left = "0";
+          ta.style.top = "0";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          ta.setSelectionRange(0, ta.value.length);
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          if (ok) { alert("Clé centre copiée."); return; }
+        } catch (_) {}
+
+        // fallback moderne (peut échouer si iOS)
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(k)
+              .then(() => alert("Clé centre copiée."))
+              .catch(() => alert("Copie impossible. Clé centre : " + k));
+            return;
           }
-          const r = await fetch(t.url, opt);
-          if (!r.ok) continue;
+        } catch (_) {}
 
-          const raw = (await r.text()).trim();
-          if (!raw) continue;
-
-          // JSON or plain text
-          try {
-            const obj = JSON.parse(raw);
-            const k =
-              (obj && (obj.centerKey || obj.key || obj.center_key)) ||
-              (obj && obj.data && (obj.data.centerKey || obj.data.key || obj.data.center_key));
-            const key = k ? String(k).trim() : "";
-            if (key) return key;
-          } catch (_) {
-            // plain text key
-            if (!raw.startsWith("<")) return raw;
-          }
-        } catch (e) {
-          // silent continue
-        }
-      }
-      return "";
-    };
-
-    const centerKey = await fetchCenterKey(centerId);
-    if (!centerKey) { alert("Clé centre indisponible (center_key)."); return; }
-
-    // 2) Copy (modern clipboard)
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(centerKey);
-        alert("Clé centre copiée.");
+        alert("Copie impossible. Clé centre : " + k);
         return;
       }
-    } catch (_) {}
 
-    // 3) Fallback iOS / anciens navigateurs
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = centerKey;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "fixed";
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      alert("Clé centre copiée.");
-    } catch (_) {
-      alert("Impossible de copier automatiquement. Clé centre: " + centerKey);
-    }
-  };
-}
+      // 2) Sinon -> FETCH uniquement (pas de copie dans ce clic)
+      let fetchedKey = "";
+      try {
+        // endpoint qui marche chez toi d'après curl: center_key
+        const r = await fetch("/.netlify/functions/center_key", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ centerId })
+        });
+        const res = await r.json().catch(() => null);
+        if (res && res.ok && res.centerKey) fetchedKey = String(res.centerKey).trim();
+      } catch (e) {}
+
+      if (!fetchedKey) { alert("Clé centre indisponible."); return; }
+
+      STATE.__centerKeyCache = fetchedKey;
+      STATE.__centerKeyCacheCenterId = centerId;
+
+      alert("Clé prête ✅ Re-clique sur “Copier clé” pour copier.");
+    };
+  }
+
   const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
 
