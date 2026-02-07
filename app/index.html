@@ -12939,46 +12939,49 @@ document.addEventListener("DOMContentLoaded", ()=> {
   if (btnClose) btnClose.addEventListener("click", () => { closeCenterSetupModal(); refreshCenterDisplay(); });
 
   
-  const name = (nameEL?.value || "").trim();
-  const boatsN = Number(boatsEL?.value);
+    const btnSave = document.getElementById("btnCenterSetupSave");
+    if (btnSave) btnSave.addEventListener("click", () => {
+    const nameEL  = document.getElementById("center_name_input");
+    const boatsEL = document.getElementById("center_boats_input");
 
-  if (!name) {
-    alert("Nom du centre manquant.");
-    return;
-  }
-  if (!Number.isInteger(boatsN) || boatsN < 1) {
-    alert("Nombre de bateaux invalide.");
-    return;
-  }
+    const name = (nameEL?.value || "").trim();
+    const boatsN = Number(boatsEL?.value);
 
-  btnSave.disabled = true;
-
-  fetch("/.netlify/functions/center_create", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, boatsN })
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (!res || !res.ok || !res.centerId) {
-      throw new Error("center_create failed");
+    if (!name) {
+      alert("Nom du centre manquant.");
+      return;
+    }
+    if (!Number.isInteger(boatsN) || boatsN < 1) {
+      alert("Nombre de bateaux invalide.");
+      return;
     }
 
-    // Source of truth = server
-    updateCenter({
-      centerId: res.centerId,
-      centerName: res.centerName || name,
-      boatsN: res.boatsN || boatsN
-    });
+    btnSave.disabled = true;
 
-    closeCenterSetupModal();
-  })
-  .catch(err => {
-    console.error(err);
-    alert("Erreur création centre.");
-  })
-  .finally(() => {
-    btnSave.disabled = false;
+    fetch("/.netlify/functions/center_create", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, boatsN })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (!res || !res.ok || !res.centerId) throw new Error("center_create failed");
+
+      updateCenter({
+        centerId: res.centerId,
+        centerName: res.centerName || name,
+        boatsN: res.boatsN || boatsN
+      });
+
+      closeCenterSetupModal();
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Erreur création centre.");
+    })
+    .finally(() => {
+      btnSave.disabled = false;
+    });
   });
 
 // =========================
