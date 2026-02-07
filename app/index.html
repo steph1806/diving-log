@@ -3196,17 +3196,17 @@
   }
 
   function renderCenterDisplay(){
-    const el = document.getElementById("center_display");
-    if (!el) return;
-
-    const nm = STATE.centerName ? String(STATE.centerName) : "—";
+    const nm = STATE.centerName ? String(STATE.centerName) : "_";
     const id = STATE.centerId ? String(STATE.centerId) : "";
-    el.textContent = id ? (nm + " — " + id) : nm;
 
-    // Bandeau "Plongée du jour" : nom uniquement (pas d'ID)
+    const el = document.getElementById("center_display");
+    if (el) {
+      el.textContent = id ? (nm + " — " + id) : nm;
+    }
+
     const t = document.getElementById("pdj_center_name");
     if (t) {
-      t.textContent = (nm && nm !== "—") ? ("— " + nm) : "";
+      t.textContent = (nm && nm !== "_") ? ("– " + nm) : "";
     }
   }
 
