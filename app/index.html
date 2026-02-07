@@ -5300,39 +5300,57 @@ function initPDJTools() {
     };
   }
 
-  const btnCopyKey = document.getElementById("btn_copy_center_key");
-  if (btnCopyKey) {
-    btnCopyKey.onclick = async () => {
-      try { closeLibMenu(); } catch (_) {}
+ const btnCopyKey = document.getElementById("btn_copy_center_key");
+ if (btnCopyKey) {
+  btnCopyKey.onclick = async () => {
+    try { closeLibMenu(); } catch (_) {}
 
-      const key = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
-      if (!key) { alert("Clé centre indisponible (centerId manquant)."); return; }
+    const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+    if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
 
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(key);
-          alert("Clé centre copiée.");
-          return;
-        }
-      } catch(e) {}
+    // 1) Ask server for the centerKey (volatile)
+    let centerKey = "";
+    try {
+      const r = await fetch("/.netlify/functions/center_key_get", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ centerId }) 
+      });
+      const res = await r.json();
+      centerKey = (res && res.ok && res.centerKey) ? String(res.centerKey).trim() : "";
+    } catch (e) {
+      console.error(e);
+      centerKey = "";
+    }
 
-      // Fallback iOS / anciens navigateurs
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = key;
-        ta.setAttribute("readonly", "");
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
+    if (!centerKey) { alert("Clé centre indisponible (center_key_get)."); return; }
+
+    // 2) Copy (modern clipboard)
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(centerKey);
         alert("Clé centre copiée.");
-      } catch(e) {
-        alert("Impossible de copier automatiquement. Clé centre: " + key);
+        return;
       }
-    };
-  }
+    } catch (e) {}
+
+    // 3) Fallback iOS / anciens navigateurs
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = centerKey;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("Clé centre copiée.");
+    } catch (e) {
+      alert("Impossible de copier automatiquement. Clé centre: " + centerKey);
+    }
+  };
+}
 
   const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
