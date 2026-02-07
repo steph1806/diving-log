@@ -3300,6 +3300,7 @@ function renderGaBulkBoatSelect(){
     syncCenterSetupButtonUI();
     persistStateToStorage();
     renderApp();
+    try { renderCenterDisplay(); } catch(e) {}
 
     // Init app once center is configured (centralized)
     if (STATE.configured && !window.__dlog_inited){
@@ -5308,32 +5309,49 @@ if (btnCopyKey) {
     const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
     if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
 
-    // 1) Ask server for the centerKey (volatile)
-    let centerKey = "";
-    try {
-      // Try center_key_get first (if you named it like that), fallback to center_key
-      let r = await fetch("/.netlify/functions/center_key_get", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ centerId })
-      });
+   // 1) Ask server for the centerKey (volatile)
+    const fetchCenterKey = async (centerId) => {
+    const tries = [
+      { url: "/.netlify/functions/center_key_get", method: "POST", body: { centerId } },
+      { url: "/.netlify/functions/center_key_get?centerId=" + encodeURIComponent(centerId), method: "GET" },
+      { url: "/.netlify/functions/center_key", method: "POST", body: { centerId } },
+      { url: "/.netlify/functions/center_key?centerId=" + encodeURIComponent(centerId), method: "GET" },
+    ];
 
-      if (!r.ok) {
-        r = await fetch("/.netlify/functions/center_key", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ centerId })
-        });
+    for (const t of tries) {
+      try {
+        const opt = { method: t.method, headers: {} };
+        if (t.method === "POST") {
+          opt.headers["content-type"] = "application/json";
+          opt.body = JSON.stringify(t.body);
+        }
+        const r = await fetch(t.url, opt);
+        if (!r.ok) continue;
+
+        const raw = (await r.text()).trim();
+        if (!raw) continue;
+
+        // JSON or plain text
+        try {
+          const obj = JSON.parse(raw);
+          const k =
+            (obj && (obj.centerKey || obj.key || obj.center_key)) ||
+            (obj && obj.data && (obj.data.centerKey || obj.data.key || obj.data.center_key));
+          const key = k ? String(k).trim() : "";
+          if (key) return key;
+        } catch (_) {
+          // plain text key
+          if (!raw.startsWith("<")) return raw;
+        }
+      } catch (e) {
+        // silent continue
       }
-
-      const res = await r.json();
-      centerKey = (res && res.ok && res.centerKey) ? String(res.centerKey).trim() : "";
-    } catch (e) {
-      console.error(e);
-      centerKey = "";
     }
+    return "";
+  };
 
-    if (!centerKey) { alert("Clé centre indisponible (center_key)."); return; }
+  const centerKey = await fetchCenterKey(centerId);
+  if (!centerKey) { alert("Clé centre indisponible (center_key)."); return; }
 
     // 2) Copy (modern clipboard)
     try {
@@ -12893,7 +12911,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
   // Boot: hydrate state once, then render
   try { hydrateStateFromStorage(); } catch(e) {}
   try { renderApp(); } catch(e) {}
-
+  try { renderCenterDisplay(); } catch(e) {}
  
    // A1: Scanner QR web désactivé (QR = URL + caméra native)
   // PATCH 2 — lock / unlock Center ID input (deterministic)
