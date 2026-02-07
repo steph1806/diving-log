@@ -5300,8 +5300,8 @@ function initPDJTools() {
     };
   }
 
- const btnCopyKey = document.getElementById("btn_copy_center_key");
- if (btnCopyKey) {
+const btnCopyKey = document.getElementById("btn_copy_center_key");
+if (btnCopyKey) {
   btnCopyKey.onclick = async () => {
     try { closeLibMenu(); } catch (_) {}
 
@@ -5311,11 +5311,21 @@ function initPDJTools() {
     // 1) Ask server for the centerKey (volatile)
     let centerKey = "";
     try {
-      const r = await fetch("/.netlify/functions/center_key_get", {
+      // Try center_key_get first (if you named it like that), fallback to center_key
+      let r = await fetch("/.netlify/functions/center_key_get", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ centerId }) 
+        body: JSON.stringify({ centerId })
       });
+
+      if (!r.ok) {
+        r = await fetch("/.netlify/functions/center_key", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ centerId })
+        });
+      }
+
       const res = await r.json();
       centerKey = (res && res.ok && res.centerKey) ? String(res.centerKey).trim() : "";
     } catch (e) {
@@ -5323,7 +5333,7 @@ function initPDJTools() {
       centerKey = "";
     }
 
-    if (!centerKey) { alert("Clé centre indisponible (center_key_get)."); return; }
+    if (!centerKey) { alert("Clé centre indisponible (center_key)."); return; }
 
     // 2) Copy (modern clipboard)
     try {
@@ -5332,7 +5342,7 @@ function initPDJTools() {
         alert("Clé centre copiée.");
         return;
       }
-    } catch (e) {}
+    } catch (_) {}
 
     // 3) Fallback iOS / anciens navigateurs
     try {
@@ -5346,7 +5356,7 @@ function initPDJTools() {
       document.execCommand("copy");
       document.body.removeChild(ta);
       alert("Clé centre copiée.");
-    } catch (e) {
+    } catch (_) {
       alert("Impossible de copier automatiquement. Clé centre: " + centerKey);
     }
   };
