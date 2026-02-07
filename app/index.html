@@ -12909,8 +12909,9 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
   // Boot: hydrate state once, then render
   try { hydrateStateFromStorage(); } catch(e) {}
-  try { renderApp(); } catch(e) {}
   try { renderCenterDisplay(); } catch(e) {}
+  try { renderApp(); } catch(e) {}
+ 
  
    // A1: Scanner QR web désactivé (QR = URL + caméra native)
   // PATCH 2 — lock / unlock Center ID input (deterministic)
