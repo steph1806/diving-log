@@ -5307,46 +5307,52 @@ function initPDJTools() {
       try { closeLibMenu(); } catch (_) {}
 
       const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
-      if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
+      if (!centerId) { alert("Clé centre indisponible (centerId manquant)."); return; }
 
-    // 1) Ask server for the centerKey (SOURCE OF TRUTH)
+      // Récupérer la clé centre (server-only) à partir du centerId
       let centerKey = "";
       try {
-        const r = await fetch("/.netlify/functions/center_key", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ centerId })
-      });
-      const j = await r.json().catch(() => null);
-      centerKey = (j && j.ok && j.centerKey) ? String(j.centerKey).trim() : "";
-    } catch (_) {
-      centerKey = "";
-    }
-
-    if (!centerKey) {
-      alert("Clé centre indisponible.");
-     return;
-    }
-    
-      // 2) Sinon -> FETCH uniquement (pas de copie dans ce clic)
-      let fetchedKey = "";
-      try {
-        // endpoint qui marche chez toi d'après curl: center_key
-        const r = await fetch("/.netlify/functions/center_key", {
+        const r = await fetch("/.netlify/functions/center_key_get", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ centerId })
         });
-        const res = await r.json().catch(() => null);
-        if (res && res.ok && res.centerKey) fetchedKey = String(res.centerKey).trim();
-      } catch (e) {}
+        const j = await r.json().catch(() => null);
+        centerKey = (j && j.ok && j.centerKey) ? String(j.centerKey).trim() : "";
+      } catch (_) {
+        centerKey = "";
+      }
 
-      if (!fetchedKey) { alert("Clé centre indisponible."); return; }
+      if (!centerKey) { alert("Clé centre indisponible."); return; }
 
-      STATE.__centerKeyCache = fetchedKey;
-      STATE.__centerKeyCacheCenterId = centerId;
+      // 1) Clipboard API (modern)
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(centerKey);
+          alert("Clé centre copiée.");
+          return;
+        }
+      } catch (_) {}
 
-      alert("Clé prête ✅ Re-clique sur “Copier clé” pour copier.");
+      // 2) Fallback iOS / anciens navigateurs
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = centerKey;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "0";
+        ta.style.top = "0";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        alert("Clé centre copiée.");
+      } catch (_) {
+        alert("Impossible de copier automatiquement. Clé centre: " + centerKey);
+      }
     };
   }
 
