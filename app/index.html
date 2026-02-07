@@ -5309,83 +5309,49 @@ if (btnCopyKey) {
     const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
     if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
 
-     // 1) Ask server for the centerKey (volatile)
-      const fetchCenterKey = async (centerId) => {
-    // === COPY CENTER KEY (robust, iOS/PWA-safe) ===
+    // 1) Ask server for the centerKey (volatile)
+    const fetchCenterKey = async (centerId) => {
+      const tries = [
+        { url: "/.netlify/functions/center_key_get", method: "POST", body: { centerId } },
+        { url: "/.netlify/functions/center_key_get?centerId=" + encodeURIComponent(centerId), method: "GET" },
+        { url: "/.netlify/functions/center_key", method: "POST", body: { centerId } },
+        { url: "/.netlify/functions/center_key?centerId=" + encodeURIComponent(centerId), method: "GET" },
+      ];
 
-  // cache volatile (pas de storage)
-  if (!STATE.__centerKeyCache) STATE.__centerKeyCache = null;
-  if (!STATE.__centerKeyCacheCenterId) STATE.__centerKeyCacheCenterId = null;
+      for (const t of tries) {
+        try {
+          const opt = { method: t.method, headers: {} };
+          if (t.method === "POST") {
+            opt.headers["content-type"] = "application/json";
+            opt.body = JSON.stringify(t.body);
+          }
+          const r = await fetch(t.url, opt);
+          if (!r.ok) continue;
 
-  // 1) Si la clé est déjà en cache pour ce centerId → COPIE IMMÉDIATE (sans await avant)
-  if (STATE.__centerKeyCache && STATE.__centerKeyCacheCenterId === centerId) {
-    const centerKey = String(STATE.__centerKeyCache).trim();
+          const raw = (await r.text()).trim();
+          if (!raw) continue;
 
-    // iOS-first copy (execCommand)
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = centerKey;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "fixed";
-      ta.style.left = "0";
-      ta.style.top = "0";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-
-      if (ok) {
-        alert("Clé centre copiée.");
-        return;
+          // JSON or plain text
+          try {
+            const obj = JSON.parse(raw);
+            const k =
+              (obj && (obj.centerKey || obj.key || obj.center_key)) ||
+              (obj && obj.data && (obj.data.centerKey || obj.data.key || obj.data.center_key));
+            const key = k ? String(k).trim() : "";
+            if (key) return key;
+          } catch (_) {
+            // plain text key
+            if (!raw.startsWith("<")) return raw;
+          }
+        } catch (e) {
+          // silent continue
+        }
       }
-    } catch (_) {}
+      return "";
+    };
 
-    // fallback moderne
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(centerKey)
-          .then(() => alert("Clé centre copiée."))
-          .catch(() => alert("Copie impossible. Clé centre : " + centerKey));
-        return;
-      }
-    } catch (_) {}
-
-    alert("Copie impossible. Clé centre : " + centerKey);
-    return;
-  }
-
-  // 2) Sinon → FETCH SEULEMENT (pas de copie dans ce clic)
-  let fetchedKey = "";
-  try {
-    const r = await fetch("/.netlify/functions/center_key", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ centerId })
-    });
-
-    const res = await r.json();
-    if (res && res.ok && res.centerKey) {
-      fetchedKey = String(res.centerKey).trim();
-    }
-  } catch (e) {
-    console.error(e);
-  }
-
-  if (!fetchedKey) {
-    alert("Clé centre indisponible.");
-    return;
-  }
-
-  // mise en cache volatile
-  STATE.__centerKeyCache = fetchedKey;
-  STATE.__centerKeyCacheCenterId = centerId;
-
-  alert("Clé récupérée. Re-clique sur « Copier clé » pour la copier.");
-  const centerKey = await fetchCenterKey(centerId);
-  if (!centerKey) { alert("Clé centre indisponible (center_key)."); return; }
+    const centerKey = await fetchCenterKey(centerId);
+    if (!centerKey) { alert("Clé centre indisponible (center_key)."); return; }
 
     // 2) Copy (modern clipboard)
     try {
@@ -5413,7 +5379,6 @@ if (btnCopyKey) {
     }
   };
 }
-
   const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
 
