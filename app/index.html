@@ -5309,46 +5309,25 @@ function initPDJTools() {
       const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
       if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
 
-      // Cache volatile (RAM only) : architecture OK (key server-only)
-      if (!STATE.__centerKeyCache) STATE.__centerKeyCache = null;
-      if (!STATE.__centerKeyCacheCenterId) STATE.__centerKeyCacheCenterId = null;
+    // 1) Ask server for the centerKey (SOURCE OF TRUTH)
+      let centerKey = "";
+      try {
+        const r = await fetch("/.netlify/functions/center_key", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ centerId })
+      });
+      const j = await r.json().catch(() => null);
+      centerKey = (j && j.ok && j.centerKey) ? String(j.centerKey).trim() : "";
+    } catch (_) {
+      centerKey = "";
+    }
 
-      // 1) Si déjà en cache -> COPIE IMMÉDIATE (sans await avant)
-      if (STATE.__centerKeyCache && STATE.__centerKeyCacheCenterId === centerId) {
-        const k = String(STATE.__centerKeyCache).trim();
-
-        // iOS-first copy (execCommand)
-        try {
-          const ta = document.createElement("textarea");
-          ta.value = k;
-          ta.setAttribute("readonly", "");
-          ta.style.position = "fixed";
-          ta.style.left = "0";
-          ta.style.top = "0";
-          ta.style.opacity = "0";
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          ta.setSelectionRange(0, ta.value.length);
-          const ok = document.execCommand("copy");
-          document.body.removeChild(ta);
-          if (ok) { alert("Clé centre copiée."); return; }
-        } catch (_) {}
-
-        // fallback moderne (peut échouer si iOS)
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(k)
-              .then(() => alert("Clé centre copiée."))
-              .catch(() => alert("Copie impossible. Clé centre : " + k));
-            return;
-          }
-        } catch (_) {}
-
-        alert("Copie impossible. Clé centre : " + k);
-        return;
-      }
-
+    if (!centerKey) {
+      alert("Clé centre indisponible.");
+     return;
+    }
+    
       // 2) Sinon -> FETCH uniquement (pas de copie dans ce clic)
       let fetchedKey = "";
       try {
