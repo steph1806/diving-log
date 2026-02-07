@@ -2107,7 +2107,7 @@
   opacity: 0.95;
 }
 
-/* PATCH: iPhone/Android anti-zoom + anti-text-resize (safe) */
+<!-- === PATCH: iPhone/Android anti-zoom + anti-text-resize (safe) === -->
 <style id="patch-mobile-anti-zoom">
   /* Stop iOS Safari "text inflation" / auto font resizing */
   html {
@@ -2150,18 +2150,17 @@
   /* Prevent iOS tap highlight / weird magnifier feel (cosmetic but helps) */
   * { -webkit-tap-highlight-color: rgba(0,0,0,0); }
 
-/* /PATCH */
+<!-- === /PATCH === -->
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
 </head>
 <body>
-
 <div id="centerSetupModal" class="modal-overlay" style="display:none;">
   <div class="modal-card" style="max-width:520px; width:100%; padding:16px;">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
-      <div style="font-weight:900; font-size:16px; color:#0b3c5d;">Mise en service</div>
+      <div style="font-weight:900; font-size:16px; color:#0b3c5d;">Configuration centre</div>
       <button type="button" class="btn btn-secondary" id="btnCenterSetupClose" style="padding:8px 12px;">Fermer</button>
     </div>
 
@@ -2169,50 +2168,823 @@
       À faire une seule fois au démarrage. Stocké en local sur cet appareil / navigateur.
     </div>
 
-    <!-- Choix -->
-    <div class="row" style="gap:10px; flex-wrap:wrap; margin-bottom:12px;">
-      <button type="button" class="btn btn-secondary" id="btn_center_mode_create" style="flex:1 1 180px;">➕ Créer</button>
-      <button type="button" class="btn btn-secondary" id="btn_center_mode_join" style="flex:1 1 180px;">🔑 Rejoindre</button>
-    </div>
-
-    <!-- CREATE -->
-    <div id="create_block" style="display:none;">
-      <div class="row" style="gap:10px; flex-wrap:wrap;">
-        <div class="field" style="flex:2; min-width:220px;">
-          <label for="center_name_input">Nom du centre (obligatoire)</label>
-          <input id="center_name_input" type="text" placeholder="Ex: Sea Angel / Club XYZ"/>
-        </div>
-        <div class="field" style="flex:1; min-width:140px;">
-          <label for="center_boats_input">Nb bateaux (obligatoire)</label>
-          <input id="center_boats_input" type="number" min="1" max="8" inputmode="numeric" placeholder="2"/>
-        </div>
-      </div>
-
-      <div class="row" style="gap:10px; margin-top:10px;">
-        <button type="button" class="btn btn-primary" id="btn_center_create_validate" style="flex:1;">Valider création</button>
-      </div>
-
-      <div class="help-text" style="margin-top:8px;">
-        La clé centre est générée côté serveur et sera accessible ensuite via ⚙️ (pas affichée ici).
+<!-- SCREEN 0: FIRST-RUN HOME (Create / Join) -->
+<div id="center_first_run_home" style="display:block; margin-bottom:10px;">
+  <div class="row" style="gap:10px; flex-wrap:wrap;">
+    <div class="field" style="flex:2; min-width:220px;">
+      <label>Première mise en service</label>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-secondary" id="btn_center_create">➕ Créer un centre</button>
+        <button type="button" class="btn btn-secondary" id="btn_center_join">🔑 Rejoindre un centre</button>
       </div>
     </div>
-
-    <!-- JOIN -->
-    <div id="join_block" style="display:none;">
-      <div class="row" style="gap:10px; flex-wrap:wrap;">
-        <div class="field" style="flex:1; min-width:220px;">
-          <label for="center_key_input">Clé centre (obligatoire)</label>
-          <input id="center_key_input" type="text" placeholder="Ex: OI-XXXXX-XXXXX-XXXXX"/>
-        </div>
-      </div>
-
-      <div class="row" style="gap:10px; margin-top:10px;">
-        <button type="button" class="btn btn-primary" id="btn_center_join_validate" style="flex:1;">Valider rejoindre</button>
-      </div>
-    </div>
-
   </div>
 </div>
+<!-- /SCREEN 0 -->
+
+<!-- SCREEN 1B: JOIN (Key + Validate only) -->
+<div id="join_block" style="display:none; margin-top:10px;">
+  <div class="row" style="gap:10px; flex-wrap:wrap;">
+    <div class="field" style="flex:2; min-width:220px;">
+      <label for="center_key_input">Clé centre</label>
+      <input id="center_key_input" type="text" placeholder="Colle la clé ici" autocomplete="off" autocapitalize="characters" />
+    </div>
+    <div class="field" style="flex:1; min-width:160px;">
+      <label>&nbsp;</label>
+      <button type="button" class="btn btn-primary" id="btnCenterJoinValidate" style="width:100%;">Valider</button>
+    </div>
+  </div>
+</div>
+<!-- /SCREEN 1B -->
+
+
+<!-- /ACCESS MODE -->
+<div id="create_block" style="display:none;">
+    <div class="row" style="gap:10px; flex-wrap:wrap;">
+  
+      <div class="field" style="flex:2; min-width:220px;">
+        <label for="center_name_input">Nom du centre</label>
+        <input id="center_name_input" type="text" placeholder="Ex: Sea Angel / Club XYZ"/>
+      </div>
+      <div class="field" style="flex:1; min-width:140px;">
+        <label for="center_boats_input">Nombre de bateaux</label>
+        <input id="center_boats_input" type="number" min="1" max="20" inputmode="numeric" placeholder="Ex: 4" required />
+      </div>
+    </div>
+
+    <div class="row" style="gap:10px; margin-top:14px; justify-content:flex-end;">
+      <button type="button" class="btn btn-primary" id="btnCenterSetupSave">Enregistrer</button>
+    </div>
+  </div>
+ </div>
+</div>
+
+
+  <!-- Splash (logo plein écran 200ms) -->
+  <div id="app_splash" aria-hidden="true">
+    <img src="./OCEAN_INFINITY_exact_512.png" alt="Ocean Infinity">
+  </div>
+
+<div class="container">
+<!-- SECTION: CONTEXTE (CONSTANTES + SITE + GPS) -->
+  <section class="section" id="sec-site-gps">
+    <div class="section-title">
+  Plongée du jour <span id="pdj_center_name" class="pdj-center-name"></span>
+</div>
+    <p class="help-text">Renseignez les constantes (DP / bateau / sécurité surface), puis le site et les coordonnées GPS (format marin).</p>
+
+    <!-- Constantes -->
+    <div class="row" style="align-items:flex-end; gap:10px; flex-wrap:wrap;">
+      <div class="field" style="flex:1; min-width:160px;">
+        <label for="dive_const_dp">Directeur de plongée</label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input id="dive_const_dp" type="text" placeholder="Nom du Directeur de plongée" list="dp_list" style="flex:1;"/>
+          <button type="button" class="btn btn-secondary" id="btn_dp_add" title="Ajouter / ouvrir la base formateurs DP" style="white-space:nowrap;">📚</button>
+          <button type="button" class="btn btn-secondary" id="btn_instructor_sync" title="Synchroniser la base instructeurs depuis la bibliothèque plongeurs (ajout uniquement)" style="white-space:nowrap;">↻</button>
+        </div>
+      </div>
+      <datalist id="dp_list"></datalist>
+      <div class="field" style="flex:1; min-width:160px;">
+        <label for="dive_const_boat">Bateau</label>
+        <input id="dive_const_boat" type="text" placeholder="Nom bateau"/>
+      </div>
+      <div class="field" style="flex:1; min-width:180px;">
+        <label for="dive_const_surface">Sécurité surface</label>
+        <input id="dive_const_surface" type="text" placeholder="Nom sécu surface"/>
+      </div>
+    </div>
+
+    <!-- Site -->
+    <div class="row" style="align-items:flex-end; gap:10px; flex-wrap:wrap; margin-top:10px;">
+      <div class="field" style="flex:2; min-width:220px;">
+        <label for="dive_site_select">Site de plongée</label>
+        <select id="dive_site_select"></select>
+      </div>
+
+      <div class="field" style="flex:2; min-width:220px;">
+        <label for="dive_site_name">Libellé du site</label>
+        <input id="dive_site_name" type="text" placeholder="Ex. : Épave du Grec / Cap Martin / Sec des Moines"/>
+      </div>
+
+      <div class="field" style="flex:1; min-width:120px;">
+        <label>&nbsp;</label>
+        <button type="button" class="btn btn-secondary" id="btn_site_save" style="width:100%;">＋ Ajouter</button>
+      </div>
+
+      <div class="field" style="flex:1; min-width:120px;">
+        <label>&nbsp;</label>
+        <button type="button" class="btn btn-secondary" id="btn_site_delete" style="width:100%;">－ Supprimer</button>
+      </div>
+    </div>
+
+    <!-- GPS -->
+    <div class="row" style="align-items:flex-end; gap:10px; flex-wrap:wrap; margin-top:10px;">
+      <div class="field" style="flex:2; min-width:220px;">
+        <label>GPS (style marin)</label>
+       <div id="dive_gps_nav" class="mono"
+     style="
+       padding:10px 12px;
+       border:1px solid #d7d7d7;
+       border-radius:10px;
+       background:#fff;
+       color:#0b3a5a;
+       font-weight:600;
+       opacity:1;
+       -webkit-text-fill-color:#0b3a5a;
+     ">
+          —
+        </div>
+      </div>
+
+      <div class="field" style="flex:1; min-width:140px;">
+        <label for="dive_gps_lat">Lat (dd)</label>
+        <input id="dive_gps_lat" type="text" inputmode="decimal" placeholder="43.70..."/>
+      </div>
+
+      <div class="field" style="flex:1; min-width:140px;">
+        <label for="dive_gps_lon">Lon (dd)</label>
+        <input id="dive_gps_lon" type="text" inputmode="decimal" placeholder="7.28..."/>
+      </div>
+
+      <div class="field" style="flex:1; min-width:120px;">
+        <label for="dive_gps_acc">± m</label>
+        <input id="dive_gps_acc" type="number" inputmode="numeric" placeholder="10"/>
+      </div>
+
+      <div class="field" style="flex:1; min-width:160px;">
+        <label>&nbsp;</label>
+        <button type="button" class="btn btn-secondary" id="btn_gps_capture" style="width:100%;">📍 Capturer</button>
+      </div>
+
+      <span id="site_gps_status" class="status-text" style="align-self:center;"></span>
+    </div>
+  </section>
+
+  <!-- SECTION: PLONGEURS DU JOUR -->
+  <section class="section" id="sec-plongeurs-jour">
+    <div class="section-title">Plongeurs présents sur le bateau</div>
+    <p class="help-text">
+      Sélectionnez les plongeurs présents pour ce bateau et cette sortie.
+    </p>
+
+    
+    <div style="margin: 8px 0 10px 0; display:flex; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="btn btn-secondary" id="btn_add_diver">
+        + Ajouter un plongeur
+      </button>
+
+      <button type="button" class="btn btn-secondary" id="btn_edit_diver">
+        ✏️ Modifier un plongeur
+      </button>
+
+
+      <span class="lib-menu-wrap">
+        <button type="button" class="btn btn-secondary btn-ellipsis" id="btn_library_menu" title="Outils bibliothèque">⋯</button>
+        <div class="lib-menu" id="library_menu" style="display:none;">
+          <button type="button" class="lib-menu-item" id="btn_export_library" title="Exporter la bibliothèque (plongeurs + DP/instructeurs)">⬇️ Exporter bibliothèque</button>
+<!--
+          <button type="button" class="lib-menu-item" id="btn_import_library" title="Importer une bibliothèque (merge non destructif)">⬆️ Importer bibliothèque</button>
+
+-->
+          <button type="button" class="lib-menu-item" id="btn_import_csv" title="Importer votre base clients / plongeurs (outil avancé)">⬆️ Importer base clients / plongeurs</button>
+
+         <button type="button" class="lib-menu-item" id="btn_copy_center_key" title="Copier l'ID centre (clé) utilisé dans le PDF">📋 Copier clé centre</button>
+
+        </div>
+      </span>
+      <input type="file" id="file_import_library" accept="application/json" style="display:none;" />
+      <input type="file" id="file_import_csv" accept=".csv,text/csv" style="display:none;" />
+
+    </div>
+
+
+
+<div id="add-diver-form" class="add-diver-form" style="display:none; margin-top:10px;">
+     <div class="row">
+       <div class="field">
+         <label for="add_diver_name">Nom</label>
+          <input type="text" id="add_diver_name" placeholder="Nom du plongeur">
+        </div>
+
+        <div class="field" style="flex:1;">
+          <label for="add_diver_licence">N° licence</label>
+         <input type="text" id="add_diver_licence" placeholder="Licence">
+        </div>
+     </div>
+      
+
+      <div class="row">
+        <div class="field" style="flex:1;">
+          <label for="add_diver_agency_select">Agence</label>
+          <select id="add_diver_agency_select">
+            <option value="">- Sélectionner -</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.4;">
+          <label for="add_diver_cert_select">Certification (bibliothèque)</label>
+          <select id="add_diver_cert_select">
+            <option value="">Sélectionner une certification</option>
+          </select>
+        </div>
+
+        <div class="field" style="flex:1;">
+          <label for="add_diver_aptitude_select">Aptitude (badge)</label>
+          <select id="add_diver_aptitude_select">
+            <option value="">— Sélectionner —</option>
+                   <option value="BAPTEME">BAPTÊME</option>
+                   <option value="PE6">PE6</option>
+                   <option value="PE12">PE12</option>
+                   <option value="PE20">PE20</option>
+                   <option value="PE40">PE40</option>
+                   <option value="PE60">PE60</option>
+                   <option value="PA12">PA12</option>
+                   <option value="PA20">PA20</option>
+                   <option value="PA40">PA40</option>
+                   <option value="PA60">PA60</option>
+                   <option value="PTH70">PTH 70</option>
+                   <option value="PTH120">PTH 120</option>
+                   <option value="CCR40">CCR 40</option>
+                   <option value="CCR70">CCR 70</option>
+                   <option value="CCR100">CCR 100</option>
+                   <option value="CCR120">CCR 120</option>
+                   <option value="Autre">Autre (manuel)</option>
+               </select>
+           
+          <div id="add_diver_aptitude_manual_wrap" style="display:none; margin-top:6px;">
+           <input type="text" id="add_diver_aptitude_manual" placeholder="Aptitude (manuel)">
+         </div>
+        </div>
+
+      </div> <!-- fin row cert + aptitude -->
+
+<div class="row" style="margin-top:8px;">
+  <div class="field" style="flex:1; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+      <input type="checkbox" id="add_diver_qual_nitrox">
+      Nitrox
+    </label>
+
+    <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+      <input type="checkbox" id="add_diver_qual_nitrox_confirmed">
+      Nitrox confirmé
+    </label>
+  </div>
+</div>
+
+<div class="row">
+  <div class="field" id="add_diver_cert_manual_wrap" style="flex:1; display:none;">
+    <label for="add_diver_cert_manual">Certification (manuel)</label>
+    <input type="text" id="add_diver_cert_manual" placeholder="ex : TDI Advanced Trimix CCR">
+  </div>
+</div>
+
+      <div class="row" style="margin-top:8px;">
+        <button type="button" class="btn btn-primary" id="btn_add_diver_confirm">Ajouter</button>
+        <button type="button" class="btn" id="btn_add_diver_cancel">Annuler</button>
+      </div>
+
+      <div id="add-diver-status" class="status-text" style="margin-top:6px;"></div>
+    </div>
+
+
+    <div id="edit-diver-form" class="add-diver-form" style="display:none; margin-top:10px;">
+      <div class="row">
+        <div class="field" style="flex:1;">
+          <label for="edit_diver_search">Recherche (nom ou licence)</label>
+          <input type="text" id="edit_diver_search" list="diver_list" placeholder="Tape le prénom/nom (autocomplete)">
+          <datalist id="diver_list"></datalist>
+        </div>      </div>
+
+      <div class="row" style="margin-top:6px;">
+        <div class="field" style="flex:1;">
+          <label for="edit_diver_name">Nom</label>
+          <input type="text" id="edit_diver_name" placeholder="Nom du plongeur">
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="edit_diver_licence">N° licence</label>
+          <input type="text" id="edit_diver_licence" placeholder="Licence">
+        </div>
+      </div>
+
+
+      <div class="row">
+        <div class="field" style="flex:1;">
+          <label for="edit_diver_agency_select">Agence</label>
+          <select id="edit_diver_agency_select">
+            <option value="">- Sélectionner -</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field" style="flex:1.4;">
+          <label for="edit_diver_cert_select">Certification (bibliothèque)</label>
+          <select id="edit_diver_cert_select">
+            <option value="">Sélectionner une certification</option>
+          </select>
+        </div>
+
+        <div class="field" style="flex:1;">
+          <label for="edit_diver_aptitude_select">Aptitude (badge)</label>
+          <select id="edit_diver_aptitude_select">
+            <option value="">— Sélectionner —</option>
+                   <option value="BAPTEME">BAPTÊME</option>
+                   <option value="PE6">PE6</option>
+                   <option value="PE12">PE12</option>
+                   <option value="PE20">PE20</option>
+                   <option value="PE40">PE40</option>
+                   <option value="PE60">PE60</option>
+                   <option value="PA12">PA12</option>
+                   <option value="PA20">PA20</option>
+                   <option value="PA40">PA40</option>
+                   <option value="PA60">PA60</option>
+                   <option value="PTH70">PTH 70</option>
+                   <option value="PTH120">PTH 120</option>
+                   <option value="CCR40">CCR 40</option>
+                   <option value="CCR70">CCR 70</option>
+                   <option value="CCR100">CCR 100</option>
+                   <option value="CCR120">CCR 120</option>
+                   <option value="Autre">Autre (manuel)</option>
+            </select>
+
+          <div id="edit_diver_aptitude_manual_wrap" style="display:none; margin-top:6px;">
+            <input type="text" id="edit_diver_aptitude_manual" placeholder="Aptitude (manuel)">
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center;">
+         <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+          <input type="checkbox" id="edit_diver_qual_nitrox">
+          Nitrox
+        </label>
+
+        <label style="display:flex; gap:6px; align-items:center; font-weight:600;">
+          <input type="checkbox" id="edit_diver_qual_nitrox_confirmed" disabled>
+          Nitrox confirmé
+        </label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" id="edit_diver_cert_manual_wrap" style="flex:1; display:none;">
+          <label for="edit_diver_cert_manual">Certification (manuel)</label>
+          <input type="text" id="edit_diver_cert_manual" placeholder="ex : TDI Advanced Trimix CCR">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button type="button" class="btn btn-primary" id="btn_edit_diver_confirm">Enregistrer</button>
+        <button type="button" class="btn" id="btn_edit_diver_cancel">Annuler</button>
+      </div>
+
+      <div id="edit-diver-status" class="status-text" style="margin-top:6px;"></div>
+    </div>
+
+<!-- SECTION: GROUPES & AFFECTATION -->
+    <!-- OUTILS: Vues + filtre + bulk -->
+    <div id="pdj_tools" class="pdj-tools">
+      <div class="pdj-row">
+        <button type="button" class="btn pdj-chip" id="pdj_view_all">Tous</button>
+        <button type="button" class="btn pdj-chip" id="pdj_view_fav">Favoris</button>
+        <input type="text" id="pdj_search" class="pdj-search" placeholder="Rechercher…">
+        <datalist id="pdj_search_list"></datalist>
+        <select id="pdj_filter_apt" class="pdj-select" title="Filtrer par aptitude">
+          <option value="">Aptitude : toutes</option>
+        </select>
+      </div>
+    </div>
+
+<div id="plongeurs-jour-list" class="plongeurs-jour-container">
+      <!-- Cartes plongeurs générées en JS à partir de diverLibrary -->
+    </div>
+
+    <div class="pdj-actions">
+      <button
+        type="button"
+        class="btn btn-primary"
+        id="btn_valider_plongeurs_jour">
+        Confirmer les plongeurs à bord
+      </button>
+
+      <button
+        type="button"
+        class="btn"
+        id="pdj_bulk_remove">
+        Recommencer la liste
+      </button>
+
+
+      <button type="button" class="btn" id="btn_qr_scan_diver" title="Scanner un QR code plongeur">
+        Importer des plongeurs (QR code)
+      </button>
+      <div id="qr-scan-status" class="status-text" style="margin-top:6px;"></div>
+
+    </div>
+
+    <div id="plongeurs-jour-status" class="status-text" style="margin-top:6px;"></div>
+  </section>
+
+  
+
+<section class="section" id="sec-groupes">
+    <div class="section-title">Organisation des groupes</div>
+<p class="help-text">À partir des plongeurs sélectionnés, vous pouvez les affectés a plusieurs bateaux et utiliser le QR code, pour les exporter</p>
+<p class="help-text" style="margin-top:-6px;"> vers Android/ Tablette/ Iphone en un click.</p>
+<div class="bulk-boat-assign" style="margin:10px 0; display:flex; gap:8px; align-items:center;">
+  <label for="ga_bulk_boat"><strong>Bateau (sélection)</strong></label>
+  <select id="ga_bulk_boat" class="pdj-select">
+    <option value="">—</option>
+  </select>
+  <button type="button" class="btn btn-secondary" id="btn_ga_apply_boat">Appliquer à tous les PDJ</button>
+  <button type="button" class="btn" id="btn_ga_clear_boat">Effacer unités PDJ</button>
+</div>
+
+<div class="bulk-boat-assign" id="ga_export_boat" style="margin:8px 0 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+  <label for="ga_export_boat_sel"><strong>Export QR – Bateau</strong></label>
+  <select id="ga_export_boat_sel" class="pdj-select">
+    <option value="">—</option>
+  </select>
+  <button type="button" class="btn btn-primary" id="btn_ga_export_qr">Générer QR</button>
+  <span id="ga_export_qr_status" class="status-text"></span>
+</div>
+
+<div id="ga_export_qr_wrap" style="display:none; margin-top:8px; padding:10px; border:1px solid #cfe0ff; border-radius:12px;">
+  <img id="ga_export_qr_img" alt="QR code" style="width:260px;height:260px;border-radius:8px;background:#fff;display:block;" />
+  <div style="margin-top:8px; display:flex; gap:8px; align-items:center; justify-content:center;">
+    <button type="button" class="btn" id="btn_ga_qr_prev">◀︎</button>
+    <span id="ga_qr_page_label" style="font-weight:800;"></span>
+    <button type="button" class="btn" id="btn_ga_qr_next">▶︎</button>
+  </div>
+</div>
+
+    <p class="help-text">
+      À partir des plongeurs du jour, créez des groupes-palanquées autonome, encadrée ou en formation.
+    </p>
+
+    <!-- Bouton pour ajouter un nouveau groupe -->
+    <div class="add-group-container">
+      <button type="button" class="btn btn-secondary" id="btn_add_group">
+        Ajouter un groupe
+      </button>
+    </div>
+
+    <div id="group-validation-banner" class="validation-banner" style="display:none;"></div>
+
+    <!-- Ligne Plongeurs disponibles -->
+    <div class="group-row" id="group-dispo-row">
+      <div class="group-column group-column-full">
+        <div class="group-header">
+          Plongeurs disponibles aujourd'hui
+        </div>
+        <div id="group-disponibles-list" class="group-diver-list">
+          <!-- Cartes générées en JS à partir de diversDuJour -->
+        </div>
+      </div>
+    </div>
+
+       <!-- Ligne Groupes -->
+    <div class="group-row" id="group-main-row">
+
+          <!-- GROUPE 1 -->
+      <div class="group-column" data-group="G1">
+        <div class="group-header">
+          Groupe 1
+        </div>
+
+        <div class="group-buttons">
+          <button type="button" class="btn" id="g1_before">
+            Avant la plongée
+          </button>
+          <button type="button" class="btn btn-primary" id="g1_after">
+            Après la plongée
+          </button>
+        </div>
+
+        <div id="group-G1-list" class="group-diver-list">
+          <!-- Plongeurs affectés au Groupe 1 -->
+        </div>
+      </div>
+
+ 
+    </div>
+
+    <div id="groupes-status" class="status-text" style="margin-top:8px;"></div>
+  
+
+    <!-- ACTIONS & EXPORT (intégré dans Groupes/Affectation) -->
+    <!-- SECTION: EXPORT WHATSAPP -->
+  <div class="section" id="sec-export">
+  <div class="section-title">Export officiel (PDF)</div>
+<p class="help-text">Générez un document professionnel en un clic <br>Le document récapitule les plongeurs, les groupes, les paramètres de plongée et les informations réglementaires.</p>
+
+  <div class="footer-actions">
+    <button type="button" class="btn btn-primary" id="btn-preview-pdf">
+      👁️ Prévisualiser la fiche (PDF)
+    </button>
+
+    <button type="button" class="btn btn-primary" id="btn-export-pdf">
+      📄 Exporter la fiche officielle (PDF)
+    </button>
+
+    <button type="button" class="btn btn-reset" id="btn-reset">
+      RESET
+    </button>
+  </div>
+
+  <div id="pdf-preview"></div>
+<!-- PDF Actions Bar -->
+<div id="pdfActionsBar" style="display:none;">
+  
+  <span id="pdfStateLabel" class="pdf-state-label">Brouillon</span>
+<button id="btnValidate" class="pdf-btn primary">✓ Valider le document</button>
+  <button id="btnSign" class="pdf-btn success" disabled>✍️ Signer électroniquement</button>
+  <button id="btnQuit" class="pdf-btn neutral">↩︎ Quitter</button>
+</div>
+</div>
+
+  </section>
+<section class="section" id="sec-before-group" style="display:none;">
+  <div class="section-title">
+    Programme du jour – Avant la plongée le <span id="before_date_title">—</span>
+  </div>
+
+<!-- EN-TÊTE AVANT PLONGÉE (LAYOUT FICHE DE PLONGÉE) -->
+<div class="section" style="margin-top:10px; padding:10px 12px;">
+
+<!-- En-tête groupe (nom du groupe injecté en JS) -->
+<p class="help-text" id="before_group_header">
+    Groupe : <span id="before_group_name">Groupe X</span>
+  </p>
+<p id="before_group_meta" class="group-meta"></p>
+
+  <!-- Ligne 0 : Date + DTR (briefing) -->
+  <!-- Date (stockage) -->
+  <input type="text" id="group_before_date" placeholder="JJ/MM/AAAA" style="display:none;" />
+
+
+  <!-- Ligne 1 : Type de plongeurs du groupe -->
+  <div class="field">
+    <label>Type de plongeurs du groupe</label>
+    <select id="group_before_site_group">
+      <option value="AIR">AIR</option>
+      <option value="TRIMIX_CCR">TRIMIX / CCR</option>
+    </select>
+  </div>
+
+  <!-- Bloc TRIMIX/CCR (MultiDeco) - visible uniquement si TRIMIX/CCR -->
+<div id="before_trimix_container" style="display:none; margin-top:10px; padding:10px; border:1px solid rgba(255,255,255,0.12); border-radius:10px;">
+    <div style="font-weight:700; margin-bottom:8px;">MultiDeco (TRIMIX / CCR)</div>
+
+    <div class="field">
+      <label>RT1 (MultiDeco)</label>
+      <textarea id="group_before_rt1" placeholder="Coller ici RT1 (MultiDeco)"></textarea>
+    </div>
+    <div class="field">
+      <label>RT2 (MultiDeco) – optionnel</label>
+      <textarea id="group_before_rt2" placeholder="Coller ici RT2 (optionnel)"></textarea>
+    </div>
+    <div class="field">
+      <label>RT3 (MultiDeco) – optionnel</label>
+      <textarea id="group_before_rt3" placeholder="Coller ici RT3 (optionnel)"></textarea>
+    </div>
+
+    <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="btn" id="btn_analyser_rt1" disabled>ANALYSER</button>
+      <div id="before_md_status" class="help-text" style="margin:0;">—</div>
+    </div>
+
+    <div class="help-text" style="margin-top:8px;">
+      Profondeur prévue : <span id="before_md_depth">—</span> &nbsp;|&nbsp;
+      RT planifié : <span id="before_md_runtime">—</span>
+    </div>
+  </div>
+
+
+
+  <!-- Ligne 2 : Heure de mise à l'eau + Scénarios -->
+  <div class="row" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="field" style="flex:1; min-width:220px;">
+      <label>Heure de mise à l'eau (HH:mm)</label>
+      <input type="text" id="group_before_in_planned" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+    </div>
+
+    <div class="field" style="flex:1; min-width:220px;">
+      <label>Scénarios</label>
+      <div class="row" style="gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn small" id="btn_in_plus_5">+5</button>
+        <button type="button" class="btn small" id="btn_in_plus_10">+10</button>
+        <button type="button" class="btn small" id="btn_in_plus_15">+15</button>
+        <button type="button" class="btn small" id="btn_in_plus_20">+20</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ligne 3 : DTR + Profondeur max -->
+  <div class="row" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="field" style="flex:1; min-width:220px;">
+      <label>DTR max (min)</label>
+      <div class="numpad-field">
+        <input type="number" id="group_before_dtr_max" min="0" step="1" placeholder="ex: 15" />
+        <button type="button" class="numpad-open" data-numpad-for="group_before_dtr_max">123</button>
+      </div>
+    </div>
+
+    <div class="field" style="flex:1; min-width:220px;">
+      <label>Profondeur prévue (m)</label>
+      <div class="numpad-field">
+        <input type="number" id="group_before_depth_planned" min="0" step="1" placeholder="ex: 60" />
+        <button type="button" class="numpad-open" data-numpad-for="group_before_depth_planned">123</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ligne 4 : RT planifié + Sortie estimée -->
+  <div class="row" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="field" style="flex:1; min-width:220px;">
+      <label>RT planifié (min)</label>
+      <div class="numpad-field">
+        <input type="number" id="group_before_runtime_group_planned" min="1" step="1" placeholder="ex: 90" />
+        <button type="button" class="numpad-open" data-numpad-for="group_before_runtime_group_planned">123</button>
+      </div>
+    </div>
+
+    <div class="field" style="flex:1; min-width:220px;">
+      <label>Sortie estimée</label>
+      <input type="text" id="group_before_exit_planned" inputmode="numeric" placeholder="HH:MM" maxlength="5" readonly />
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="group_before_formations">Formations / Encadrement</label>
+    <textarea id="group_before_formations" rows="3" placeholder="Texte libre..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="group_before_observations">Observations (avant plongée)</label>
+    <textarea id="group_before_observations" rows="3" placeholder="Texte libre..."></textarea>
+  </div>
+
+</div>
+<!-- Plongeurs du groupe : container (rempli en JS) -->
+  <div class="section" style="margin-top:12px; padding:10px 12px;">
+   
+
+    <!-- Container pour les cartes plongeurs (généré en JS) -->
+    <div id="group_before_divers_container"></div>
+     
+  
+
+  <!-- Actions -->
+  <div class="footer-actions">
+   
+    <button type="button" class="btn" id="btn_before_back">
+      ← Retour aux groupes
+    </button>
+  </div>
+</div>
+</section>
+
+<section class="section" id="sec-after-group" style="display:none;">
+  <div class="section-title">
+    Programme du jour – Après la plongée
+  </div>
+
+  <!-- En-tête groupe -->
+  <p class="help-text" id="after_group_header">
+    Groupe : <span id="after_group_name">Groupe X</span>
+  </p>
+  <p class="help-text" id="after_group_meta"></p>
+  <!-- (v1.001) Simplification: EXIT groupe + incidents groupe supprimés (incidents par plongeur) -->
+
+  
+
+  <!-- Paliers effectués : désormais PAR PLONGEUR (voir cartes ci-dessous) -->
+
+<!-- Plongeurs du groupe : runtime réel + paliers individuels -->
+  <div class="section" style="margin-top:12px; padding:10px 12px;">
+    <div class="section-title" style="font-size:16px; margin-bottom:8px;">
+      Plongeurs du groupe – données réelles
+    </div>
+    <p class="help-text">
+      Pour chaque plongeur : Runtime réalisé + Heure de sortie, puis tableau horizontal des paliers effectués.
+    </p>
+
+    
+  <!-- PATCH16: FORMATION – Paliers groupe -->
+  <div id="after_formation_group_paliers" class="card" style="display:none; margin:10px 0; padding:10px; border:1px solid #cfe0ff; border-radius:10px;">
+    <div style="font-weight:700; margin-bottom:8px;">Paliers groupe</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button type="button" class="btn" id="btn_after_group_paliers_edit">Saisir paliers groupe</button>
+      <button type="button" class="btn btn-primary" id="btn_after_group_paliers_apply">Appliquer aux plongeurs</button>
+      <span class="help-text" id="after_group_paliers_hint" style="margin-left:4px;">Copie initiale uniquement (modifiable ensuite).</span>
+    </div>
+  </div>
+  <!-- /PATCH16 -->
+
+<!-- PATCH2: Runtime réalisé GROUPE (APRÈS) -->
+<div id="after_group_runtime" class="card" style="margin:10px 0; padding:10px; border:1px solid #cfe0ff; border-radius:12px;">
+  <div style="font-weight:700; margin-bottom:8px;">Runtime réalisé — Groupe</div>
+
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <div class="numpad-field">
+      <input type="number" id="after_group_runtime_min" min="0" step="1" placeholder="min" style="max-width:110px;">
+      <button type="button" class="numpad-open" data-numpad-for="after_group_runtime_min">123</button>
+    </div>
+
+    <span class="help-text" style="margin:0;">min</span>
+
+    <button type="button" class="btn btn-primary" id="btn_after_group_runtime_apply">Appliquer aux plongeurs</button>
+  </div>
+
+  <span class="help-text" id="after_group_runtime_hint" style="margin-left:4px;">
+    Copie initiale uniquement (modifiable ensuite).
+  </span>
+</div>
+<!-- /PATCH2 -->
+
+<!-- PATCH3: Profondeur réalisée GROUPE (APRÈS) -->
+<div id="after_group_depth" class="card" style="margin:10px 0; padding:10px; border:1px solid #cfe0ff; border-radius:12px;">
+  <div style="font-weight:700; margin-bottom:8px;">Profondeur réalisée — Groupe</div>
+
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <div class="numpad-field">
+      <input type="number" id="after_group_depth_real_m" min="0" step="1" placeholder="m" style="max-width:110px;">
+      <button type="button" class="numpad-open" data-numpad-for="after_group_depth_real_m">123</button>
+    </div>
+
+    <span class="help-text" style="margin:0;">m</span>
+
+    <button type="button" class="btn btn-primary" id="btn_after_group_depth_apply">Appliquer aux plongeurs</button>
+  </div>
+
+  <span class="help-text" id="after_group_depth_hint" style="margin-left:4px;">
+    Copie initiale uniquement (modifiable ensuite).
+  </span>
+</div>
+<!-- /PATCH3 -->
+
+
+
+<div id="group_after_divers_container"></div>
+      
+  
+
+  <!-- Actions -->
+  <div class="footer-actions">
+    
+    <button type="button" class="btn" id="btn_after_back">
+      ← Retour aux groupes
+    </button>
+  </div>
+</div>
+</section>
+
+  
+
+  <!-- SECTION: PREVIEW PDF  -->
+  
+
+
+<!-- QR SCAN MODAL (DIVERS) -->
+<div id="qr_scan_overlay" class="modal-overlay" style="display:none;">
+  <div class="modal-card" style="max-width:520px; width:92%; padding:12px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+      <div style="font-weight:800;">Scanner QR Plongeur</div>
+      <button type="button" class="btn" id="btn_qr_scan_close">✕</button>
+    </div>
+
+    <div class="help-text" style="margin-bottom:8px;">
+      Caméra (si supportée) ou coller le contenu QR en manuel.
+    </div>
+
+    <div id="qr_scan_cam_wrap" style="display:none; margin-bottom:10px;">
+      <video id="qr_scan_video" playsinline style="width:100%; border-radius:10px; border:1px solid #cfe0ff;"></video>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+        <button type="button" class="btn btn-primary" id="btn_qr_scan_start">Démarrer caméra</button>
+        <button type="button" class="btn" id="btn_qr_scan_stop">Stop</button>
+        <button type="button" class="btn" id="btn_qr_scan_photo">Photo</button>
+        <input type="file" id="qr_scan_file" accept="image/*" style="display:none;">
+        <div id="qr_scan_cam_status" style="margin-top:8px; font-size:13px; color:#0b3a7a; font-weight:700;"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:6px;">
+      <div style="font-weight:700; margin:8px 0 6px;">Import manuel</div>
+      <textarea id="qr_scan_text" rows="5" style="..."></textarea>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+        <button type="button" class="btn btn-primary" id="btn_qr_scan_import">Importer</button>
+        <button type="button" class="btn" id="btn_qr_scan_clear">Effacer</button>
+      </div>
+    </div>
+
+    <div id="qr_scan_modal_status" class="status-text" style="margin-top:10px;"></div>
+  </div>
+</div>
+<!-- /QR SCAN MODAL -->
+
+<!-- =======================
+     INSTALL ASSISTANT (PWA install gate)
+     ======================= -->
 <div id="installGateModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,.75); align-items:center; justify-content:center; padding:16px;">
   <div style="width:min(720px,100%); background:#0e1622; color:#eaf2ff; border-radius:14px; border:1px solid rgba(255,255,255,.12); box-shadow:0 16px 60px rgba(0,0,0,.45); overflow:hidden;">
     <div style="padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.12); display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
@@ -2341,7 +3113,6 @@
       return {
         id: (o.id || "").trim(),
         name: (o.name || "").trim(),
-        key: (o.key || "").trim(),
         boatsN: Math.max(1, Math.min(8, Number(o.boatsN || 1) || 1))
       };
     } catch(e) { return null; }
@@ -2352,7 +3123,6 @@
       const out = {
         id: (cfg?.id || "").trim(),
         name: (cfg?.name || "").trim(),
-        key: (cfg?.key || "").trim(),
         boatsN: Number.isFinite(Number(cfg?.boatsN))
           ? Math.max(1, Math.min(8, Number(cfg.boatsN)))
           : 1
@@ -2375,7 +3145,6 @@
   const STATE = {
     centerId: null,
     centerName: null,
-    centerKey: null,
     boatsN: 1,
     configured: false
   };
@@ -2386,20 +3155,29 @@
     return Math.max(1, Math.min(8, Math.floor(x)));
   }
 
+  function syncCenterSetupButtonUI() {
+    const btnCfg = document.getElementById("btn_center_setup");
+    if (!btnCfg) return;
+    btnCfg.disabled = !STATE.configured;
+    btnCfg.style.opacity = btnCfg.disabled ? "0.5" : "1";
+  }
+
   function hydrateStateFromStorage(){
     const c = loadCenterCfg();
     if (c && typeof c === "object"){
       STATE.centerId = (c.id || "").trim() || null;
       STATE.centerName = (c.name || "").trim() || null;
-      STATE.centerKey = (c.key || "").trim() || null;
       STATE.boatsN = clampBoatsN(c.boatsN || 1);
-      STATE.configured = !!(STATE.centerId && STATE.centerName);
+      STATE.configured = !!(STATE.centerId && STATE.centerName && Number.isInteger(STATE.boatsN) && STATE.boatsN >= 1);
+
+      syncCenterSetupButtonUI();
       return true;
     }
     STATE.centerId = null;
     STATE.centerName = null;
     STATE.boatsN = 1;
     STATE.configured = false;
+    syncCenterSetupButtonUI();
     return false;
   }
 
@@ -2413,7 +3191,6 @@
     return saveCenterCfg({
       id: STATE.centerId || "",
       name: STATE.centerName || "",
-      key: STATE.centerKey || "",
       boatsN: STATE.boatsN || 1
     });
   }
@@ -2516,15 +3293,11 @@ function renderGaBulkBoatSelect(){
       const v = String(patch.centerName || "").trim();
       STATE.centerName = v ? v : null;
     }
-    if ("centerKey" in patch){
-      const v = String(patch.centerKey || "").trim();
-      STATE.centerKey = v ? v : null;
-    }
     if ("boatsN" in patch){
       STATE.boatsN = clampBoatsN(patch.boatsN);
     }
-    STATE.configured = !!(STATE.centerId && STATE.centerName);
-
+    STATE.configured = !!(STATE.centerId && STATE.centerName && Number.isInteger(STATE.boatsN) && STATE.boatsN >= 1);
+    syncCenterSetupButtonUI();
     persistStateToStorage();
     renderApp();
 
@@ -2553,15 +3326,13 @@ function getCenterDisplayName() {
 
     const nameEl = document.getElementById("center_name_input");
     const boatsEl = document.getElementById("center_boats_input");
-    const idEl = document.getElementById("center_id_input");
-
-    const cid = (forceNewId ? "" : (STATE.centerId || ""));
+ 
     if (nameEl) nameEl.value = STATE.centerName ? String(STATE.centerName) : "";
     if (boatsEl) boatsEl.value = String(STATE.boatsN || 1);
-    if (idEl) idEl.value = cid ? cid : genCenterId();
+    
 
       // Default: create mode when opening the modal
-    setAccessMode("none");
+    setAccessMode("hone");
     overlay.style.display = "flex";
   }
 
@@ -2572,7 +3343,7 @@ function getCenterDisplayName() {
 
   // Return true if ok; if missing, opens modal and returns false.
   function ensureCenterCfgOrPrompt() {
-    if (STATE.centerName && STATE.centerId) return true;
+    if (STATE.configured) return true;
     openCenterSetupModal(false);
     return false;
   }
@@ -2580,23 +3351,28 @@ function getCenterDisplayName() {
 
 // =======================
 // =======================
-// CENTER ACCESS MODE (Create / Join)
+// CENTER ACCESS MODE (Create only — Join removed)
 // =======================
-let __centerAccessMode = "none";
+let __centerAccessMode = "hone";
 
-function setAccessMode(mode){
-  const m = (mode === "create" || mode === "join") ? mode : "none";
-  __centerAccessMode = m;
+function setAccessMode(mode) {
+  if (mode !== "home" && mode !== "create" && mode !== "join") {
+    mode = "home";
+  }
+  __centerAccessMode = mode;
   applyAccessModeUI();
 }
 
-function applyAccessModeUI(){
-  const createBlock = document.getElementById("create_block");
-  const joinBlock   = document.getElementById("join_block");
+function applyAccessModeUI() {
+  const home   = document.getElementById("center_first_run_home");
+  const create = document.getElementById("create_block");
+  const join   = document.getElementById("join_block");
 
-  if (createBlock) createBlock.style.display = (__centerAccessMode === "create") ? "block" : "none";
-  if (joinBlock)   joinBlock.style.display   = (__centerAccessMode === "join") ? "block" : "none";
+  if (home)   home.style.display   = (__centerAccessMode === "home")   ? "block" : "none";
+  if (create) create.style.display = (__centerAccessMode === "create") ? "block" : "none";
+  if (join)   join.style.display   = (__centerAccessMode === "join")   ? "block" : "none";
 }
+
 
 // INSTALL GATE — Helpers
 // =======================
@@ -4558,7 +5334,7 @@ function initPDJTools() {
     };
   }
 
-const btnQr = document.getElementById("btn_qr_scan_diver");
+  const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
 
   const btnClose = document.getElementById("btn_qr_scan_close");
@@ -12091,12 +12867,64 @@ document.addEventListener("DOMContentLoaded", ()=> {
   try { renderApp(); } catch(e) {}
 
  
-   // A1: Scanner QR web désactivé (QR = URL + caméra n
-  const btnModeCreate = document.getElementById("btn_center_mode_create");
-  if (btnModeCreate) btnModeCreate.addEventListener("click", () => setAccessMode("create"));
+   // A1: Scanner QR web désactivé (QR = URL + caméra native)
+  // PATCH 2 — lock / unlock Center ID input (deterministic)
+ 
 
-  const btnModeJoin = document.getElementById("btn_center_mode_join");
-  if (btnModeJoin) btnModeJoin.addEventListener("click", () => setAccessMode("join"));
+  // =========================
+  // Centre setup (UI wiring)
+  // =========================
+  const refreshCenterDisplay = () => {
+    // Backward-compat wrapper: now reads STATE only
+    try { renderCenterDisplay(); } catch(e) {}
+  };
+
+  const btnCreate = document.getElementById("btn_center_create");
+   if (btnCreate) btnCreate.addEventListener("click", () => setAccessMode("create"));
+
+  const btnJoin = document.getElementById("btn_center_join");
+  if (btnJoin) btnJoin.addEventListener("click", () => setAccessMode("join"));
+
+
+  const btnJoinValidate = document.getElementById("btnCenterJoinValidate");
+  if (btnJoinValidate) btnJoinValidate.addEventListener("click", () => {
+    const keyEL = document.getElementById("center_key_input");
+    const centerKey = (keyEL?.value || "").trim();
+
+    if (!centerKey) {
+      alert("Clé centre manquante.");
+      return;
+    }
+
+    btnJoinValidate.disabled = true;
+
+    fetch("/.netlify/functions/center_join", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ centerKey })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (!res || !res.ok || !res.centerId) {
+        throw new Error("center_join failed");
+      }
+
+      updateCenter({
+        centerId: res.centerId,
+        centerName: res.centerName || "",
+        boatsN: res.boatsN || 1
+      });
+
+      closeCenterSetupModal();
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Erreur rejoindre centre.");
+    })
+    .finally(() => {
+      btnJoinValidate.disabled = false;
+    });
+  });
 
   const btnCfg = document.getElementById("btn_center_setup");
   if (btnCfg) btnCfg.addEventListener("click", () => {
@@ -12110,76 +12938,47 @@ document.addEventListener("DOMContentLoaded", ()=> {
   const btnClose = document.getElementById("btnCenterSetupClose");
   if (btnClose) btnClose.addEventListener("click", () => { closeCenterSetupModal(); refreshCenterDisplay(); });
 
-  async function apiCenterCreate(payload){
-    const r = await fetch("/.netlify/functions/center_create", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload || {})
-    });
-    const j = await r.json().catch(()=>null);
-    if (!j || !j.ok) throw new Error((j && (j.message || j.error)) ? (j.message || j.error) : "center_create failed");
-    return j;
-  }
-
-  async function apiCenterJoin(payload){
-    const r = await fetch("/.netlify/functions/center_join", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload || {})
-    });
-    const j = await r.json().catch(()=>null);
-    if (!j || !j.ok) throw new Error((j && (j.message || j.error)) ? (j.message || j.error) : "center_join failed");
-    return j;
-  }
-
-  const btnCreateValidate = document.getElementById("btn_center_create_validate");
-  if (btnCreateValidate) btnCreateValidate.addEventListener("click", async () => {
-    const nameEl = document.getElementById("center_name_input");
-    const boatsEl = document.getElementById("center_boats_input");
-
-    const name = (nameEl && nameEl.value) ? String(nameEl.value).trim() : "";
-    const boatsN = boatsEl && boatsEl.value ? Number(boatsEl.value) : NaN;
-
-    if (!name) { alert("Nom du centre requis."); return; }
-    if (!Number.isFinite(boatsN) || boatsN < 1) { alert("Nb bateaux requis (>=1)."); return; }
-
-    try {
-      const j = await apiCenterCreate({ name, boatsN: Math.floor(boatsN) });
-      // server contract: {centerId, centerName, boatsN, key?}
-      updateCenter({ centerId: j.centerId, centerName: j.centerName, boatsN: j.boatsN, centerKey: j.key || j.centerKey || "" });
-      closeCenterSetupModal();
-      refreshCenterDisplay();
-    } catch(e){
-      alert("Création centre: échec. " + (e && e.message ? e.message : String(e)));
-    }
-  });
-
-  const btnJoinValidate = document.getElementById("btn_center_join_validate");
-  if (btnJoinValidate) btnJoinValidate.addEventListener("click", async () => {
-    const keyEl = document.getElementById("center_key_input");
-    const centerKey = (keyEl && keyEl.value) ? String(keyEl.value).trim() : "";
-
-    if (!centerKey) { alert("Clé centre requise."); return; }
-
-    try {
-      const j = await apiCenterJoin({ centerKey });
-      updateCenter({ centerId: j.centerId, centerName: j.centerName, boatsN: j.boatsN, centerKey });
-      closeCenterSetupModal();
-      refreshCenterDisplay();
-    } catch(e){
-      alert("Rejoindre centre: échec. " + (e && e.message ? e.message : String(e)));
-    }
-  });
-g(idEl.value).trim() : "";
-
-    if (!name) { alert("Nom du centre requis."); return; }
-    if (!id) { alert("ID centre manquant."); return; }
-
-    updateCenter({ centerName: name, centerId: id, boatsN });
-    closeCenterSetupModal();
-    refreshCenterDisplay();
-// Access mode buttons (Create / Join)
   
+  const name = (nameEL?.value || "").trim();
+  const boatsN = Number(boatsEL?.value);
+
+  if (!name) {
+    alert("Nom du centre manquant.");
+    return;
+  }
+  if (!Number.isInteger(boatsN) || boatsN < 1) {
+    alert("Nombre de bateaux invalide.");
+    return;
+  }
+
+  btnSave.disabled = true;
+
+  fetch("/.netlify/functions/center_create", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name, boatsN })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (!res || !res.ok || !res.centerId) {
+      throw new Error("center_create failed");
+    }
+
+    // Source of truth = server
+    updateCenter({
+      centerId: res.centerId,
+      centerName: res.centerName || name,
+      boatsN: res.boatsN || boatsN
+    });
+
+    closeCenterSetupModal();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Erreur création centre.");
+  })
+  .finally(() => {
+    btnSave.disabled = false;
   });
 
 // =========================
