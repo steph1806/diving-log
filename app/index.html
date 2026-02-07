@@ -5325,34 +5325,47 @@ function initPDJTools() {
 
       if (!centerKey) { alert("Clé centre indisponible."); return; }
 
-      // 1) Clipboard API (modern)
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(centerKey);
-          alert("Clé centre copiée.");
-          return;
-        }
-      } catch (_) {}
+     
+      // 2) iOS-first copy (execCommand) + fallback modern clipboard + ultimate manual copy
+      const k = String(centerKey || "").trim();
+      if (!k) { alert("Clé centre indisponible."); return; }
 
-      // 2) Fallback iOS / anciens navigateurs
+      // iOS / PWA reliable path
       try {
         const ta = document.createElement("textarea");
-        ta.value = centerKey;
+        ta.value = k;
         ta.setAttribute("readonly", "");
+        // Put it on-screen (some iOS versions require it)
         ta.style.position = "fixed";
         ta.style.left = "0";
         ta.style.top = "0";
+        ta.style.width = "1px";
+        ta.style.height = "1px";
         ta.style.opacity = "0";
         document.body.appendChild(ta);
+
+        // Ensure focus
         ta.focus();
         ta.select();
         ta.setSelectionRange(0, ta.value.length);
-        document.execCommand("copy");
+
+        const ok = document.execCommand("copy");
         document.body.removeChild(ta);
-        alert("Clé centre copiée.");
-      } catch (_) {
-        alert("Impossible de copier automatiquement. Clé centre: " + centerKey);
-      }
+
+        if (ok) { alert("Clé centre copiée."); return; }
+      } catch (_) { /* continue */ }
+
+        // Modern clipboard (works on some iOS/Safari contexts)
+       try {
+         if (navigator.clipboard && navigator.clipboard.writeText) {
+           await navigator.clipboard.writeText(k);
+           alert("Clé centre copiée.");
+           return;
+        }
+      } catch (_) { /* continue */ }
+
+        // Ultimate fallback: user manual copy
+        prompt("Copie la clé centre :", k);
     };
   }
 
