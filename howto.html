@@ -1,4 +1,5 @@
 <section class="howto">
+
   <h2>Bien utiliser Ocean Infinity</h2>
   <p class="lead">Clique une étape. À droite : la démo (vidéo ou image) + l’explication simple.</p>
 
@@ -141,6 +142,13 @@
 </style>
 
 <script>
+
+  
+  if (sessionStorage.getItem("member_ok") !== "1") {
+    window.location.replace("/abonner.html");
+    throw new Error("not_member"); // stop net
+  }
+
   (function(){
     const steps = {
       1: {
