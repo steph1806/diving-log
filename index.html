@@ -49,8 +49,24 @@
       border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
       padding:18px;
     }
-    .pill{display:inline-flex; gap:10px; align-items:center; padding:8px 12px; border-radius:999px;
-      border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--muted); font-weight:800}
+    .pill{
+      display:flex;                 /* au lieu de inline-flex */
+      flex-wrap:wrap;               /* ✅ autorise le retour à la ligne */
+      gap:8px;
+      align-items:center;
+
+      max-width:100%;               /* ✅ ne dépasse jamais la card */
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+
+      color:var(--muted);
+      font-weight:800;
+      line-height:1.2;
+      white-space:normal;           /* ✅ wrap texte */
+      overflow-wrap:anywhere;       /* ✅ coupe si besoin */
+    }
     .kpi{display:grid; gap:12px}
     .kpi .row{display:flex; gap:10px; align-items:flex-start}
     .kpi b{color:var(--text)}
@@ -71,11 +87,15 @@
     .faq summary{cursor:pointer; font-weight:900}
     footer{border-top:1px solid var(--line); padding:18px 0 26px; color:var(--muted); font-size:13px}
     .small{font-size:13px}
+
     @media (max-width: 900px){
       .hero-grid{grid-template-columns:1fr}
       .h1{font-size:36px}
       .grid3{grid-template-columns:1fr}
       .split{grid-template-columns:1fr}
+    }
+    @media (max-width: 420px){
+      .pill{ font-size:13px; }
     }
 
 
@@ -188,6 +208,49 @@ section, header, footer, .container{
 
 .full, .hero, header{
   width: 100%;
+}
+
+/* === Lightbox mobile (gallery dock) === */
+.gallery.dock .shot{
+  cursor: zoom-in;
+}
+
+/* état ouvert */
+.gallery.dock .shot.is-open{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(6,11,21,.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.gallery.dock .shot.is-open img{
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  transform: none !important;
+}
+
+.gallery.dock .shot.is-open figcaption{
+  position: absolute;
+  bottom: 20px;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  opacity: 1;
+  transform: none;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* désactive l'effet dock hover quand lightbox ouverte */
+.gallery.dock .shot.is-open:hover img{
+  transform: none;
+  filter: none;
 }
 
   </style>
@@ -404,6 +467,26 @@ section, header, footer, .container{
     <div class="small">Mentions légales • Politique de confidentialité</div>
   </footer>
 </main>
+<script>
+(function(){
+  const shots = document.querySelectorAll('.gallery.dock .shot');
 
+  shots.forEach(shot => {
+    shot.addEventListener('click', () => {
+      const isOpen = shot.classList.contains('is-open');
+
+      // ferme tout
+      shots.forEach(s => s.classList.remove('is-open'));
+      document.body.style.overflow = '';
+
+      // ouvre si ce n’était pas déjà ouvert
+      if(!isOpen){
+        shot.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>
