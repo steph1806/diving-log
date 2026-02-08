@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark">
+  <title>Ocean Infinity — Accès membre</title>
+  <style>
+    :root{
+      --bg:#060B15; --text:#EAF2FF; --muted:#A9B7D4; --line:rgba(255,255,255,.10);
+      --card: rgba(255,255,255,.05);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+      --max: 780px;
+      --accent2:#27B3FF;
+    }
+    *{box-sizing:border-box}
+    html{ -webkit-text-size-adjust:100%; }
+    body{
+      margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      background: radial-gradient(1200px 500px at 30% -20%, rgba(39,179,255,.20), transparent 60%),
+                  radial-gradient(900px 400px at 80% 0%, rgba(57,217,138,.12), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit}
+    .wrap{max-width:var(--max); margin:0 auto; padding:22px}
+    .card{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    h1{margin:0 0 10px; font-size: 26px; line-height:1.2}
+    p{margin:10px 0; color: var(--muted); line-height:1.5}
+    label{display:block; font-weight:800; margin:14px 0 8px}
+    input{
+      width:100%;
+      padding: 14px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+    }
+    input:focus{
+      border-color: rgba(39,179,255,.35);
+      box-shadow: 0 0 0 3px rgba(39,179,255,.18);
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      min-height: 44px; padding: 0 16px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      font-weight: 850;
+      text-decoration:none;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn.primary{
+      border:0;
+      background: linear-gradient(180deg, rgba(39,179,255,1) 0%, rgba(39,179,255,.70) 100%);
+      color:#04121A;
+    }
+    .hint{font-size:13px; color: var(--muted)}
+    .err{margin-top:10px; color:#ffb0b0; font-weight:800}
+    .okbar{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(39,179,255,.25);
+      background: rgba(39,179,255,.10);
+      color: var(--text);
+      font-weight: 900;
+    }
+    .member-content{margin-top:16px}
+    .member-content .loading{color: var(--muted)}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="card" id="gate">
+      <h1>Accès membre — Guide d’utilisation</h1>
+      <p>Réservé aux centres déjà actifs. Entrez la <b>clé centre</b> pour accéder au mode d’utilisation.</p>
+
+      <label for="key">Clé centre</label>
+      <input id="key" type="text" inputmode="text" autocomplete="off" placeholder="Collez la clé ici" />
+
+      <div class="row">
+        <button class="btn primary" id="btnAccess">Accéder</button>
+        <a class="btn" href="/app/">Ouvrir l’app</a>
+        <a class="btn" href="/">Retour</a>
+      </div>
+
+      <div class="hint">La clé est fournie par l’administrateur du centre (DP).</div>
+      <div class="err" id="err" style="display:none"></div>
+      <div class="okbar" id="okbar" style="display:none"></div>
+    </div>
+
+    <section class="card member-content" id="content" style="display:none">
+      <div class="loading" id="loading">Chargement du guide…</div>
+      <div id="contentHtml"></div>
+    </section>
+  </main>
+
+  <script>
+  (function(){
+    // ✅ IMPORTANT: on réutilise l’architecture existante → center_join
+    // Adapte l’URL si ton site Netlify est sur un autre domaine.
+    const JOIN_URL = "/.netlify/functions/center_join";
+    const CONTENT_URL = "/member/howto_v1.html"; // contenu chargé uniquement après join OK
+
+    const $key = document.getElementById('key');
+    const $btn = document.getElementById('btnAccess');
+    const $err = document.getElementById('err');
+    const $okbar = document.getElementById('okbar');
+    const $content = document.getElementById('content');
+    const $loading = document.getElementById('loading');
+    const $contentHtml = document.getElementById('contentHtml');
+
+    function showErr(msg){
+      $err.textContent = msg;
+      $err.style.display = "block";
+    }
+    function clearErr(){
+      $err.textContent = "";
+      $err.style.display = "none";
+    }
+
+    async function doJoin(key){
+      const res = await fetch(JOIN_URL, {
+        method: "POST",
+        headers: {"content-type":"application/json"},
+        body: JSON.stringify({ centerkey })
+      });
+
+      let data = null;
+      try { data = await res.json(); } catch(e) {}
+
+      if(!res.ok){
+        const code = (data && (data.error || data.message)) ? (data.error || data.message) : "";
+        throw new Error(code || ("HTTP_" + res.status));
+      }
+      return data || {};
+    }
+
+    async function loadContent(){
+      $content.style.display = "block";
+      $loading.style.display = "block";
+      $contentHtml.innerHTML = "";
+
+      const res = await fetch(CONTENT_URL, { method:"GET" });
+      if(!res.ok) throw new Error("CONTENT_LOAD_FAILED");
+      const html = await res.text();
+
+      $loading.style.display = "none";
+      $contentHtml.innerHTML = html;
+      // scroll vers le contenu
+      $content.scrollIntoView({behavior:"smooth", block:"start"});
+    }
+
+    async function onAccess(){
+      clearErr();
+      const centerkey = ($key.value || "").trim();
+      if(!key){
+        showErr("Merci de saisir une clé centre.");
+        return;
+      }
+
+      $btn.disabled = true;
+      $btn.textContent = "Vérification…";
+
+      try{
+        const data = await doJoin(centerkey);
+
+        // on affiche un bandeau “accès OK”
+        const centerName = data.centerName || data.name || "Centre";
+        $okbar.textContent = "Accès membre actif — " + centerName;
+        $okbar.style.display = "block";
+
+        // on ne persiste PAS la key; seulement un flag de session (optionnel)
+        sessionStorage.setItem("member_ok", "1");
+
+        await loadContent();
+      }catch(e){
+        const msg = (e && e.message) ? e.message : "";
+        if(msg === "INVALID_KEY" || msg === "UNAUTHORIZED" || msg === "HTTP_401"){
+          showErr("Clé invalide. Vérifiez la saisie ou contactez votre centre.");
+        }else if(msg === "CONTENT_LOAD_FAILED"){
+          showErr("Accès OK, mais impossible de charger le guide. Réessayez.");
+        }else{
+          showErr("Impossible de vérifier la clé (réseau). Réessayez.");
+        }
+      }finally{
+        $btn.disabled = false;
+        $btn.textContent = "Accéder";
+      }
+    }
+
+    $btn.addEventListener("click", onAccess);
+    $key.addEventListener("keydown", (e) => {
+      if(e.key === "Enter"){ onAccess(); }
+    });
+
+  })();
+  </script>
+</body>
+</html>
