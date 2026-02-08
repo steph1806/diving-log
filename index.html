@@ -168,14 +168,19 @@
 /* Hover seulement sur desktop (évite iOS sticky-hover => flou) */
 @media (hover: hover) and (pointer: fine){
 
-  /* effet Dock : le focus “pousse” au-dessus */
-  .gallery.dock .shot:hover{
-    z-index:5;
-  }
+  .gallery.dock .shot:hover{ z-index:5; }
 
   .gallery.dock .shot:hover img{
     transform:scale(2.25);
     filter:saturate(1.05);
+  }
+
+  /* Edge compensation: évite crop sur les extrêmes */
+  .gallery.dock .shot:first-child:hover img{
+    transform-origin: left center;
+  }
+  .gallery.dock .shot:last-child:hover img{
+    transform-origin: right center;
   }
 
   .gallery.dock .shot:hover figcaption{
@@ -183,7 +188,6 @@
     transform:translateY(6px);
   }
 
-  /* un léger “dim” des autres, très premium */
   .gallery.dock:hover .shot:not(:hover) img{
     filter:brightness(.92) saturate(.9);
   }
