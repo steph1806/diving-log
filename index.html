@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark">
   <title>Ocean Infinity — App pour centres de plongée (DP)</title>
   <meta name="description" content="Ocean Infinity : outil opérationnel pour Directeurs de Plongée. Organisez une sortie (plongeurs, bateaux, groupes, encadrants) sur le bateau, offline. PDF officiel en 1 clic." />
   <style>
@@ -169,6 +170,25 @@
   }
 }
 
+ /* === Mobile safety net (anti horizontal scroll) === */
+ html, body{
+   overflow-x: hidden;
+   max-width: 100%;
+ }
+
+img, video{
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+section, header, footer, .container{
+  overflow-x: clip;
+}
+
+.full, .hero, header{
+  width: 100%;
+}
 
   </style>
 </head>
