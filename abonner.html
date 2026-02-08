@@ -166,8 +166,9 @@
 
     async function onAccess(){
       clearErr();
-      const centerkey = ($key.value || "").trim();
-      if(!key){
+
+      const centerKey = ($key.value || "").trim();
+      if(!centerKey){
         showErr("Merci de saisir une clé centre.");
         return;
       }
@@ -175,28 +176,43 @@
       $btn.disabled = true;
       $btn.textContent = "Vérification…";
 
-      try{
-        const data = await doJoin(centerkey);
+      try {
+        const res = await fetch(JOIN_URL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ centerKey })
+        });
 
-        // on affiche un bandeau “accès OK”
-        const centerName = data.centerName || data.name || "Centre";
-        $okbar.textContent = "Accès membre actif — " + centerName;
+        // 🔴 true network error never reaches here
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          throw new Error("INVALID_JSON");
+        }
+
+        if (!res.ok || !data || data.ok !== true) {
+          throw new Error(data?.error || "INVALID_KEY");
+        }
+
+        // ✅ SUCCESS
+        $okbar.textContent = `Accès membre actif — ${data.centerName}`;
         $okbar.style.display = "block";
 
-        // on ne persiste PAS la key; seulement un flag de session (optionnel)
-        sessionStorage.setItem("member_ok", "1");
+        await loadContent(); // fetch howto
 
-        await loadContent();
-      }catch(e){
-        const msg = (e && e.message) ? e.message : "";
-        if(msg === "INVALID_KEY" || msg === "UNAUTHORIZED" || msg === "HTTP_401"){
+      } catch (e) {
+
+        if (e.message === "INVALID_KEY") {
           showErr("Clé invalide. Vérifiez la saisie ou contactez votre centre.");
-        }else if(msg === "CONTENT_LOAD_FAILED"){
-          showErr("Accès OK, mais impossible de charger le guide. Réessayez.");
-        }else{
-          showErr("Impossible de vérifier la clé (réseau). Réessayez.");
+        } else if (e.message === "INVALID_JSON") {
+          showErr("Réponse serveur invalide. Réessayez.");
+        } else {
+          // 🔴 REAL network error only
+          showErr("Impossible de vérifier la clé (réseau).");
         }
-      }finally{
+
+      } finally {
         $btn.disabled = false;
         $btn.textContent = "Accéder";
       }
