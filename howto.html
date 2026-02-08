@@ -1,19 +1,259 @@
-<h2>Bien utiliser Ocean Infinity</h2>
-<p>Ce guide décrit le workflow recommandé “jour J” (DP / bateau / groupes / PDF).</p>
+<section class="howto">
+  <h2>Bien utiliser Ocean Infinity</h2>
+  <p class="lead">Clique une étape. À droite : la démo (vidéo ou image) + l’explication simple.</p>
 
-<h3>Workflow standard</h3>
-<ol>
-  <li>Créer / ouvrir la “Plongée du jour”</li>
-  <li>Sélectionner les plongeurs présents</li>
-  <li>Affecter les unités (B1…BN)</li>
-  <li>Constituer les groupes (Autonome / Encadré / Formation)</li>
-  <li>Vérifier responsables & encadrants</li>
-  <li>Exporter le PDF officiel</li>
-</ol>
+  <div class="howto-grid">
+    <!-- Left: steps -->
+    <nav class="howto-steps" aria-label="Étapes">
+      <button class="step-btn is-active" data-step="1">
+        <span class="n">1</span> Créer la sortie
+      </button>
+      <button class="step-btn" data-step="2">
+        <span class="n">2</span> Sélectionner les plongeurs
+      </button>
+      <button class="step-btn" data-step="3">
+        <span class="n">3</span> Affecter les unités (B1…BN)
+      </button>
+      <button class="step-btn" data-step="4">
+        <span class="n">4</span> Constituer les groupes
+      </button>
+      <button class="step-btn" data-step="5">
+        <span class="n">5</span> Vérifier responsables & encadrants
+      </button>
+      <button class="step-btn" data-step="6">
+        <span class="n">6</span> Exporter le PDF officiel
+      </button>
+    </nav>
 
-<h3>Bonnes pratiques terrain</h3>
-<ul>
-  <li>Stabiliser la liste “présents à bord” avant la constitution des groupes.</li>
-  <li>Une unité par plongeur quand il y a plusieurs bateaux.</li>
-  <li>Exporter PDF uniquement une fois la structure validée.</li>
-</ul>
+    <!-- Right: content -->
+    <article class="howto-panel" aria-live="polite">
+      <header class="panel-head">
+        <div class="kicker" id="panelKicker">Étape 1</div>
+        <h3 id="panelTitle">Créer / ouvrir la “Plongée du jour”</h3>
+        <p id="panelDesc">Tu poses les constantes (DP, bateau, site). C’est la base de tout le reste.</p>
+      </header>
+
+      <div class="panel-media" id="panelMedia">
+        <!-- default: image -->
+        <img src="/assets/howto/step1.png" alt="Étape 1 — Créer la sortie" loading="lazy">
+      </div>
+
+      <ul class="panel-bullets" id="panelBullets">
+        <li>Renseigne DP / bateau / sécurité surface.</li>
+        <li>Renseigne site + coordonnées si besoin.</li>
+        <li>Vérifie avant de passer aux plongeurs.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<style>
+  .howto{max-width:980px;margin:0 auto}
+  .howto .lead{opacity:.85}
+
+  .howto-grid{
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    gap:16px;
+    margin-top:14px;
+  }
+
+  .howto-steps{
+    background: rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:16px;
+    padding:10px;
+  }
+
+  .step-btn{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 12px;
+    border-radius:14px;
+    border:1px solid transparent;
+    background: transparent;
+    color: inherit;
+    cursor:pointer;
+    text-align:left;
+    font-weight: 850;
+  }
+  .step-btn:hover{
+    background: rgba(255,255,255,.05);
+    border-color: rgba(255,255,255,.08);
+  }
+  .step-btn.is-active{
+    background: rgba(39,179,255,.12);
+    border-color: rgba(39,179,255,.25);
+  }
+  .step-btn .n{
+    width:28px;height:28px;border-radius:999px;
+    display:inline-flex;align-items:center;justify-content:center;
+    background: rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.10);
+    font-weight: 900;
+  }
+  .step-btn.is-active .n{
+    background: rgba(39,179,255,.22);
+    border-color: rgba(39,179,255,.35);
+  }
+
+  .howto-panel{
+    background: rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:16px;
+    padding:14px;
+  }
+  .kicker{
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    opacity:.75;
+    margin-bottom:6px;
+  }
+  .panel-head h3{margin:0 0 6px}
+  .panel-head p{margin:0;opacity:.85}
+
+  .panel-media{
+    margin-top:12px;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.25);
+  }
+  .panel-media img, .panel-media video{
+    width:100%;
+    height:auto;
+    display:block;
+  }
+
+  .panel-bullets{
+    margin:12px 0 0;
+    padding-left:18px;
+    opacity:.95;
+  }
+  .panel-bullets li{margin:6px 0}
+
+  @media (max-width: 900px){
+    .howto-grid{grid-template-columns: 1fr}
+  }
+</style>
+
+<script>
+  (function(){
+    const steps = {
+      1: {
+        title: 'Créer / ouvrir la “Plongée du jour”',
+        desc: 'Tu poses les constantes (DP, bateau, site). C’est la base de tout le reste.',
+        media: { type: 'img', src: '/assets/howto/step1.png', alt: 'Étape 1 — Créer la sortie' },
+        bullets: [
+          'Renseigne DP / bateau / sécurité surface.',
+          'Renseigne site + coordonnées si besoin.',
+          'Vérifie avant de passer aux plongeurs.'
+        ]
+      },
+      2: {
+        title: 'Sélectionner les plongeurs présents',
+        desc: 'Tu constitues “présents à bord”. Sans ça, tout le reste est faux.',
+        media: { type: 'img', src: '/assets/howto/step2.png', alt: 'Étape 2 — Sélection plongeurs' },
+        bullets: [
+          'Ajoute depuis bibliothèque ou import QR.',
+          'Utilise la recherche pour aller vite.',
+          'Stabilise la liste avant de faire les groupes.'
+        ]
+      },
+      3: {
+        title: 'Affecter les unités (B1…BN)',
+        desc: 'Chaque plongeur doit être sur le bon bateau. Indispensable si multi-unités.',
+        media: { type: 'img', src: '/assets/howto/step3.png', alt: 'Étape 3 — Unités' },
+        bullets: [
+          'Choisis B1/B2… pour chaque plongeur.',
+          'Utilise l’affectation en masse si dispo.',
+          'Vérifie avant constitution des groupes.'
+        ]
+      },
+      4: {
+        title: 'Constituer les groupes',
+        desc: 'Autonome / Encadré / Formation. Un groupe = un leader + des plongeurs.',
+        media: { type: 'video', src: '/assets/howto/step4.mp4' },
+        bullets: [
+          'Crée les groupes puis glisse/ajoute les plongeurs.',
+          'Définis le leader (obligatoire).',
+          'Formation : affecte l’encadrant / formateur.'
+        ]
+      },
+      5: {
+        title: 'Vérifier responsables & encadrants',
+        desc: 'C’est la check-list “pas de stress terrain”.',
+        media: { type: 'img', src: '/assets/howto/step5.png', alt: 'Étape 5 — Responsables' },
+        bullets: [
+          'Chaque groupe a un leader clairement identifié.',
+          'Encadré/Formation : encadrants bien affectés.',
+          'Aptitudes cohérentes (si filtres actifs).'
+        ]
+      },
+      6: {
+        title: 'Exporter le PDF officiel',
+        desc: 'Dernière étape. Quand c’est stable, tu génères le PDF archivable.',
+        media: { type: 'video', src: '/assets/howto/step6.mp4' },
+        bullets: [
+          'Contrôle final visuel (groupes, leaders, unités).',
+          'Génère le PDF officiel.',
+          'Archive / partage selon procédure centre.'
+        ]
+      }
+    };
+
+    const btns = Array.from(document.querySelectorAll('.step-btn'));
+    const panelKicker = document.getElementById('panelKicker');
+    const panelTitle  = document.getElementById('panelTitle');
+    const panelDesc   = document.getElementById('panelDesc');
+    const panelMedia  = document.getElementById('panelMedia');
+    const panelBullets= document.getElementById('panelBullets');
+
+    function render(stepN){
+      const s = steps[stepN];
+      if(!s) return;
+
+      panelKicker.textContent = `Étape ${stepN}`;
+      panelTitle.textContent = s.title;
+      panelDesc.textContent = s.desc;
+
+      // media
+      panelMedia.innerHTML = '';
+      if(s.media.type === 'video'){
+        const v = document.createElement('video');
+        v.src = s.media.src;
+        v.controls = true;
+        v.playsInline = true;
+        v.preload = 'metadata';
+        panelMedia.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = s.media.src;
+        img.alt = s.media.alt || '';
+        img.loading = 'lazy';
+        panelMedia.appendChild(img);
+      }
+
+      // bullets
+      panelBullets.innerHTML = '';
+      (s.bullets || []).forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = t;
+        panelBullets.appendChild(li);
+      });
+
+      // active state
+      btns.forEach(b => b.classList.toggle('is-active', b.dataset.step === String(stepN)));
+    }
+
+    btns.forEach(b => {
+      b.addEventListener('click', () => render(Number(b.dataset.step)));
+    });
+
+    // default step 1
+    render(1);
+  })();
+</script>
