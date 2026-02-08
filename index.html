@@ -165,24 +165,28 @@
   pointer-events:none;
 }
 
-/* effet Dock : le focus “pousse” au-dessus */
-.gallery.dock .shot:hover{
-  z-index:5;
-}
+/* Hover seulement sur desktop (évite iOS sticky-hover => flou) */
+@media (hover: hover) and (pointer: fine){
 
-.gallery.dock .shot:hover img{
-  transform:scale(2.25);
-  filter:saturate(1.05);
-}
+  /* effet Dock : le focus “pousse” au-dessus */
+  .gallery.dock .shot:hover{
+    z-index:5;
+  }
 
-.gallery.dock .shot:hover figcaption{
-  opacity:1;
-  transform:translateY(6px);
-}
+  .gallery.dock .shot:hover img{
+    transform:scale(2.25);
+    filter:saturate(1.05);
+  }
 
-/* un léger “dim” des autres, très premium */
-.gallery.dock:hover .shot:not(:hover) img{
-  filter:brightness(.92) saturate(.9);
+  .gallery.dock .shot:hover figcaption{
+    opacity:1;
+    transform:translateY(6px);
+  }
+
+  /* un léger “dim” des autres, très premium */
+  .gallery.dock:hover .shot:not(:hover) img{
+    filter:brightness(.92) saturate(.9);
+  }
 }
 
 /* Mobile: on revient à la grille (pas de hover fiable) */
@@ -199,9 +203,7 @@
     opacity:1;
     transform:none;
   }
-  .gallery.dock .shot:hover img{
-    transform:none;
-  }
+  
 }
 
  /* === Mobile safety net (anti horizontal scroll) === */
@@ -247,6 +249,7 @@ section, header, footer, .container{
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0,0,0,.6);
   transform: none !important;
+  filter: none !important;
 }
 
 .gallery.dock .shot.is-open figcaption{
