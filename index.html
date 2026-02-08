@@ -50,22 +50,28 @@
       padding:18px;
     }
     .pill{
-      display:flex;                 /* au lieu de inline-flex */
-      flex-wrap:wrap;               /* ✅ autorise le retour à la ligne */
-      gap:8px;
+      display:flex;
       align-items:center;
+      justify-content:center;      /* ✅ centrage du contenu */
+      text-align:center;
 
-      max-width:100%;               /* ✅ ne dépasse jamais la card */
+      width: fit-content;          /* ✅ prend la largeur du contenu */
+      max-width: 100%;             /* ✅ ne dépasse jamais la card */
+      margin: 0 auto;              /* ✅ centre la pill dans la card */
+
+      flex-wrap: wrap;             /* ✅ si ça ne rentre pas, ça revient à la ligne */
+      gap: 8px;
+
       padding:8px 12px;
       border-radius:999px;
       border:1px solid var(--line);
       background:rgba(255,255,255,.04);
-
       color:var(--muted);
       font-weight:800;
       line-height:1.2;
-      white-space:normal;           /* ✅ wrap texte */
-      overflow-wrap:anywhere;       /* ✅ coupe si besoin */
+
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
     .kpi{display:grid; gap:12px}
     .kpi .row{display:flex; gap:10px; align-items:flex-start}
@@ -95,7 +101,7 @@
       .split{grid-template-columns:1fr}
     }
     @media (max-width: 420px){
-      .pill{ font-size:13px; }
+      .pill{ font-size:13px; padding: 8px 10px; }
     }
 
 
