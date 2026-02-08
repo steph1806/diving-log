@@ -113,7 +113,7 @@
     // ✅ IMPORTANT: on réutilise l’architecture existante → center_join
     // Adapte l’URL si ton site Netlify est sur un autre domaine.
     const JOIN_URL = "/.netlify/functions/center_join";
-    const CONTENT_URL = "/member/howto_v1.html"; // contenu chargé uniquement après join OK
+    const CONTENT_URL = "/howto.html"; // contenu chargé uniquement après join OK
 
     const $key = document.getElementById('key');
     const $btn = document.getElementById('btnAccess');
@@ -150,6 +150,8 @@
     }
 
     async function loadContent(){
+      document.getElementById("gate").style.display = "none";
+
       $content.style.display = "block";
       $loading.style.display = "block";
       $contentHtml.innerHTML = "";
