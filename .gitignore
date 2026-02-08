@@ -16,3 +16,4 @@ node_modules/
 # Netlify local
 .netlify/
 .DS_Store
+.DS_Store
