@@ -201,7 +201,9 @@
         $okbar.textContent = `Accès membre actif — ${data.centerName}`;
         $okbar.style.display = "block";
 
-        await loadContent(); // fetch howto
+        sessionStorage.setItem("member_ok", "1");
+        sessionStorage.setItem("member_centerName", data.centerName || "");
+        window.location.href = "/howto.html";
 
       } catch (e) {
 
