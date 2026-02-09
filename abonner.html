@@ -80,6 +80,39 @@
     }
     .member-content{margin-top:16px}
     .member-content .loading{color: var(--muted)}
+
+   /* --- Key help (video) --- */
+    .key-help{
+      margin: 12px 0 14px;
+      padding: 12px 12px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .key-help h3{
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .key-help p{
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .key-help video{
+      width: 100%;
+      display: block;
+      border-radius: 12px;
+      background: #000;
+    }
+    .key-help .small{
+       margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      opacity: .95;
+    }
+
   </style>
 </head>
 <body>
@@ -87,6 +120,26 @@
     <div class="card" id="gate">
       <h1>Accès membre — Guide d’utilisation</h1>
       <p>Réservé aux centres déjà actifs. Entrez la <b>clé centre</b> pour accéder au mode d’utilisation.</p>
+     
+      <!-- Aide : où trouver la clé centre -->
+      <section class="key-help" aria-label="Aide clé centre">
+        <h3>📌 Où récupérer la clé ?</h3>
+        <p>
+          La clé est fournie par l’administrateur du centre (DP).  
+          Dans l’app, ouvre le menu <b>…</b> (actions) à côté des plongeurs du jour,
+          puis clique sur <b>« Copier clé centre »</b>.
+          Reviens ici et colle-la.
+        </p>
+
+        <video
+          src="/assets/abonner/step0.mp4"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+
+        <div class="small">Astuce : si le collage ne marche pas, clique dans le champ puis colle via clic droit (Mac) / appui long (iPhone).</div>
+      </section>
 
       <label for="key">Clé centre</label>
       <input id="key" type="text" inputmode="text" autocomplete="off" placeholder="Collez la clé ici" />
