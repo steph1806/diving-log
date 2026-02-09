@@ -163,16 +163,18 @@
 
     <section class="howto card">
       <h2>Bien utiliser Ocean Infinity</h2>
-      <p class="lead">Clique une étape. À droite : la démo (vidéo ou image) + l’explication simple.</p>
+      <p class="lead">Clique une étape juste en dessous. À droite : la démo vidéo + explication simple.</p>
 
       <div class="howto-grid">
         <nav class="howto-steps card" aria-label="Étapes">
           <button class="step-btn is-active" data-step="1"><span class="n">1</span> Créer la sortie</button>
-          <button class="step-btn" data-step="2"><span class="n">2</span> Sélectionner les plongeurs</button>
-          <button class="step-btn" data-step="3"><span class="n">3</span> Affecter les unités (B1…BN)</button>
-          <button class="step-btn" data-step="4"><span class="n">4</span> Constituer les groupes</button>
-          <button class="step-btn" data-step="5"><span class="n">5</span> Vérifier responsables & encadrants</button>
-          <button class="step-btn" data-step="6"><span class="n">6</span> Exporter le PDF officiel</button>
+          <button class="step-btn" data-step="2"><span class="n">2</span> Sélectionner / créer / modifier les plongeurs</button>
+          <button class="step-btn" data-step="3"><span class="n">3</span> Affecter les plongeurs a un bateau (B1…BN)</button>
+          <button class="step-btn" data-step="4"><span class="n">4</span> Constituer les groupes-palanquées</button>
+          <button class="step-btn" data-step="5"><span class="n">5</span> Vérifier / créer responsables & encadrants</button>
+          <button class="step-btn" data-step="6"><span class="n">6</span> Définir les paramètres de la plongée</button>
+          <button class="step-btn" data-step="6"><span class="n">7</span> Saisir les paramètres réalisés de la plongée</button>
+          <button class="step-btn" data-step="7"><span class="n">8</span> Exporter le PDF officiel</button>
         </nav>
 
         <article class="howto-panel card" aria-live="polite">
@@ -196,7 +198,7 @@
     </section>
 
     <p class="muted" style="margin-top:14px">
-      Astuce : si une vidéo ne se charge pas (offline), commence par vérifier que les fichiers existent bien dans <code>/assets/howto/</code>.
+      Astuce : si une vidéo n'était pas suffisamment clair, vous avez aussi une aide "IA" dédié a l'app.
     </p>
   </main>
 
@@ -211,7 +213,7 @@
     const steps = {
       1: {
         title: 'Créer / ouvrir la “Plongée du jour”',
-        desc: 'Tu poses les constantes (DP, bateau, site). C’est la base de tout le reste.',
+        desc: 'Tu poses les constantes (DP, bateau, site). C’est le cadre.',
         media: { type: 'video', src: '/assets/howto/step1.mp4', alt: 'Étape 1 — Créer la sortie' },
         bullets: [
           'Renseigne DP / bateau / sécurité surface.',
@@ -220,52 +222,77 @@
         ]
       },
       2: {
-        title: 'Sélectionner les plongeurs présents',
-        desc: 'Tu constitues “présents à bord”. Sans ça, tout le reste est faux.',
+        title: 'Sélectionner / créer / modifier les plongeurs',
+        desc: 'Tu constitues “présents à bord”: La base de tes palanquées.',
         media: { type: 'video', src: '/assets/howto/step2.mp4', alt: 'Étape 2 — Sélection plongeurs' },
         bullets: [
-          'Ajoute depuis bibliothèque ou import QR.',
-          'Utilise la recherche pour aller vite.',
-          'Stabilise la liste avant de faire les groupes.'
+          'Ajoute depuis plongeurs presents sur le bateau.',
+          'Utilise la recherche pour aller vite: par nom, par aptitude.',
+          'Créer de nouveaux plongeurs ou modifier plongeur existant.'
         ]
       },
       3: {
-        title: 'Affecter les unités (B1…BN)',
-        desc: 'Chaque plongeur doit être sur le bon bateau. Indispensable si multi-unités.',
+        title: 'Affecter les plongeurs a un bateau (B1…BN)',
+        desc: 'Chaque plongeur doit être affecté a un bateau. Indispensable si multi-bateaux.',
         media: { type: 'video', src: '/assets/howto/step3.mp4', alt: 'Étape 3 — Unités' },
         bullets: [
-          'Choisis B1/B2… pour chaque plongeur.',
-          'Utilise l’affectation en masse si dispo.',
-          'Vérifie avant constitution des groupes.'
+          'Affecte les plongeurs a un bateau.',
+          'Utilise le QR code pour affecter des plongeurs a un autre bateau.',
+          'Le collaborateur du second bateau scan les plongeurs et automatiquement les reçoit.'
+          'Le centre dispose d'autant d'app qu'il a de bateaux.'
         ]
       },
       4: {
-        title: 'Constituer les groupes',
-        desc: 'Autonome / Encadré / Formation. Un groupe = un leader + des plongeurs.',
+        title: 'Constituer les groupes-palanquées',
+        desc: 'Autonome / Encadré / Formation. Une palanquée = un leader + des plongeurs.',
         media: { type: 'video', src: '/assets/howto/step4.mp4' },
         bullets: [
           'Crée les groupes puis ajoute les plongeurs.',
           'Définis le leader (obligatoire).',
-          'Formation : affecte l’encadrant / formateur.'
+          'Encadrement/Formation : affecte l’encadrant / formateur.'
         ]
       },
       5: {
-        title: 'Vérifier responsables & encadrants',
+        title: 'Vérifier / créer responsables & encadrants',
         desc: 'C’est la check-list “pas de stress terrain”.',
-        media: { type: 'video', src: '/assets/howto/step5.mp4', alt: 'Étape 5 — Responsables' }, /* ✅ FIX: img */
+        media: { type: 'video', src: '/assets/howto/step5.mp4', alt: 'Étape 5 — Responsables' }, 
         bullets: [
           'Chaque groupe a un leader clairement identifié.',
-          'Encadré/Formation : encadrants bien affectés.',
-          'Aptitudes cohérentes (si filtres actifs).'
+          'Au sein de chaque groupe tu peux créer/ajouter un encadrant/formateur.',
+          'Il sera automatiquement enregistre dans l'app.'
         ]
       },
       6: {
-        title: 'Exporter le PDF officiel',
-        desc: 'Dernière étape. Quand c’est stable, tu génères le PDF archivable.',
+        title: 'Définir les paramètres de la plongée',
+        desc: 'Définir: les gases, la DTR, la profondeur, le temps total(runtime), l'heure de mise a l'eau.',
         media: { type: 'video', src: '/assets/howto/step6.mp4' },
+        bullets: [
+          'Sélection AIR-TRIMIX.',
+          'Sélection de l'heure de mise a l'eau.',
+          'Calcule automatique de l'heure de sortie.',
+          'Runtime trimix sera utilisé dans après plongée pour comparaison prévue/réalisé.'
+        ]
+      },
+      7: {
+        title: 'Saisir les paramètres réalisés de la plongée',
+        desc: 'Dernière étape avant l'export PDF.',
+        media: { type: 'video', src: '/assets/howto/step7.mp4' },
+        bullets: [
+          'Affecter la décompression au groupe ou individuellement.',
+          'Affecter la la profondeur au groupe ou individuellement.',
+          'Affecter le runtime au groupe ou individuellement.',
+          'L'heure de sortie se calcule automatiquement.',
+          'Saisie incident par plongeur.',
+        ]
+      },
+      8: {
+        title: 'Exporter le PDF officiel',
+        desc: 'Dernière étape, tu génères le PDF archivable.',
+        media: { type: 'video', src: '/assets/howto/step8.mp4' },
         bullets: [
           'Contrôle final visuel (groupes, leaders, unités).',
           'Génère le PDF officiel.',
+	  'Exporte le via WhatsApp.',
           'Archive / partage selon procédure centre.'
         ]
       }
