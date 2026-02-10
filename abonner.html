@@ -121,7 +121,23 @@
       <h1>Accès membre — Guide d’utilisation</h1>
       <p>Réservé aux centres déjà actifs. Entrez la <b>clé centre</b> pour accéder au mode d’utilisation.</p>
      
-      <!-- Aide : où trouver la clé centre -->
+     
+
+      <label for="key">Clé centre</label>
+      <input id="key" type="text" inputmode="text" autocomplete="off" placeholder="Collez la clé ici" />
+
+      <div class="row">
+        <button class="btn primary" id="btnAccess">Accéder</button>
+        <a class="btn" href="/app/">Ouvrir l’app</a>
+        <a class="btn" href="/">Retour</a>
+      </div>
+
+      <div class="hint">La clé est fournie par l’administrateur du centre (DP).</div>
+      <div class="err" id="err" style="display:none"></div>
+      <div class="okbar" id="okbar" style="display:none"></div>
+
+
+ <!-- Aide : où trouver la clé centre -->
       <section class="key-help" aria-label="Aide clé centre">
         <h3>📌 Où récupérer la clé ?</h3>
         <p>
@@ -140,19 +156,6 @@
 
         <div class="small">Astuce : si le collage ne marche pas, clique dans le champ puis colle via clic droit (Mac) / appui long (iPhone).</div>
       </section>
-
-      <label for="key">Clé centre</label>
-      <input id="key" type="text" inputmode="text" autocomplete="off" placeholder="Collez la clé ici" />
-
-      <div class="row">
-        <button class="btn primary" id="btnAccess">Accéder</button>
-        <a class="btn" href="/app/">Ouvrir l’app</a>
-        <a class="btn" href="/">Retour</a>
-      </div>
-
-      <div class="hint">La clé est fournie par l’administrateur du centre (DP).</div>
-      <div class="err" id="err" style="display:none"></div>
-      <div class="okbar" id="okbar" style="display:none"></div>
     </div>
 
     <section class="card member-content" id="content" style="display:none">
