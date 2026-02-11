@@ -2153,17 +2153,26 @@
 <!-- === /PATCH === -->
 
   <!-- === AJOUT SOUSCRIPTION: PAIEMENT=== -->
-   .section-title-row{
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+  /* Ligne titre + actions à droite */
+  .section-title-row{
+    display:flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 10px;
   }
 
-  .section-title-actions{
-    display: flex;
-    align-items: center;
-    margin-Left:auto;
+  .section-title-row .section-title{
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .section-title-row .section-title-actions{
+    flex: 0 0 auto;
+    margin-left: auto !important;
+    display:flex;
+    align-items:center;
   }
 
   /* Bouton "Souscrire" discret (noir) */
@@ -2721,7 +2730,7 @@
           Souscrire
         </button>
       </div>
-    </div>
+     </div>
 
     <p class="help-text">
       Générez un document professionnel en un clic.<br>
