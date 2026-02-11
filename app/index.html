@@ -2152,6 +2152,13 @@
 
 <!-- === /PATCH === -->
 
+<!-- === AJOUT SOUSCRIPTION: PAIEMENT=== -->
+.section-title-flex {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -2674,8 +2681,17 @@
     <!-- ACTIONS & EXPORT (intégré dans Groupes/Affectation) -->
     <!-- SECTION: EXPORT WHATSAPP -->
   <div class="section" id="sec-export">
-  <div class="section-title">Export officiel (PDF)</div>
-<p class="help-text">Générez un document professionnel en un clic <br>Le document récapitule les plongeurs, les groupes, les paramètres de plongée et les informations réglementaires.</p>
+     <div class="section-title section-title-flex">
+      <span>Export officiel (PDF)</span>
+
+      <button type="button"
+              class="btn btn-primary"
+              id="btn-subscribe"
+             style="margin-left:auto;">
+        Souscrire
+      </button>
+    </div>
+ <p class="help-text">Générez un document professionnel en un clic <br>Le document récapitule les plongeurs, les groupes, les paramètres de plongée et les informations réglementaires.</p>
 
   <div class="footer-actions">
     <button type="button" class="btn btn-primary" id="btn-preview-pdf">
@@ -5367,6 +5383,21 @@ function initPDJTools() {
         // Ultimate fallback: user manual copy
         prompt("Copie la clé centre :", k);
     };
+  }
+
+  // Subscribe / Payment entrypoint (minimal wiring)
+  const btnSubscribe = document.getElementById("btn-subscribe");
+  if (btnSubscribe) {
+    btnSubscribe.addEventListener("click", async () => {
+      try { closeLibMenu(); } catch (_) {}
+
+      const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+      if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
+
+      // Open landing/payment page (static) with centerId in URL
+      const url = `${location.origin}/assets/howto/howto.html#subscribe&centerId=${encodeURIComponent(centerId)}`;
+      window.open(url, "_blank", "noopener");
+    });
   }
 
   const btnQr = document.getElementById("btn_qr_scan_diver");
