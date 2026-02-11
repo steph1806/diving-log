@@ -45,12 +45,17 @@ export default async (req) => {
     const centerId = "c_" + rand(24);
     const centerKey = "OI-" + rand(4).toUpperCase() + "-" + rand(4).toUpperCase() + "-" + rand(4).toUpperCase();
     const t = nowIso();
+    const trialEndsAtIso = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
 
     const centerRecord = {
       centerId,
       centerName: name,
       boatsN,
-      status: "active",
+
+      status: "trial",              // <-- NEW
+      trialEndsAt: trialEndsAtIso,  // <-- NEW
+      allowNewJoin: true,           // <-- NEW
+
       createdAt: t,
       updatedAt: t,
       centerKeyActive: centerKey,

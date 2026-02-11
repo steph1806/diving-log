@@ -29,7 +29,20 @@ export default async (req) => {
     const centerRaw = await store.get(`centers/${centerId}`);
     if (!centerRaw) return json(404, { ok:false, error:"center_not_found" });
     const centerRec = JSON.parse(centerRaw);
-    if (centerRec.status !== "active") return json(403, { ok: false, error: "center_disabled" });
+
+   // Accept active OR trial
+    if (!["active", "trial"].includes(centerRec.status)) {
+      return json(403, { ok:false, error:"center_disabled" });
+    }
+
+  // Trial expiration check
+    if (
+      centerRec.status === "trial" &&
+      centerRec.trialEndsAt &&
+      Date.now() > new Date(centerRec.trialEndsAt).getTime()
+    ) {
+      return json(403, { ok:false, error:"trial_expired" });
+    }
 
     const centerKey = centerRec.centerKeyActive;
     if (!centerKey) return json(404, { ok: false, error: "centerKey_missing" });
