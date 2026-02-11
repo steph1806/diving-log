@@ -2160,6 +2160,11 @@
     width: 100%;
   }
 
+  .section-title-actions{
+    display: flex;
+    align-items: center;
+  }
+
   /* Bouton "Souscrire" discret (noir) */
   .btn-subscribe{
     background: rgba(0,0,0,0.35);
@@ -2703,17 +2708,24 @@
     <!-- ACTIONS & EXPORT (intégré dans Groupes/Affectation) -->
     <!-- SECTION: EXPORT WHATSAPP -->
   <div class="section" id="sec-export">
-     <div class="section-title section-title-flex">
-      <span>Export officiel (PDF)</span>
+     <div class="section-title-row">
+      <div class="section-title">
+        Export officiel (PDF)
+      </div>
 
-      <button type="button"
+      <div class="section-title-actions">
+        <button type="button"
               class="btn btn-subscribe"
-              id="btn-subscribe"
-             style="margin-left:auto;">
-        Souscrire
-      </button>
+              id="btn-subscribe">
+          Souscrire
+        </button>
+      </div>
     </div>
- <p class="help-text">Générez un document professionnel en un clic <br>Le document récapitule les plongeurs, les groupes, les paramètres de plongée et les informations réglementaires.</p>
+
+    <p class="help-text">
+      Générez un document professionnel en un clic.<br>
+      Le document récapitule les plongeurs, les groupes, les paramètres de plongée et les informations réglementaires.
+    </p>
 
   <div class="footer-actions">
     <button type="button" class="btn btn-primary" id="btn-preview-pdf">
