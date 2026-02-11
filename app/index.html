@@ -2152,12 +2152,32 @@
 
 <!-- === /PATCH === -->
 
-<!-- === AJOUT SOUSCRIPTION: PAIEMENT=== -->
-.section-title-flex {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+  <!-- === AJOUT SOUSCRIPTION: PAIEMENT=== -->
+  .section-title-flex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* Bouton "Souscrire" discret (noir) */
+  .btn-subscribe{
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.85);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    box-shadow: none;
+  }
+
+  .btn-subscribe:hover{
+    background: rgba(0,0,0,0.5);
+  }
+
+  .btn-subscribe:active{
+    transform: translateY(1px);
+  }
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -2685,7 +2705,7 @@
       <span>Export officiel (PDF)</span>
 
       <button type="button"
-              class="btn btn-primary"
+              class="btn btn-subscribe"
               id="btn-subscribe"
              style="margin-left:auto;">
         Souscrire
