@@ -81,7 +81,13 @@ export async function handler(event) {
     }
 
     return json(200, { ok: true, checkoutUrl: session.url });
-  } catch (e) {
-    return json(500, { ok: false, error: "payment_session_failed" });
+   } catch (e) {
+    console.error("[create_checkout_session] failed:", e?.message || e);
+    if (e?.raw) console.error("[create_checkout_session] raw:", e.raw);
+    return json(500, {
+      ok: false,
+      error: "payment_session_failed",
+      detail: e?.message ? String(e.message) : "unknown",
+    });
   }
 }
