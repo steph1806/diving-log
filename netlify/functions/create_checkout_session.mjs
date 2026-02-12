@@ -1,35 +1,34 @@
 import Stripe from "stripe";
 import { getStore } from "@netlify/blobs";
 
-function json(statusCode, payload) {
-  return {
-    statusCode,
+function json(status, obj) {
+  return new Response(JSON.stringify(obj), {
+    status,
     headers: {
       "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type",
       "cache-control": "no-store",
     },
-    body: JSON.stringify(payload),
-  };
+  });
 }
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-export async function handler(event) {
+export default async (req) => {
   try {
-    if (event.httpMethod !== "POST") {
-      return json(405, { ok: false, error: "bad_method" });
-    }
+    if (req.method === "OPTIONS") return json(204, { ok: true });
+    if (req.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
 
-    let body;
-    try {
-      body = JSON.parse(event.body || "{}");
-    } catch {
-      return json(400, { ok: false, error: "bad_json" });
-    }
+    let body = {};
+    try { body = await req.json(); }
+    catch { return json(400, { ok: false, error: "bad_json" }); }
 
-    const centerId = (body.centerId || "").toString().trim();
+    // accept both centerId and center_id (your point)
+    const centerId = ((body.centerId ?? body.center_id) || "").toString().trim();
     if (!centerId) return json(400, { ok: false, error: "missing_centerId" });
 
     const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
@@ -40,54 +39,43 @@ export async function handler(event) {
     if (!STRIPE_PRICE_ID) return json(500, { ok: false, error: "stripe_price_missing" });
     if (!PUBLIC_BASE_URL) return json(500, { ok: false, error: "public_base_url_missing" });
 
-    // Read center record (server source of truth)
+    // Netlify Blobs (should now be configured correctly)
     const store = getStore("qr");
     const centerRaw = await store.get(`centers/${centerId}`);
     if (!centerRaw) return json(404, { ok: false, error: "center_not_found" });
 
     const centerRec = JSON.parse(centerRaw);
-
-    // Optional: refuse if center disabled (you can loosen if desired)
-    if (centerRec.status === "disabled") {
-      return json(403, { ok: false, error: "center_disabled" });
-    }
+    if (centerRec.status === "disabled") return json(403, { ok: false, error: "center_disabled" });
 
     const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" });
 
-    // Subscription checkout
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
-      // Link payment to center deterministically
       metadata: { centerId },
       client_reference_id: centerId,
-
       subscription_data: { metadata: { centerId } },
       success_url: `${PUBLIC_BASE_URL}/app/index.html#paid=success`,
       cancel_url: `${PUBLIC_BASE_URL}/app/index.html#paid=cancel`,
-      // Optional: allow promo codes
       // allow_promotion_codes: true,
     });
 
-    // Optional: write a breadcrumb (non-critical)
+    // breadcrumb non-critical
     try {
       centerRec.updatedAt = nowIso();
-      centerRec.billing = centerRec.billing || { provider: "stripe" };
+      centerRec.billing = centerRec.billing || {};
       centerRec.billing.provider = "stripe";
       centerRec.billing.lastCheckoutSessionId = session.id;
       await store.set(`centers/${centerId}`, JSON.stringify(centerRec));
-    } catch (_) {
-      // non-blocking
-    }
+    } catch (_) {}
 
-    return json(200, { ok: true, checkoutUrl: session.url });
-   } catch (e) {
-    console.error("[create_checkout_session] failed:", e?.message || e);
-    if (e?.raw) console.error("[create_checkout_session] raw:", e.raw);
+    return json(200, { ok: true, checkoutUrl: session.url, centerId });
+  } catch (e) {
     return json(500, {
       ok: false,
       error: "payment_session_failed",
-      detail: e?.message ? String(e.message) : "unknown",
+      detail: e?.message || String(e),
+      stripeType: e?.type || null,
     });
   }
-}
+};
