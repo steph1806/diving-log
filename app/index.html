@@ -5410,32 +5410,7 @@ function initPDJTools() {
     };
   }
 
-  // Subscribe / Payment entrypoint (minimal wiring)
-  const btnSubscribe = document.getElementById("btn-subscribe");
-  if (btnSubscribe) {
-    btnSubscribe.addEventListener("click", async () => {
-      try { closeLibMenu(); } catch (_) {}
 
-      const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
-      if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
-
-      // Create Stripe Checkout Session (server is source of truth)
-      const r = await fetch("/.netlify/functions/create_checkout_session", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ centerId })
-      });
-
-      const j = await r.json().catch(() => null);
-      if (!j || !j.ok || !j.checkoutUrl) {
-        alert("Souscription impossible: " + ((j && (j.detail || j.error)) || "checkout_failed"));
-        return;
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = j.checkoutUrl;
-    });
-  }
 
   const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
