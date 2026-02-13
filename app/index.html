@@ -13007,7 +13007,7 @@ async function gaUploadQrPageAndMakeUrl(pageObj) {
 
 
 
-document.addEventListener("DOMContentLoaded", ()=> {
+document.addEventListener("DOMContentLoaded", async ()=> {
 
   // Boot: hydrate state once, then render
   try { hydrateStateFromStorage(); } catch(e) {}
