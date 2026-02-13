@@ -13007,28 +13007,32 @@ async function gaUploadQrPageAndMakeUrl(pageObj) {
 
 
 
-document.addEventListener("DOMContentLoaded", async ()=> {
-
-  // Boot: hydrate state once, then render
+document.addEventListener("DOMContentLoaded", () => {
+  // Boot: hydrate state once, then render (NEVER block UI)
   try { hydrateStateFromStorage(); } catch(e) {}
-
-  // Stripe return
-  try {
-    if (isPaidSuccessHash()) {
-      await revalidateCenterByJoin();
-      clearHash();
-      alert("✅ Paiement validé (état serveur mis à jour).");
-    }
-  } catch (e) {
-    console.warn("paid revalidate failed:", e);
-    try { clearHash(); } catch(_) {}
-    alert("Paiement: vérification impossible. Vérifie ta connexion puis relance.");
-  }
 
   try { renderCenterDisplay(); } catch(e) {}
   try { renderApp(); } catch(e) {}
- 
- 
+
+  // Stripe return: paid=success -> revalidate server truth then clear hash (non-blocking)
+  try {
+    if (isPaidSuccessHash()) {
+      revalidateCenterByJoin()
+        .then(() => {
+          clearHash();
+          alert("✅ Paiement validé (état serveur mis à jour).");
+        })
+        .catch((e) => {
+          console.warn("paid revalidate failed:", e);
+          try { clearHash(); } catch(_) {}
+          alert("Paiement: vérification impossible. Vérifie ta connexion puis ré-ouvre l’app.");
+        });
+    }
+  } catch(e) {
+    console.warn("paid flow wrapper failed:", e);
+  }
+});
+
    // A1: Scanner QR web désactivé (QR = URL + caméra native)
   // PATCH 2 — lock / unlock Center ID input (deterministic)
  
