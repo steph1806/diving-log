@@ -57,6 +57,10 @@ export default async (req) => {
       centerId: centerRec.centerId,
       centerName: centerRec.centerName,
       boatsN: centerRec.boatsN,
+
+      // Gate state for frontend (server is source of truth)
+      status: centerRec.status,                 // "trial" | "active"
+      trialEndsAt: centerRec.trialEndsAt || "", // ISO string or ""
     });
 
   } catch (e) {

@@ -2354,6 +2354,11 @@
 
          <button type="button" class="lib-menu-item" id="btn_copy_center_key" title="Copier l'ID centre (clé) utilisé dans le PDF">📋 Copier clé centre</button>
 
+         <button type="button" class="lib-menu-item" id="btn_subscribe"
+                 title="Souscrire (paiement Stripe)">
+           💳 Souscrire
+         </button>
+
         </div>
       </span>
       <input type="file" id="file_import_library" accept="application/json" style="display:none;" />
@@ -2682,15 +2687,7 @@
       <div class="section-title">
         Export officiel (PDF)
       </div>
-
-      <div class="section-title-actions">
-        <button type="button"
-              class="btn btn-subscribe"
-              id="btn-subscribe">
-          Souscrire
-        </button>
-      </div>
-     </div>
+    </div>
 
     <p class="help-text">
       Générez un document professionnel en un clic.<br>
@@ -5389,6 +5386,30 @@ function initPDJTools() {
     };
   }
 
+  const btnSubscribe = document.getElementById("btn_subscribe");
+  if (btnSubscribe) {
+    btnSubscribe.onclick = async () => {
+      try { closeLibMenu(); } catch (_) {}
+
+      const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+      if (!centerId) { alert("Souscription impossible (centerId manquant)."); return; }
+
+      const r = await fetch("/.netlify/functions/create_checkout_session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ centerId })
+      });
+      const j = await r.json().catch(() => null);
+
+      if (!j || !j.ok || !j.checkoutUrl) {
+        alert("Souscription impossible: " + ((j && (j.detail || j.error)) || "checkout_failed"));
+        return;
+      }
+
+      window.location.href = j.checkoutUrl;
+    };
+  }
+
   // Subscribe / Payment entrypoint (minimal wiring)
   const btnSubscribe = document.getElementById("btn-subscribe");
   if (btnSubscribe) {
@@ -5398,9 +5419,21 @@ function initPDJTools() {
       const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
       if (!centerId) { alert("Centre non configuré (centerId manquant)."); return; }
 
-      // Open landing/payment page (static) with centerId in URL
-      const url = `${location.origin}/assets/howto/howto.html#subscribe&centerId=${encodeURIComponent(centerId)}`;
-      window.open(url, "_blank", "noopener");
+      // Create Stripe Checkout Session (server is source of truth)
+      const r = await fetch("/.netlify/functions/create_checkout_session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ centerId })
+      });
+
+      const j = await r.json().catch(() => null);
+      if (!j || !j.ok || !j.checkoutUrl) {
+        alert("Souscription impossible: " + ((j && (j.detail || j.error)) || "checkout_failed"));
+        return;
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = j.checkoutUrl;
     });
   }
 
@@ -12916,6 +12949,50 @@ async function tryAutoImportFromHash() {
   }
 }
 
+
+function isPaidSuccessHash(){
+  return /(?:^|[#&])paid=success\b/.test(String(location.hash || ""));
+}
+function clearHash(){
+  try { history.replaceState(null, "", location.pathname + location.search); } catch(_) {}
+}
+
+
+async function fetchCenterKeyFromServer(centerId){
+  const r = await fetch("/.netlify/functions/center_key_get", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ centerId })
+  });
+  const j = await r.json().catch(()=>null);
+  return (j && j.ok && j.centerKey) ? String(j.centerKey).trim() : "";
+}
+
+async function revalidateCenterByJoin(){
+  const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+  if (!centerId) throw new Error("missing_centerId");
+
+  const centerKey = await fetchCenterKeyFromServer(centerId);
+  if (!centerKey) throw new Error("missing_centerKey");
+
+  const r = await fetch("/.netlify/functions/center_join", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ centerKey })
+  });
+  const j = await r.json().catch(()=>null);
+  if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "center_join_failed");
+
+  // update local center (keeps existing storage contract)
+  updateCenter({
+    centerId: j.centerId,
+    centerName: j.centerName || "",
+    boatsN: j.boatsN || 1
+  });
+
+  return j; // includes status/trialEndsAt if you added them backend
+}
+
 async function gaUploadQrPageAndMakeUrl(pageObj) {
   const body = JSON.stringify(pageObj);
   const r = await fetch("/.netlify/functions/qr_put", {
@@ -12934,6 +13011,20 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
   // Boot: hydrate state once, then render
   try { hydrateStateFromStorage(); } catch(e) {}
+
+  // Stripe return
+  try {
+    if (isPaidSuccessHash()) {
+      await revalidateCenterByJoin();
+      clearHash();
+      alert("✅ Paiement validé (état serveur mis à jour).");
+    }
+  } catch (e) {
+    console.warn("paid revalidate failed:", e);
+    try { clearHash(); } catch(_) {}
+    alert("Paiement: vérification impossible. Vérifie ta connexion puis relance.");
+  }
+
   try { renderCenterDisplay(); } catch(e) {}
   try { renderApp(); } catch(e) {}
  
@@ -12996,6 +13087,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
       btnJoinValidate.disabled = false;
     });
   });
+
 
   const btnCfg = document.getElementById("btn_center_setup");
   if (btnCfg) btnCfg.addEventListener("click", () => {
