@@ -12542,6 +12542,25 @@ if (parsed.plannedRuntimeMin != null) {
 
     // --- SPLASH logo 200ms (au chargement) ---
     try { showAppSplash200ms(); } catch(e) { console.warn('splash', e); }
+    // --- Stripe return: paid=success -> revalidate server truth (non-blocking) ---
+    try {
+      if (isPaidSuccessHash()) {
+        revalidateCenterByJoin()
+          .then(() => {
+            try { clearHash(); } catch(_) {}
+            alert("✅ Paiement validé (état serveur mis à jour).");
+            try { renderCenterDisplay(); } catch(_) {}
+            try { renderApp(); } catch(_) {}
+          })
+          .catch((e) => {
+            console.warn("paid revalidate failed:", e);
+            try { clearHash(); } catch(_) {}
+            alert("Paiement: vérification impossible. Vérifie ta connexion puis relance.");
+          });
+      }
+    } catch (e) {
+      console.warn("paid wrapper failed:", e);
+    }
 
   }; // end __doInit
 
@@ -13006,32 +13025,6 @@ async function gaUploadQrPageAndMakeUrl(pageObj) {
 }
 
 
-
-document.addEventListener("DOMContentLoaded", () => {
-  // Boot: hydrate state once, then render (NEVER block UI)
-  try { hydrateStateFromStorage(); } catch(e) {}
-
-  try { renderCenterDisplay(); } catch(e) {}
-  try { renderApp(); } catch(e) {}
-
-  // Stripe return: paid=success -> revalidate server truth then clear hash (non-blocking)
-  try {
-    if (isPaidSuccessHash()) {
-      revalidateCenterByJoin()
-        .then(() => {
-          clearHash();
-          alert("✅ Paiement validé (état serveur mis à jour).");
-        })
-        .catch((e) => {
-          console.warn("paid revalidate failed:", e);
-          try { clearHash(); } catch(_) {}
-          alert("Paiement: vérification impossible. Vérifie ta connexion puis ré-ouvre l’app.");
-        });
-    }
-  } catch(e) {
-    console.warn("paid flow wrapper failed:", e);
-  }
-});
 
    // A1: Scanner QR web désactivé (QR = URL + caméra native)
   // PATCH 2 — lock / unlock Center ID input (deterministic)
