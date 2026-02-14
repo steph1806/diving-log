@@ -2152,14 +2152,6 @@
 
 <!-- === /PATCH === -->
 
-<!-- === / POUR SUCCESS PAIEMENT === -->
-.oi-success-wrapper{position:fixed;inset:0;background:rgba(10,18,28,.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9999}
-.oi-success-card{background:#0f1f2f;border-radius:18px;padding:40px;width:420px;max-width:92vw;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);color:#fff}
-.oi-success-icon{width:60px;height:60px;margin:0 auto 20px;background:linear-gradient(135deg,#00c6ff,#0072ff);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700}
-.oi-divider{height:1px;background:rgba(255,255,255,.1);margin:24px 0}
-.oi-open-btn{margin-top:15px;padding:14px 28px;border-radius:30px;border:none;font-size:16px;font-weight:600;background:linear-gradient(135deg,#00c6ff,#0072ff);color:#fff;cursor:pointer}
-.oi-success-tip{margin-top:18px;font-size:13px;opacity:.7}
-
 </style>
  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -3025,6 +3017,22 @@
 
     <div style="padding:14px 16px;">
 
+      <!-- POST-PAYMENT (Safari non-standalone) -->
+      <div id="installGate_paid"
+           style="display:none; background:#0f2a16; padding:12px; border-radius:12px; border:1px solid rgba(120,255,160,.25); margin-bottom:12px;">
+        <div style="font-weight:900; margin-bottom:6px;">✅ Paiement validé</div>
+        <div style="opacity:.95; line-height:1.35;">
+          Vous êtes revenu dans Safari.<br/>
+          Pour continuer dans l’app installée, cliquez sur <b>Open</b> (en haut à droite), puis ouvrez Ocean Infinity depuis l’icône.
+        </div>
+        <div style="margin-top:10px; padding:10px; background:rgba(255,255,255,.06); border-radius:10px;">
+          <div style="font-weight:800; margin-bottom:6px;">Étape clé</div>
+          <div style="font-size:14px;">
+            👉 Cliquez sur <b>Open</b> (en haut à droite), puis revenez ici.
+          </div>
+        </div>
+      </div>
+
      <!-- iPhone / iPad -->
       <div id="installGate_ios"
            style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
@@ -3094,8 +3102,6 @@
   </div>
 </div>
 <!-- /INSTALL ASSISTANT -->
-
-<div id="paidSuccessModal" style="display:none;"></div>
 
 </div> <!-- /container -->
 
@@ -3443,6 +3449,26 @@ function openInstallGate(){
   if (btnInstall) btnInstall.style.display = deferredPwaInstallPrompt ? "inline-block" : "none";
 
   m.style.display = "flex";
+}
+
+function showPaidSuccessModal() {
+  // Affiche le modal existant
+  openInstallGate();
+
+  // Montre le bloc post-paiement
+  const paid = document.getElementById("installGate_paid");
+  if (paid) paid.style.display = "block";
+
+  // Cache les instructions normales (sinon ça brouille le DP)
+  const iosBox = document.getElementById("installGate_ios");
+  const aBox   = document.getElementById("installGate_android");
+  const mBox   = document.getElementById("installGate_mac");
+  if (iosBox) iosBox.style.display = "none";
+  if (aBox)   aBox.style.display   = "none";
+  if (mBox)   mBox.style.display   = "none";
+
+  // Important: ne pas rester bloqué sur le hash
+  try { clearHash(); } catch(_) {}
 }
 
 function closeInstallGate(){
@@ -12535,17 +12561,10 @@ if (parsed.plannedRuntimeMin != null) {
         revalidateCenterByJoin()
           .then(() => {
             try { clearHash(); } catch(_) {}
-
-            // Si retour Safari (non standalone), afficher écran premium
-            if (!isStandaloneMode()) {
-              showPaidSuccessModal();
-              return;
-            }
-
-            // Si déjà en standalone → comportement normal
-             try { renderCenterDisplay(); } catch(_) {}
-             try { renderApp(); } catch(_) {}
-           })
+            alert("✅ Paiement validé (état serveur mis à jour).");
+            try { renderCenterDisplay(); } catch(_) {}
+            try { renderApp(); } catch(_) {}
+          })
           .catch((e) => {
             console.warn("paid revalidate failed:", e);
             try { clearHash(); } catch(_) {}
@@ -12970,36 +12989,6 @@ function clearHash(){
   try { history.replaceState(null, "", location.pathname + location.search); } catch(_) {}
 }
 
-function showPaidSuccessModal(){
-  const host = document.getElementById("paidSuccessModal");
-  if (!host) return;
-
-  host.innerHTML = `
-    <div class="oi-success-wrapper">
-      <div class="oi-success-card">
-        <div class="oi-success-icon">✓</div>
-        <h2>Abonnement activé</h2>
-        <p class="oi-success-sub">Votre centre est maintenant actif.</p>
-        <div class="oi-divider"></div>
-        <p class="oi-success-instruction">
-          Pour continuer, ouvrez l’application Ocean Infinity depuis son icône.
-        </p>
-        <button id="btnOpenInstalledApp" class="oi-open-btn">
-          Ouvrir Ocean Infinity
-        </button>
-        <p class="oi-success-tip">
-          Si l’application ne s’ouvre pas automatiquement, cliquez sur l’icône Ocean Infinity dans le Dock.
-        </p>
-      </div>
-    </div>
-  `;
-  host.style.display = "block";
-
-  const btn = document.getElementById("btnOpenInstalledApp");
-  if (btn) {
-    btn.onclick = () => { window.location.href = window.location.origin; };
-  }
-}
 
 async function fetchCenterKeyFromServer(centerId){
   const r = await fetch("/.netlify/functions/center_key_get", {
@@ -13215,8 +13204,17 @@ window.addEventListener("beforeinstallprompt", (e) => {
     } catch(e) { console.warn('splash kill', e); }
 
     // Gate 0: require installed (standalone) before ANY center configuration
-    if (!isStandaloneMode()){
-      openInstallGate();
+    if (!isStandaloneMode()) {
+      // Si retour Stripe dans Safari (non-standalone) => écran post-paiement
+      try {
+        if (typeof isPaidSuccessHash === "function" && isPaidSuccessHash()) {
+          showPaidSuccessModal();
+        } else {
+          openInstallGate();
+        }
+      } catch (_) {
+        openInstallGate();
+      }
       return;
     }
 
