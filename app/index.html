@@ -2152,6 +2152,14 @@
 
 <!-- === /PATCH === -->
 
+<!-- === / POUR SUCCESS PAIEMENT === -->
+.oi-success-wrapper{position:fixed;inset:0;background:rgba(10,18,28,.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9999}
+.oi-success-card{background:#0f1f2f;border-radius:18px;padding:40px;width:420px;max-width:92vw;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);color:#fff}
+.oi-success-icon{width:60px;height:60px;margin:0 auto 20px;background:linear-gradient(135deg,#00c6ff,#0072ff);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700}
+.oi-divider{height:1px;background:rgba(255,255,255,.1);margin:24px 0}
+.oi-open-btn{margin-top:15px;padding:14px 28px;border-radius:30px;border:none;font-size:16px;font-weight:600;background:linear-gradient(135deg,#00c6ff,#0072ff);color:#fff;cursor:pointer}
+.oi-success-tip{margin-top:18px;font-size:13px;opacity:.7}
+
 </style>
  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -3086,6 +3094,8 @@
   </div>
 </div>
 <!-- /INSTALL ASSISTANT -->
+
+<div id="paidSuccessModal" style="display:none;"></div>
 
 </div> <!-- /container -->
 
@@ -12525,10 +12535,17 @@ if (parsed.plannedRuntimeMin != null) {
         revalidateCenterByJoin()
           .then(() => {
             try { clearHash(); } catch(_) {}
-            alert("✅ Paiement validé (état serveur mis à jour).");
-            try { renderCenterDisplay(); } catch(_) {}
-            try { renderApp(); } catch(_) {}
-          })
+
+            // Si retour Safari (non standalone), afficher écran premium
+            if (!isStandaloneMode()) {
+              showPaidSuccessModal();
+              return;
+            }
+
+            // Si déjà en standalone → comportement normal
+             try { renderCenterDisplay(); } catch(_) {}
+             try { renderApp(); } catch(_) {}
+           })
           .catch((e) => {
             console.warn("paid revalidate failed:", e);
             try { clearHash(); } catch(_) {}
@@ -12953,6 +12970,36 @@ function clearHash(){
   try { history.replaceState(null, "", location.pathname + location.search); } catch(_) {}
 }
 
+function showPaidSuccessModal(){
+  const host = document.getElementById("paidSuccessModal");
+  if (!host) return;
+
+  host.innerHTML = `
+    <div class="oi-success-wrapper">
+      <div class="oi-success-card">
+        <div class="oi-success-icon">✓</div>
+        <h2>Abonnement activé</h2>
+        <p class="oi-success-sub">Votre centre est maintenant actif.</p>
+        <div class="oi-divider"></div>
+        <p class="oi-success-instruction">
+          Pour continuer, ouvrez l’application Ocean Infinity depuis son icône.
+        </p>
+        <button id="btnOpenInstalledApp" class="oi-open-btn">
+          Ouvrir Ocean Infinity
+        </button>
+        <p class="oi-success-tip">
+          Si l’application ne s’ouvre pas automatiquement, cliquez sur l’icône Ocean Infinity dans le Dock.
+        </p>
+      </div>
+    </div>
+  `;
+  host.style.display = "block";
+
+  const btn = document.getElementById("btnOpenInstalledApp");
+  if (btn) {
+    btn.onclick = () => { window.location.href = window.location.origin; };
+  }
+}
 
 async function fetchCenterKeyFromServer(centerId){
   const r = await fetch("/.netlify/functions/center_key_get", {
