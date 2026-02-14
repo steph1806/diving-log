@@ -12517,6 +12517,8 @@ if (parsed.plannedRuntimeMin != null) {
 
     // --- SPLASH logo 200ms (au chargement) ---
     try { showAppSplash200ms(); } catch(e) { console.warn('splash', e); }
+   
+
     // --- Stripe return: paid=success -> revalidate server truth (non-blocking) ---
     try {
       if (isPaidSuccessHash()) {
@@ -12539,7 +12541,7 @@ if (parsed.plannedRuntimeMin != null) {
 
   }; // end __doInit
 
-  });
+
 
 // --- G3: Bulk boat assignment bindings (Groupes & affectation)
 (function initBulkBoatAssign(){
@@ -12570,7 +12572,7 @@ if (parsed.plannedRuntimeMin != null) {
     if (typeof renderGroupAssignments === "function") renderGroupAssignments();
   };
 })();
-
+});
 </script>
 
 
@@ -13004,7 +13006,7 @@ async function gaUploadQrPageAndMakeUrl(pageObj) {
    // A1: Scanner QR web désactivé (QR = URL + caméra native)
   // PATCH 2 — lock / unlock Center ID input (deterministic)
  
-
+document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // Centre setup (UI wiring)
   // =========================
@@ -13187,7 +13189,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
 
   // Splash hides after ~300ms + 260ms fade; wait a bit to avoid overlay conflicts
   setTimeout(runAfterSplash, 650);
-});
+ });
 </script>
 
 
