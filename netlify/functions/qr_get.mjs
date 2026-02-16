@@ -36,11 +36,16 @@ export default async (req) => {
       return json(404, { ok: false, error: "not_found" });
     }
 
-    return json(200, {
-      ok: true,
-      createdAt: Date.now(),
-      body: raw
-    });
+   // unwrap record if needed
+   let rec = null;
+   try { rec = JSON.parse(raw); } catch (_) {}
+
+   if (rec && typeof rec === "object" && typeof rec.body === "string") {
+     return json(200, { ok: true, createdAt: rec.createdAt || Date.now(), body: rec.body });
+   }
+
+   // legacy: raw already is payload string
+   return json(200, { ok: true, createdAt: Date.now(), body: raw });
 
   } catch (e) {
     return json(500, {
