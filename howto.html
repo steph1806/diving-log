@@ -175,6 +175,7 @@
           <button class="step-btn" data-step="6"><span class="n">6</span> Définir les paramètres de la plongée</button>
           <button class="step-btn" data-step="7"><span class="n">7</span> Saisir les paramètres réalisés de la plongée</button>
           <button class="step-btn" data-step="8"><span class="n">8</span> Exporter le PDF officiel</button>
+          <button class="step-btn" data-step="9"><span class="n">9</span> Plus de détails pour créer base plongeur</button>
         </nav>
 
         <article class="howto-panel card" aria-live="polite">
@@ -295,7 +296,20 @@
 	  'Exporte le via WhatsApp.',
           'Archive / partage selon procédure centre.'
         ]
-      }
+      },
+      9: {
+        title: 'Plus de détails pour créer base plongeur',
+        desc: "Importer +200 plongeurs d'un coup",
+        media: { type: 'video', src: '/assets/howto/step9.mp4' },
+        bullets: [
+          'Au départ la liste de plongeurs est fixe, normal',
+          'Elle deviendra mobile si +5 plongeurs',
+	  'Importer les noms de vos clients via xls.',
+	  'Transformer facilement xls en CSV.',
+          "L'App a un outil intégré d'importation de CSV."
+        ]
+      },
+
     };
 
     const btns = Array.from(document.querySelectorAll('.step-btn'));
