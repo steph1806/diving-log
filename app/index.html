@@ -2172,6 +2172,26 @@
       À faire une seule fois au démarrage. Stocké en local sur cet appareil / navigateur.
     </div>
 
+
+<!-- BILLING GATE (Accès bloqué / Souscrire) -->
+<div id="billingGateModal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <h2 style="margin-top:0;">Accès bloqué</h2>
+    <div id="billingGateMsg" style="margin:10px 0 14px 0; line-height:1.35;">
+      Votre période d’essai est terminée. Veuillez souscrire pour continuer.
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="btn_billing_subscribe" class="btn-primary">Souscrire</button>
+      <button id="btn_billing_retry" class="btn">Réessayer</button>
+    </div>
+
+    <div style="margin-top:10px; opacity:.8; font-size:13px;">
+      (Connexion internet requise)
+    </div>
+  </div>
+</div>
+
 <!-- SCREEN 0: FIRST-RUN HOME (Create / Join) -->
 <div id="center_first_run_home" style="display:block; margin-bottom:10px;">
   <div class="row" style="gap:10px; flex-wrap:wrap;">
@@ -3366,7 +3386,7 @@ function getCenterDisplayName() {
     
 
       // Default: create mode when opening the modal
-    setAccessMode("hone");
+    setAccessMode("home");
     overlay.style.display = "flex";
   }
 
@@ -3387,7 +3407,7 @@ function getCenterDisplayName() {
 // =======================
 // CENTER ACCESS MODE (Create only — Join removed)
 // =======================
-let __centerAccessMode = "hone";
+let __centerAccessMode = "home";
 
 function setAccessMode(mode) {
   if (mode !== "home" && mode !== "create" && mode !== "join") {
@@ -5446,7 +5466,18 @@ function initPDJTools() {
     };
   }
 
+  const bSub = document.getElementById("btn_billing_subscribe");
+  if (bSub) bSub.addEventListener("click", () => {
+    closeBillingGate();
+    document.getElementById("btn_subscribe")?.click(); // réutilise le handler existant
+  });
 
+  const bRetry = document.getElementById("btn_billing_retry");
+  if (bRetry) bRetry.addEventListener("click", async () => {
+    closeBillingGate();
+    try { await enforceBillingGateOrThrow(); }
+    catch(_) { /* modal se ré-ouvre via openBillingGate */ }
+  });
 
   const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
@@ -13025,6 +13056,58 @@ async function revalidateCenterByJoin(){
   return j; // includes status/trialEndsAt if you added them backend
 }
 
+
+function openBillingGate(msg){
+  const overlay = document.getElementById("billingGateModal");
+  const out = document.getElementById("billingGateMsg");
+  if (out && msg) out.textContent = String(msg);
+  if (overlay) overlay.style.display = "flex";
+}
+function closeBillingGate(){
+  const overlay = document.getElementById("billingGateModal");
+  if (overlay) overlay.style.display = "none";
+}
+
+// Robust extraction (tolérant aux noms exacts renvoyés par center_join)
+function getBillingStateFromJoinResponse(j){
+  if (!j || typeof j !== "object") return "";
+  const v =
+    j.billingState ?? j.status ?? j.access ?? j.state ?? "";
+  return String(v || "").toUpperCase().trim();
+}
+
+function isTrialExpiredFromJoinResponse(j){
+  if (!j || typeof j !== "object") return false;
+  const t = j.trialEndsAt ?? j.trial_ends_at ?? j.trialEnd ?? null;
+  if (!t) return false;
+
+  let ms = null;
+  if (typeof t === "number") ms = t;
+  else {
+    const d = new Date(String(t));
+    const x = d.getTime();
+    if (Number.isFinite(x)) ms = x;
+  }
+  if (!Number.isFinite(ms)) return false;
+  return Date.now() > ms;
+}
+
+async function enforceBillingGateOrThrow(){
+  // Strict online
+  const j = await revalidateCenterByJoin();
+  const st = getBillingStateFromJoinResponse(j);
+
+  const locked = (st === "LOCKED");
+  const trialExpired = (st === "TRIAL" && isTrialExpiredFromJoinResponse(j));
+
+  if (locked || trialExpired) {
+    openBillingGate("Votre période d’essai est terminée. Veuillez souscrire pour continuer.");
+    throw new Error(locked ? "billing_locked" : "trial_expired");
+  }
+
+  return j;
+}
+
 async function gaUploadQrPageAndMakeUrl(pageObj) {
   const body = JSON.stringify(pageObj);
   const r = await fetch("/.netlify/functions/qr_put", {
@@ -13192,7 +13275,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
   // ============================================
   // Startup sequencing: Splash first, then setup
   // ============================================
-  const runAfterSplash = () => {
+ const runAfterSplash = async () => {
     // HARD KILL splash overlay to avoid any iOS click-block (even if opacity=0)
     try {
       const __s = document.getElementById('app_splash');
@@ -13222,6 +13305,18 @@ window.addEventListener("beforeinstallprompt", (e) => {
     if (!ensureCenterCfgOrPrompt()) {
       // init will be triggered after save
       return;
+    }
+
+    // Gate 2: billing / trial (strict online)
+    try {
+      const g = await enforceBillingGateOrThrow();
+      if (g && g.blocked) {
+        openBillingGate(g.reason || "Accès bloqué. Veuillez souscrire pour continuer.");
+        return; // STOP ici: pas d'init
+      }
+    } catch (e) {
+      openBillingGate("Accès bloqué. Veuillez souscrire pour continuer.");
+      return; // STOP ici: pas d'init
     }
 
     if (!window.__dlog_inited) {
