@@ -2561,10 +2561,11 @@
           <input type="text" id="edit_diver_cert_manual" placeholder="ex : TDI Advanced Trimix CCR">
         </div>
       </div>
-      <div class="row" style="margin-top:8px;">
+     <div class="row" style="margin-top:8px;">
         <button type="button" class="btn btn-primary" id="btn_edit_diver_confirm">Enregistrer</button>
+        <button type="button" class="btn btn-secondary" id="btn_edit_diver_delete">Supprimer plongeur</button>
         <button type="button" class="btn" id="btn_edit_diver_cancel">Annuler</button>
-      </div>
+     </div>
 
       <div id="edit-diver-status" class="status-text" style="margin-top:6px;"></div>
     </div>
@@ -12262,6 +12263,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const editFormEl = document.getElementById("edit-diver-form");
     const editCancelBtn = document.getElementById("btn_edit_diver_cancel");
     const editConfirmBtn = document.getElementById("btn_edit_diver_confirm");
+    const editDeleteBtn = document.getElementById("btn_edit_diver_delete");
     const editSearchEl = document.getElementById("edit_diver_search");
     const editCertSel = document.getElementById("edit_diver_cert_select");
     const editAptSel  = document.getElementById("edit_diver_aptitude_select");
@@ -12333,6 +12335,82 @@ document.addEventListener("DOMContentLoaded", function () {
         editDiverInLibraryFromForm();
       });
     }
+
+    if (editDeleteBtn) {
+      editDeleteBtn.addEventListener("click", function () {
+        // Must have a selected diver
+        if (!editDiverSelectedId) {
+          setEditDiverStatus("Sélectionne un plongeur (via la recherche/autocomplete).");
+          return;
+        }
+
+        const diver = getDiverById(editDiverSelectedId);
+        if (!diver) {
+          setEditDiverStatus("Plongeur introuvable.");
+          return;
+        }
+
+        // Same lock rule as edit/save
+        if (isDiverLockedForEdit(diver.name)) {
+          setEditDiverStatus("Plongeur déjà affecté à un groupe : suppression verrouillée.");
+          return;
+        }
+
+        const ok = confirm(`Supprimer définitivement "${diver.name}" ?`);
+        if (!ok) return;
+
+        // 1) Remove from diverLibrary
+        const list = Array.isArray(diverLibrary) ? diverLibrary : [];
+        const idx = list.findIndex(d => d && d.id === diver.id);
+        if (idx >= 0) list.splice(idx, 1);
+
+        // 2) Remove from PDJ list (names)
+        try {
+          const key = normalizeName(diver.name);
+          diversDuJour = (Array.isArray(diversDuJour) ? diversDuJour : []).filter(n => normalizeName(n) !== key);
+          saveDiversDuJour();
+        } catch (_) {}
+
+        // 3) Remove PDJ unit assignment
+        try {
+          if (diversDuJourUnits && typeof diversDuJourUnits === "object") {
+            const key = normalizeName(diver.name);
+            for (const k of Object.keys(diversDuJourUnits)) {
+              if (normalizeName(k) === key) delete diversDuJourUnits[k];
+            }
+            saveDiversDuJourUnits();
+          }
+        } catch (_) {}
+
+        // 4) Remove from favorites / recents (stored by name)
+        try {
+          const key = normalizeName(diver.name);
+          if (Array.isArray(favoriteDivers)) {
+            favoriteDivers = favoriteDivers.filter(n => normalizeName(n) !== key);
+            saveFavoriteDivers();
+          }
+          if (Array.isArray(recentDivers)) {
+            recentDivers = recentDivers.filter(n => normalizeName(n) !== key);
+            saveRecentDivers();
+          }
+        } catch (_) {}
+
+        // 5) Persist + rerender
+        pdjAfterDiverLibraryMutation();
+        saveDiverLibrary();
+
+        renderPlongeursDuJourSelector();
+        renderGroupAssignments();
+
+        // Reset edit UI
+        editDiverSelectedId = null;
+        if (editSearchEl) editSearchEl.value = "";
+        try { refreshEditDiverDatalist(""); } catch (_) {}
+
+        setEditDiverStatus("Plongeur supprimé.");
+      });
+    }
+
 
     loadDiversDuJour();
     loadGroupAssignments();
