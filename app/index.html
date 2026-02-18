@@ -2173,24 +2173,7 @@
     </div>
 
 
-<!-- BILLING GATE (Accès bloqué / Souscrire) -->
-<div id="billingGateModal" class="modal-overlay" style="display:none;">
-  <div class="modal">
-    <h2 style="margin-top:0;">Accès bloqué</h2>
-    <div id="billingGateMsg" style="margin:10px 0 14px 0; line-height:1.35;">
-      Votre période d’essai est terminée. Veuillez souscrire pour continuer.
-    </div>
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button id="btn_billing_subscribe" class="btn-primary">Souscrire</button>
-      <button id="btn_billing_retry" class="btn">Réessayer</button>
-    </div>
-
-    <div style="margin-top:10px; opacity:.8; font-size:13px;">
-      (Connexion internet requise)
-    </div>
-  </div>
-</div>
 
 <!-- SCREEN 0: FIRST-RUN HOME (Create / Join) -->
 <div id="center_first_run_home" style="display:block; margin-bottom:10px;">
@@ -2243,6 +2226,24 @@
  </div>
 </div>
 
+<!-- BILLING GATE (Accès bloqué / Souscrire) -->
+<div id="billingGateModal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <h2 style="margin-top:0;">Accès bloqué</h2>
+    <div id="billingGateMsg" style="margin:10px 0 14px 0; line-height:1.35;">
+      Votre période d’essai est terminée. Veuillez souscrire pour continuer.
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="btn_billing_subscribe" class="btn-primary">Souscrire</button>
+      <button id="btn_billing_retry" class="btn">Réessayer</button>
+    </div>
+
+    <div style="margin-top:10px; opacity:.8; font-size:13px;">
+      (Connexion internet requise)
+    </div>
+  </div>
+</div>
 
   <!-- Splash (logo plein écran 200ms) -->
   <div id="app_splash" aria-hidden="true">
@@ -13394,9 +13395,11 @@ window.addEventListener("beforeinstallprompt", (e) => {
     if (!window.__dlog_inited) {
       window.__dlog_inited = true;
       try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
-      startBillingWatchdog(); 
+      
       try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
     }
+
+      startBillingWatchdog(); 
   };
 
   // Splash hides after ~300ms + 260ms fade; wait a bit to avoid overlay conflicts
