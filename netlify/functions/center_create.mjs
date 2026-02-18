@@ -45,7 +45,7 @@ export default async (req) => {
     const centerId = "c_" + rand(24);
     const centerKey = "OI-" + rand(4).toUpperCase() + "-" + rand(4).toUpperCase() + "-" + rand(4).toUpperCase();
     const t = nowIso();
-    const trialEndsAtIso = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString();
+    const trialEndsAtIso = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     const centerRecord = {
       centerId,
