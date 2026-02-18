@@ -13167,7 +13167,7 @@ function closeBillingGate(){
 let billingWatchdogInterval = null;
 
 function startBillingWatchdog() {
-  if (billingWatchdogInterval) return; // éviter double interval
+  if (billingWatchdogInterval) return;
 
   billingWatchdogInterval = setInterval(async () => {
     try {
@@ -13176,20 +13176,23 @@ function startBillingWatchdog() {
     } catch (e) {
       const msg = String(e && e.message ? e.message : e);
 
-      // IMPORTANT: revalidateCenterByJoin() throw sur { ok:false, error:"trial_expired" }
-      if (msg.includes("trial_expired")) {
-        openBillingGate("Votre période d’essai est terminée. Veuillez souscrire.");
-        // optionnel mais propre: arrêter le watchdog une fois bloqué
-        clearInterval(billingWatchdogInterval);
-        billingWatchdogInterval = null;
+      // Si le serveur ne donne plus la clé -> c’est un blocage (trial expired / locked)
+      if (msg === "missing_centerKey" || msg === "missing_centerId") {
+        openBillingGate("Votre période d’essai est terminée. Veuillez souscrire pour continuer.");
         return;
       }
 
-      // offline / autre erreur -> on attend le retour réseau
+      // Si center_join refuse (selon ton backend), on bloque aussi
+      if (msg === "trial_expired" || msg === "billing_locked" || msg === "center_join_failed") {
+        openBillingGate("Accès bloqué. Veuillez souscrire pour continuer.");
+        return;
+      }
+
+      // Offline ou erreur réseau : on n’ouvre pas le gate ici (sinon faux positifs)
+      // (tu gardes strict-online via le prochain tick + tes autres checks)
     }
   }, 60000);
 }
-
 
 
 
