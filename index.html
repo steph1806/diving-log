@@ -15,8 +15,6 @@
       --max:1080px;
     }
     *{box-sizing:border-box}
-    html{ -webkit-text-size-adjust: 100%; }
-
     body{
       margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Arial,sans-serif;
       background: radial-gradient(1200px 500px at 30% -20%, rgba(39,179,255,.25), transparent 60%),
@@ -25,7 +23,7 @@
       color:var(--text);
     }
     a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:clamp(16px, 3.5vw, 22px)}
+    .wrap{max-width:var(--max); margin:0 auto; padding:22px}
     header{
       display:flex; align-items:center; justify-content:space-between; gap:14px;
       position:sticky; top:0; background:rgba(6,11,21,.72); backdrop-filter: blur(10px);
@@ -34,110 +32,17 @@
     header .wrap{display:flex; align-items:center; justify-content:space-between; width:100%}
     .brand{display:flex; gap:10px; align-items:center; font-weight:900; letter-spacing:.4px}
     .dot{width:10px; height:10px; border-radius:999px; background:var(--accent2); box-shadow:0 0 16px rgba(39,179,255,.6)}
-   
-/* === Buttons (pro) === */
-.btn{
-  --btn-h: 44px;
-  --btn-pad-x: 18px;
-  --btn-radius: 999px;
-
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-
-  min-height: var(--btn-h);
-  padding: 0 var(--btn-pad-x);
-
-  border-radius: var(--btn-radius);
-  border: 1px solid rgba(255,255,255,.14);
-
-  background: rgba(255,255,255,.06);
-  color: var(--text);
-
-  text-decoration: none;
-  font-weight: 850;
-  font-size: 15px;
-  line-height: 1;
-
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-
-  transition: transform .12s ease, background .12s ease, border-color .12s ease, box-shadow .12s ease, filter .12s ease;
-}
-
-.btn:hover{
-  border-color: rgba(255,255,255,.22);
-  background: rgba(255,255,255,.08);
-}
-
-.btn:active{
-  transform: translateY(1px);
-}
-
-/* focus clavier (propre) */
-.btn:focus{ outline: none; }
-.btn:focus-visible{
-  box-shadow:
-    0 0 0 3px rgba(39,179,255,.28),
-    0 0 0 1px rgba(39,179,255,.45) inset;
-  border-color: rgba(39,179,255,.35);
-}
-
-/* disabled (si un jour tu l’utilises) */
-.btn[aria-disabled="true"],
-.btn:disabled{
-  opacity: .55;
-  cursor: not-allowed;
-  filter: saturate(.9);
-  transform: none;
-}
-
-/* Primary: gradient clean + shadow maîtrisé */
-.btn.primary{
-  border: 0;
-  color: #041B0F;
-  background: linear-gradient(180deg, rgba(57,217,138,1) 0%, rgba(57,217,138,.72) 100%);
-  box-shadow:
-    0 12px 28px rgba(57,217,138,.18),
-    0 1px 0 rgba(255,255,255,.14) inset;
-}
-
-.btn.primary:hover{
-  filter: brightness(1.03) saturate(1.02);
-}
-
-.btn.primary:focus-visible{
-  box-shadow:
-    0 0 0 3px rgba(57,217,138,.25),
-    0 0 0 1px rgba(57,217,138,.42) inset,
-    0 12px 28px rgba(57,217,138,.18);
-}
-
-/* Secondary: plus “glass”, plus premium */
-.btn.secondary{
-  background: rgba(255,255,255,.055);
-  border-color: rgba(255,255,255,.14);
-}
-
-/* Mobile: boutons plus faciles */
-@media (max-width: 420px){
-  .btn{
-    width: 100%;
-    min-height: 46px;
-    font-size: 16px;
-  }
-  .top-cta{ flex-wrap: wrap; }
-  .top-cta .btn{ width: 100%; }
-  .cta .btn{ flex: 1 1 100%; }
-}
-
-
-    .hero{padding:clamp(22px, 6vw, 34px) 0 clamp(12px, 3vw, 18px)}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding:12px 16px; border-radius:999px; border:1px solid var(--line);
+      background:rgba(255,255,255,.06); text-decoration:none; font-weight:800;
+    }
+    .btn.primary{background:linear-gradient(90deg,var(--accent),rgba(57,217,138,.7)); color:#05210F; border:0}
+    .btn.secondary{background:rgba(255,255,255,.06)}
+    .hero{padding:34px 0 18px}
     .hero-grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; align-items:stretch}
-    .h1{font-size:clamp(30px, 7vw, 44px); line-height:1.12; margin:0 0 12px; font-weight:950; letter-spacing:0}
-    .lead{color:var(--muted); font-size:clamp(16px, 3.8vw, 18px); line-height:1.55; margin:0 0 18px}
+    .h1{font-size:44px; line-height:1.05; margin:0 0 12px; font-weight:950}
+    .lead{color:var(--muted); font-size:18px; line-height:1.5; margin:0 0 18px}
     .cta{display:flex; gap:12px; flex-wrap:wrap}
     .card{
       background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
@@ -191,13 +96,12 @@
 
     @media (max-width: 900px){
       .hero-grid{grid-template-columns:1fr}
+      .h1{font-size:36px}
       .grid3{grid-template-columns:1fr}
       .split{grid-template-columns:1fr}
     }
     @media (max-width: 420px){
       .pill{ font-size:13px; padding: 8px 10px; }
-      .top-cta{ gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-      .top-cta .btn{ width:100%; }
     }
 
 
@@ -253,32 +157,24 @@
   pointer-events:none;
 }
 
-/* Hover seulement sur desktop (évite iOS sticky-hover => flou) */
-@media (hover: hover) and (pointer: fine){
+/* effet Dock : le focus “pousse” au-dessus */
+.gallery.dock .shot:hover{
+  z-index:5;
+}
 
-  .gallery.dock .shot:hover{ z-index:5; }
+.gallery.dock .shot:hover img{
+  transform:scale(2.25);
+  filter:saturate(1.05);
+}
 
-  .gallery.dock .shot:hover img{
-    transform:scale(2.25);
-    filter:saturate(1.05);
-  }
+.gallery.dock .shot:hover figcaption{
+  opacity:1;
+  transform:translateY(6px);
+}
 
-  /* Edge compensation: évite crop sur les extrêmes */
-  .gallery.dock .shot:first-child:hover img{
-    transform-origin: left center;
-  }
-  .gallery.dock .shot:last-child:hover img{
-    transform-origin: right center;
-  }
-
-  .gallery.dock .shot:hover figcaption{
-    opacity:1;
-    transform:translateY(6px);
-  }
-
-  .gallery.dock:hover .shot:not(:hover) img{
-    filter:brightness(.92) saturate(.9);
-  }
+/* un léger “dim” des autres, très premium */
+.gallery.dock:hover .shot:not(:hover) img{
+  filter:brightness(.92) saturate(.9);
 }
 
 /* Mobile: on revient à la grille (pas de hover fiable) */
@@ -295,7 +191,9 @@
     opacity:1;
     transform:none;
   }
-  
+  .gallery.dock .shot:hover img{
+    transform:none;
+  }
 }
 
  /* === Mobile safety net (anti horizontal scroll) === */
@@ -341,7 +239,6 @@ section, header, footer, .container{
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0,0,0,.6);
   transform: none !important;
-  filter: none !important;
 }
 
 .gallery.dock .shot.is-open figcaption{
@@ -380,7 +277,8 @@ section, header, footer, .container{
       <span>Ocean Infinity</span>
     </div>
     <div class="top-cta">
-     <a class="btn primary" href="/app/" target="_blank" rel="noopener">Installer l’app</a>
+      <a class="btn secondary" href="/app/">Installer l’app</a>
+      <a class="btn primary" href="PAY_URL_A_METTRE_ICI">S’abonner</a>
     </div>
   </div>
 </header>
@@ -396,8 +294,8 @@ section, header, footer, .container{
         <b>directement sur le bateau</b>, même sans réseau. Génération d’un <b>PDF officiel</b> en un clic.
       </p>
       <div class="cta">
-        <a class="btn primary" href="abonner.html">Membres</a>
-        <a class="btn primary" href="/app/" target="_blank" rel="noopener">Installer l’app</a>
+        <a class="btn primary" href="PAY_URL_A_METTRE_ICI">S’abonner</a>
+        <a class="btn secondary" href="/app/">Installer / Essayer</a>
       </div>
       <div class="mini-proof">
         <div class="mini"><b>Offline-first</b><span>utilisable sur bateau</span></div>
@@ -525,18 +423,18 @@ section, header, footer, .container{
   </section>
 
   <section class="sec" id="pricing">
-      <h2>Membres Ocean Infinity</h2>
+      <h2>Abonnement centre</h2>
       <div class="card" style="display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; align-items:center">
         <div>
           <div class="pill">Centre de plongée • multi-appareils • usage terrain</div>
           <p style="margin:10px 0 0" class="muted">
-            Retrouver le détails de toutes les fonctionnalités.
+            Activez votre centre en 2 minutes. Accès immédiat.
           </p>
           <p class="muted small" style="margin:8px 0 0">
-            (Les réponses a toutes vos questions en lecture simple et rapide.)
+            (Le prix et les conditions exactes sont sur la page de paiement.)
           </p>
         </div>
-        <a class="btn primary" href="abonner.html">Membre</a>
+        <a class="btn primary" href="PAY_URL_A_METTRE_ICI">S’abonner maintenant</a>
       </div>
     </section>
 
@@ -563,7 +461,7 @@ section, header, footer, .container{
         <div class="muted">Installation immédiate • Aucun engagement • Utilisable sur le bateau</div>
       </div>
       <!-- Remplace le href par ton lien réel d'app (PWA / store / page install) -->
-     <a class="btn primary" href="/app/" target="_blank" rel="noopener">Installer l’app</a>
+      <a class="btn primary" href="/app/">Installer l’app</a>
     </div>
     <p class="muted small" style="margin-top:10px">
       Besoin d’un essai centre ? Contact : <b>contact@votredomaine.com</b>
