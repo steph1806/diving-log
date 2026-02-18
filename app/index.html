@@ -5493,12 +5493,7 @@ function initPDJTools() {
     document.getElementById("btn_subscribe")?.click(); // réutilise le handler existant
   });
 
-  const bRetry = document.getElementById("btn_billing_retry");
-  if (bRetry) bRetry.addEventListener("click", async () => {
-    closeBillingGate();
-    try { await enforceBillingGateOrThrow(); }
-    catch(_) { /* modal se ré-ouvre via openBillingGate */ }
-  });
+ 
 
   const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
@@ -13166,45 +13161,36 @@ function closeBillingGate(){
   if (overlay) overlay.style.display = "none";
 }
 
-// Robust extraction (tolérant aux noms exacts renvoyés par center_join)
-function getBillingStateFromJoinResponse(j){
-  if (!j || typeof j !== "object") return "";
-  const v =
-    j.billingState ?? j.status ?? j.access ?? j.state ?? "";
-  return String(v || "").toUpperCase().trim();
+
+// --- BILLING WATCHDOG (60s strict online) ---
+let billingWatchdogInterval = null;
+
+function startBillingWatchdog() {
+  if (billingWatchdogInterval) return; // éviter double interval
+
+  billingWatchdogInterval = setInterval(async () => {
+    try {
+      await revalidateCenterByJoin();
+      // OK -> rien à faire
+    } catch (e) {
+      const msg = String(e && e.message ? e.message : e);
+
+      // IMPORTANT: revalidateCenterByJoin() throw sur { ok:false, error:"trial_expired" }
+      if (msg.includes("trial_expired")) {
+        openBillingGate("Votre période d’essai est terminée. Veuillez souscrire.");
+        // optionnel mais propre: arrêter le watchdog une fois bloqué
+        clearInterval(billingWatchdogInterval);
+        billingWatchdogInterval = null;
+        return;
+      }
+
+      // offline / autre erreur -> on attend le retour réseau
+    }
+  }, 60000);
 }
 
-function isTrialExpiredFromJoinResponse(j){
-  if (!j || typeof j !== "object") return false;
-  const t = j.trialEndsAt ?? j.trial_ends_at ?? j.trialEnd ?? null;
-  if (!t) return false;
 
-  let ms = null;
-  if (typeof t === "number") ms = t;
-  else {
-    const d = new Date(String(t));
-    const x = d.getTime();
-    if (Number.isFinite(x)) ms = x;
-  }
-  if (!Number.isFinite(ms)) return false;
-  return Date.now() > ms;
-}
 
-async function enforceBillingGateOrThrow(){
-  // Strict online
-  const j = await revalidateCenterByJoin();
-  const st = getBillingStateFromJoinResponse(j);
-
-  const locked = (st === "LOCKED");
-  const trialExpired = (st === "TRIAL" && isTrialExpiredFromJoinResponse(j));
-
-  if (locked || trialExpired) {
-    openBillingGate("Votre période d’essai est terminée. Veuillez souscrire pour continuer.");
-    throw new Error(locked ? "billing_locked" : "trial_expired");
-  }
-
-  return j;
-}
 
 async function gaUploadQrPageAndMakeUrl(pageObj) {
   const body = JSON.stringify(pageObj);
@@ -13373,7 +13359,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
   // ============================================
   // Startup sequencing: Splash first, then setup
   // ============================================
- const runAfterSplash = async () => {
+ const runAfterSplash = () => {
     // HARD KILL splash overlay to avoid any iOS click-block (even if opacity=0)
     try {
       const __s = document.getElementById('app_splash');
@@ -13405,22 +13391,10 @@ window.addEventListener("beforeinstallprompt", (e) => {
       return;
     }
 
-    // Gate 2: billing / trial (strict online)
-    try {
-      const g = await enforceBillingGateOrThrow();
-      if (g && g.blocked) {
-        openBillingGate(g.reason || "Accès bloqué. Veuillez souscrire pour continuer.");
-        return; // STOP ici: pas d'init
-      }
-    } catch (e) {
-      openBillingGate("Accès bloqué. Veuillez souscrire pour continuer.");
-      return; // STOP ici: pas d'init
-    }
-
     if (!window.__dlog_inited) {
       window.__dlog_inited = true;
       try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
-      // Auto-import if opened from QR URL
+      startBillingWatchdog(); 
       try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
     }
   };
