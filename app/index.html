@@ -13208,40 +13208,56 @@ function closeBillingGate(){
 // --- BILLING WATCHDOG (60s strict online) ---
 let billingWatchdogInterval = null;
 
+function _handleBillingRevalidateError(e) {
+  const msg = String(e && e.message ? e.message : e);
+
+  // IMPORTANT: revalidateCenterByJoin() throw sur {ok:false, error:"trial_expired"} OU new Error("trial_expired")
+  if (msg.includes("trial_expired")) {
+    openBillingGate("Votre période d’essai est terminée. Veuillez souscrire.");
+    if (billingWatchdogInterval) {
+      clearInterval(billingWatchdogInterval);
+      billingWatchdogInterval = null;
+    }
+    return;
+  }
+
+  // offline / autre erreur => on ne bloque pas (mais on a AU MOINS tenté l'appel serveur)
+}
+
+async function _billingRevalidateNow() {
+  try {
+    await revalidateCenterByJoin();
+  } catch (e) {
+    _handleBillingRevalidateError(e);
+  }
+}
+
 function startBillingWatchdog() {
   if (billingWatchdogInterval) return; // éviter double interval
 
-  const tick = async () => {
-    try {
-      await revalidateCenterByJoin();
-      // OK -> rien à faire
-    } catch (e) {
-      const msg = String(e && e.message ? e.message : e);
+  // 1) CHECK IMMEDIAT (ne pas attendre 60s)
+  _billingRevalidateNow();
 
-      // cas "bloquants"
-      if (msg === "trial_expired" || msg === "missing_centerKey" || msg === "missing_centerId") {
-        if (msg === "trial_expired") {
-          openBillingGate("Votre période d'essai est terminée. Veuillez souscrire pour continuer.");
-        } else {
-          openBillingGate("Accès bloqué (connexion requise).");
-        }
-
-        // stop watchdog once blocked (évite spam 403)
-        try { clearInterval(billingWatchdogInterval); } catch (_) {}
-        billingWatchdogInterval = null;
-        return;
-      }
-
-      // autres erreurs (offline etc) -> on laisse le watchdog continuer
-      console.warn("billing watchdog non-blocking error:", msg);
-    }
-  };
-
-  // IMPORTANT: run once immediately, then every 60s
-  tick();
-  billingWatchdogInterval = setInterval(tick, 60000);
+  // 2) Puis tick strict toutes les 60s
+  billingWatchdogInterval = setInterval(() => {
+    _billingRevalidateNow();
+  }, 60000);
 }
 
+// --- billing resume triggers ---
+window.addEventListener("focus", () => {
+  try { _billingRevalidateNow(); } catch (_) {}
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    try { _billingRevalidateNow(); } catch (_) {}
+  }
+});
+
+window.addEventListener("pageshow", () => {
+  try { _billingRevalidateNow(); } catch (_) {}
+});
 
 
 async function gaUploadQrPageAndMakeUrl(pageObj) {
