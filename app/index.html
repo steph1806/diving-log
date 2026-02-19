@@ -3180,31 +3180,36 @@
     }
   }
 
-  function loadCenterCfg() {
+  function loadCenterCfg(){
     try {
       const raw = localStorage.getItem(CENTER_CFG_KEY);
       const o = raw ? JSON.parse(raw) : null;
       if (!o || typeof o !== "object") return null;
+
       return {
-        id: (o.id || "").trim(),
-        name: (o.name || "").trim(),
-        boatsN: Math.max(1, Math.min(8, Number(o.boatsN || 1) || 1))
+        id: String(o.id || "").trim(),
+        name: String(o.name || "").trim(),
+        boatsN: clampBoatsN(o.boatsN || 1),
+        centerKey: String(o.centerKey || "").trim() // NEW (optional)
       };
-    } catch(e) { return null; }
+    } catch (e) {
+    return null;
+    }
   }
 
-  function saveCenterCfg(cfg) {
+  function saveCenterCfg(cfg){
     try {
       const out = {
-        id: (cfg?.id || "").trim(),
-        name: (cfg?.name || "").trim(),
-        boatsN: Number.isFinite(Number(cfg?.boatsN))
-          ? Math.max(1, Math.min(8, Number(cfg.boatsN)))
-          : 1
+        id: String((cfg && cfg.id) ? cfg.id : "").trim(),
+        name: String((cfg && cfg.name) ? cfg.name : "").trim(),
+        boatsN: clampBoatsN((cfg && typeof cfg.boatsN !== "undefined") ? cfg.boatsN : 1),
+        centerKey: String((cfg && cfg.centerKey) ? cfg.centerKey : "").trim() // NEW
       };
       localStorage.setItem(CENTER_CFG_KEY, JSON.stringify(out));
       return true;
-    } catch(e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
 
@@ -3221,6 +3226,7 @@
     centerId: null,
     centerName: null,
     boatsN: 1,
+    centerKey: null, // <-- NEW
     configured: false
   };
 
@@ -3239,18 +3245,28 @@
 
   function hydrateStateFromStorage(){
     const c = loadCenterCfg();
-    if (c && typeof c === "object"){
-      STATE.centerId = (c.id || "").trim() || null;
-      STATE.centerName = (c.name || "").trim() || null;
+    if (c && typeof c === "object") {
+      STATE.centerId = String(c.id || "").trim() || null;
+      STATE.centerName = String(c.name || "").trim() || null;
       STATE.boatsN = clampBoatsN(c.boatsN || 1);
-      STATE.configured = !!(STATE.centerId && STATE.centerName && Number.isInteger(STATE.boatsN) && STATE.boatsN >= 1);
+      STATE.centerKey = String(c.centerKey || "").trim() || null; // NEW
+
+    // IMPORTANT: do NOT require centerKey for "configured" to avoid onboarding regressions
+      STATE.configured = !!(
+      STATE.centerId &&
+      STATE.centerName &&
+      Number.isInteger(STATE.boatsN) &&
+      STATE.boatsN >= 1
+    );
 
       syncCenterSetupButtonUI();
       return true;
     }
+
     STATE.centerId = null;
     STATE.centerName = null;
     STATE.boatsN = 1;
+    STATE.centerKey = null; // NEW
     STATE.configured = false;
     syncCenterSetupButtonUI();
     return false;
@@ -3261,12 +3277,13 @@
   // If STATE isn't hydrated here, they will see boatsN=1 until a hard refresh.
   try { hydrateStateFromStorage(); } catch(e) { console.warn('hydrate early', e); }
 
-  function persistStateToStorage(){
-    // Keep the existing storage contract {id,name,boatsN}
+   function persistStateToStorage(){
+    // Backward compatible extension of CENTER_CFG_KEY schema
     return saveCenterCfg({
       id: STATE.centerId || "",
       name: STATE.centerName || "",
-      boatsN: STATE.boatsN || 1
+      boatsN: STATE.boatsN || 1,
+      centerKey: STATE.centerKey || "" // NEW
     });
   }
 
@@ -3356,33 +3373,45 @@ function renderGaBulkBoatSelect(){
   function updateCenter(patch){
     if (!patch || typeof patch !== "object") return false;
 
-    // Backward-compat: accept both {centerId,centerName,boatsN} and legacy {id,name,boatsN}
+    // Accept legacy {id,name} as aliases
     if ("id" in patch && !("centerId" in patch)) patch.centerId = patch.id;
     if ("name" in patch && !("centerName" in patch)) patch.centerName = patch.name;
 
-    if ("centerId" in patch){
+    if ("centerId" in patch) {
       const v = String(patch.centerId || "").trim();
       STATE.centerId = v ? v : null;
     }
-    if ("centerName" in patch){
+    if ("centerName" in patch) {
       const v = String(patch.centerName || "").trim();
       STATE.centerName = v ? v : null;
     }
-    if ("boatsN" in patch){
+    if ("boatsN" in patch) {
       STATE.boatsN = clampBoatsN(patch.boatsN);
     }
-    STATE.configured = !!(STATE.centerId && STATE.centerName && Number.isInteger(STATE.boatsN) && STATE.boatsN >= 1);
+    if ("centerKey" in patch) { // NEW
+      const v = String(patch.centerKey || "").trim();
+      STATE.centerKey = v ? v : null;
+    }
+
+    STATE.configured = !!(
+      STATE.centerId &&
+      STATE.centerName &&
+      Number.isInteger(STATE.boatsN) &&
+      STATE.boatsN >= 1
+    );
+
     syncCenterSetupButtonUI();
     persistStateToStorage();
     renderApp();
-    try { renderCenterDisplay(); } catch(e) {}
+    try { renderCenterDisplay(); } catch (e) {}
 
-    // Init app once center is configured (centralized)
-    if (STATE.configured && !window.__dlog_inited){
+    // Keep your existing init behavior
+    if (STATE.configured && !window.__dlog_inited) {
       window.__dlog_inited = true;
-      try { if (typeof window.__doInit === "function") window.__doInit(); } catch(e) { console.warn("init", e); }
-      try { tryAutoImportFromHash(); } catch(e) { console.warn("auto-import", e); }
+      try { if (typeof window.__doInit === "function") window.__doInit(); } catch (e) { console.warn("init", e); }
+      try { tryAutoImportFromHash(); } catch (e) { console.warn("auto-import", e); }
     }
+
     return true;
   }
 
@@ -13129,7 +13158,15 @@ async function revalidateCenterByJoin(){
   const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
   if (!centerId) throw new Error("missing_centerId");
 
-  const centerKey = await fetchCenterKeyFromServer(centerId);
+  // 1) Prefer locally stored credential
+  let centerKey = (STATE && STATE.centerKey) ? String(STATE.centerKey).trim() : "";
+
+  // 2) Fallback to server only if needed
+  if (!centerKey) {
+    centerKey = await fetchCenterKeyFromServer(centerId);
+    if (centerKey) updateCenter({ centerKey });
+  }
+
   if (!centerKey) throw new Error("missing_centerKey");
 
   const r = await fetch("/.netlify/functions/center_join", {
@@ -13137,17 +13174,17 @@ async function revalidateCenterByJoin(){
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ centerKey })
   });
-  const j = await r.json().catch(()=>null);
+
+  const j = await r.json().catch(() => null);
   if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "center_join_failed");
 
-  // update local center (keeps existing storage contract)
   updateCenter({
     centerId: j.centerId,
     centerName: j.centerName || "",
     boatsN: j.boatsN || 1
   });
 
-  return j; // includes status/trialEndsAt if you added them backend
+  return j;
 }
 
 
@@ -13257,7 +13294,7 @@ document.addEventListener("DOMContentLoaded", () => {
         centerName: res.centerName || "",
         boatsN: res.boatsN || 1
       });
-
+      updateCenter({ centerKey }); // NEW: persist credential for watchdog/revalidate
       closeCenterSetupModal();
     })
     .catch(err => {
