@@ -12734,6 +12734,15 @@ if (parsed.plannedRuntimeMin != null) {
       console.warn("paid wrapper failed:", e);
     }
 
+   // --- BILLING WATCHDOG BOOT ---
+   try {
+     if (STATE && STATE.centerId) {
+       startBillingWatchdog();
+     }
+   } catch (e) {
+     console.warn("watchdog boot failed", e);
+   }
+
   }; // end __doInit
 
 
@@ -13244,16 +13253,7 @@ function startBillingWatchdog() {
   }, 60000);
 }
 
-// --- billing resume triggers ---
-window.addEventListener("focus", () => {
-  try { _billingRevalidateNow(); } catch (_) {}
-});
 
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) {
-    try { _billingRevalidateNow(); } catch (_) {}
-  }
-});
 
 window.addEventListener("pageshow", () => {
   try { _billingRevalidateNow(); } catch (_) {}
@@ -13386,7 +13386,7 @@ document.addEventListener("DOMContentLoaded", () => {
         centerName: res.centerName || name,
         boatsN: res.boatsN || boatsN
       });
-
+ 
       closeCenterSetupModal();
     })
     .catch(err => {
