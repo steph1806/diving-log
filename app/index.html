@@ -3260,6 +3260,11 @@
     );
 
       syncCenterSetupButtonUI();
+
+      // Billing watchdog must not depend on runAfterSplash (app may stay alive for hours/days)
+      if (STATE.configured) {
+        try { startBillingWatchdog(); } catch (e) { /* ignore */ }
+      }
       return true;
     }
 
