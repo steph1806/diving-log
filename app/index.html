@@ -13306,8 +13306,14 @@ document.addEventListener("DOMContentLoaded", () => {
         boatsN: res.boatsN || 1
       });
       updateCenter({ centerKey }); // NEW: persist credential for watchdog/revalidate
+      // ✅ START watchdog immediately after JOIN (no need to restart app)
+      try { clearInterval(billingWatchdogInterval); } catch (_) {}
+      billingWatchdogInterval = null;
+      try { startBillingWatchdog(); } catch (e) { console.warn("startBillingWatchdog failed", e); }
       closeCenterSetupModal();
     })
+
+
     .catch(err => {
       console.error(err);
       alert("Erreur rejoindre centre.");
