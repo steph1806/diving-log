@@ -5509,7 +5509,7 @@ function initPDJTools() {
 
       // 🔎 vérifier si déjà ACTIVE
       const j = await revalidateCenterByJoin();
-      if (j && j.status === "ACTIVE") {
+      if (j && j.status === "active") {
         alert("Abonnement déjà actif ✅");
         return;
       }
