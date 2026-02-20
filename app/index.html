@@ -10271,19 +10271,36 @@ function buildPdfMock() {
 
   const preview = document.getElementById("pdf-preview");
   if (preview) {
-    preview.innerHTML = html;
-    preview.scrollIntoView({ behavior: "smooth", block: "start" });
-    resetPdfActionsState();
-    showPdfActionsBar();
-    bindPdfActionsOnce();
-    updatePdfActionsUi();
-    updateDpSignaturePage();
+   preview.innerHTML = html;
+   preview.scrollIntoView({ behavior: "smooth", block: "start" });
+
+   // Reset ONLY if the document context changed
+   const dateFRlocal = new Date().toLocaleDateString("fr-FR");
+   const ctxSiteK = clean(document.getElementById("dive_site_name")?.value || document.getElementById("dive_site_select")?.value);
+   const ctxBoatK = clean(document.getElementById("dive_boat")?.value || "");
+   const ctxDPK   = clean(document.getElementById("dive_const_dp")?.value || "");
+   const centerIdK = (STATE && STATE.centerId) ? String(STATE.centerId) : "";
+   const newKey = [centerIdK, dateFRlocal, ctxSiteK, ctxBoatK, ctxDPK].join("|");
+
+   if (pdfDocKey !== newKey) {
+     pdfDocKey = newKey;
+     resetPdfActionsState();
+   }
+
+   showPdfActionsBar();
+   bindPdfActionsOnce();
+   updatePdfActionsUi();
+   updateDpSignaturePage();
+
+   // If already signed, re-render stamp because preview DOM was rebuilt
+   if (pdfState === "signed") renderSignedStamp();
   }
 }
 
   let pdfState = "draft"; // draft → validated → signed
   let pdfValidatedAt = null;
   let pdfSignedAt = null;
+  let pdfDocKey = "";
 
   function updateDpSignaturePage() {
     const st = document.getElementById("dpDocStatus");
