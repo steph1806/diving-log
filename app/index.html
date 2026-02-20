@@ -5506,6 +5506,14 @@ function initPDJTools() {
 
     async function startCheckoutOnce(){
       if (__checkoutInFlight) return;
+
+      // 🔎 vérifier si déjà ACTIVE
+      const j = await revalidateCenterByJoin();
+      if (j && j.status === "ACTIVE") {
+        alert("Abonnement déjà actif ✅");
+        return;
+      }
+
       __checkoutInFlight = true;
 
       try {
