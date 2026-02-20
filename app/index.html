@@ -5498,35 +5498,57 @@ function initPDJTools() {
     };
   }
 
-  const btnSubscribe = document.getElementById("btn_subscribe");
-  if (btnSubscribe) {
-    btnSubscribe.onclick = async () => {
-      try { closeLibMenu(); } catch (_) {}
+    // Anti multi-open Stripe
+    let __checkoutInFlight = false;
 
-      const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
-      if (!centerId) { alert("Souscription impossible (centerId manquant)."); return; }
+    const btnSubscribe = document.getElementById("btn_subscribe");
+    const bSub = document.getElementById("btn_billing_subscribe");
 
-      const r = await fetch("/.netlify/functions/create_checkout_session", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ centerId })
-      });
-      const j = await r.json().catch(() => null);
+    async function startCheckoutOnce(){
+      if (__checkoutInFlight) return;
+      __checkoutInFlight = true;
 
-      if (!j || !j.ok || !j.checkoutUrl) {
-        alert("Souscription impossible: " + ((j && (j.detail || j.error)) || "checkout_failed"));
-        return;
+      try {
+        // bloque double tap immédiatement
+        if (btnSubscribe) btnSubscribe.disabled = true;
+        if (bSub) bSub.disabled = true;
+
+        try { closeLibMenu(); } catch (_) {}
+
+        const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+        if (!centerId) { alert("Souscription impossible (centerId manquant)."); return; }
+
+        const r = await fetch("/.netlify/functions/create_checkout_session", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ centerId })
+        });
+        const j = await r.json().catch(() => null);
+
+        if (!j || !j.ok || !j.checkoutUrl) {
+          alert("Souscription impossible: " + ((j && (j.detail || j.error)) || "checkout_failed"));
+          return;
+        }
+
+        window.location.href = j.checkoutUrl;
+      } finally {
+        // si on n'a pas redirigé (erreur), on ré-autorise
+        __checkoutInFlight = false;
+        if (btnSubscribe) btnSubscribe.disabled = false;
+        if (bSub) bSub.disabled = false;
       }
+    }
 
-      window.location.href = j.checkoutUrl;
-    };
-  }
+    if (btnSubscribe) {
+      btnSubscribe.onclick = startCheckoutOnce;
+    }
 
-  const bSub = document.getElementById("btn_billing_subscribe");
-  if (bSub) bSub.addEventListener("click", () => {
-    closeBillingGate();
-    document.getElementById("btn_subscribe")?.click(); // réutilise le handler existant
-  });
+    if (bSub) {
+      bSub.addEventListener("click", () => {
+        closeBillingGate();
+        startCheckoutOnce(); // au lieu de .click()
+      });
+    }
 
  
 
