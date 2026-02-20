@@ -12723,6 +12723,7 @@ if (parsed.plannedRuntimeMin != null) {
             alert("✅ Paiement validé (état serveur mis à jour).");
             try { renderCenterDisplay(); } catch(_) {}
             try { renderApp(); } catch(_) {}
+            try { closeBillingGate(); } catch(_) {}
           })
           .catch((e) => {
             console.warn("paid revalidate failed:", e);
@@ -13223,10 +13224,7 @@ function _handleBillingRevalidateError(e) {
   // IMPORTANT: revalidateCenterByJoin() throw sur {ok:false, error:"trial_expired"} OU new Error("trial_expired")
   if (msg.includes("trial_expired")) {
     openBillingGate("Votre période d’essai est terminée. Veuillez souscrire.");
-    if (billingWatchdogInterval) {
-      clearInterval(billingWatchdogInterval);
-      billingWatchdogInterval = null;
-    }
+   
     return;
   }
 
@@ -13236,6 +13234,7 @@ function _handleBillingRevalidateError(e) {
 async function _billingRevalidateNow() {
   try {
     await revalidateCenterByJoin();
+    closeBillingGate(); // ✅ si le serveur est OK, on déverrouille l’UI
   } catch (e) {
     _handleBillingRevalidateError(e);
   }
