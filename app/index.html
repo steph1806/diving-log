@@ -3022,122 +3022,113 @@
 <!-- /QR SCAN MODAL -->
 
 <!-- =======================
-     INSTALL ASSISTANT (PWA install gate)
+     INSTALL ASSISTANT (PWA install gate) — PREMIUM APPLE (C1)
      ======================= -->
-<div id="installGateModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,.75); align-items:center; justify-content:center; padding:16px;">
-  <div style="width:min(720px,100%); background:#0e1622; color:#eaf2ff; border-radius:14px; border:1px solid rgba(255,255,255,.12); box-shadow:0 16px 60px rgba(0,0,0,.45); overflow:hidden;">
-    <div style="padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.12); display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-      <div>
-        <div style="font-weight:900; font-size:18px;">Installer l’app Ocean Infinity</div>
-        <div style="opacity:.9; margin-top:4px;">
-          <b>Pour configurer votre centre, l’app doit être installée.</b><br/>
-          Une fois installée, ouvrez l’app depuis l’icône puis continuez.
+<div id="installGateModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,.86); backdrop-filter:saturate(140%) blur(10px); -webkit-backdrop-filter:saturate(140%) blur(10px); align-items:center; justify-content:center; padding:18px;">
+
+  <div style="width:min(760px,100%); color:#fff; border-radius:22px; border:1px solid rgba(255,255,255,.14); background:rgba(10,10,12,.92); box-shadow:0 24px 90px rgba(0,0,0,.60); overflow:hidden;">
+
+    <!-- Top bar -->
+    <div style="padding:16px 18px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px;">
+      <div style="min-width:0;">
+        <div style="font-size:12px; letter-spacing:.18em; text-transform:uppercase; opacity:.70; margin-bottom:10px;">
+          Ocean Infinity
+        </div>
+
+        <!-- C1 -->
+        <div style="font-weight:700; font-size:30px; line-height:1.12; margin:0;">
+          Installez Ocean Infinity
+        </div>
+        <div style="font-size:16px; opacity:.78; margin-top:10px; line-height:1.35;">
+          Installation requise pour continuer.
         </div>
       </div>
-      <button type="button" class="btn" id="btnInstallGateClose" style="white-space:nowrap;">Fermer</button>
+
+      <button type="button" class="btn" id="btnInstallGateClose"
+              style="white-space:nowrap; border-radius:14px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#fff; padding:10px 12px;">
+        Fermer
+      </button>
     </div>
 
-    <div style="padding:14px 16px;">
+    <!-- Body -->
+    <div style="padding:0 18px 18px;">
 
       <!-- POST-PAYMENT (Safari non-standalone) -->
       <div id="installGate_paid"
-           style="display:none; background:#0f2a16; padding:12px; border-radius:12px; border:1px solid rgba(120,255,160,.25); margin-bottom:12px;">
-        <div style="font-weight:900; margin-bottom:6px;">✅ Paiement validé</div>
-        <div style="opacity:.95; line-height:1.35;">
+           style="display:none; margin-top:6px; padding:14px; border-radius:16px; border:1px solid rgba(140,255,190,.22); background:rgba(18,40,26,.55);">
+        <div style="font-weight:800; margin-bottom:6px;">✅ Paiement validé</div>
+        <div style="opacity:.90; line-height:1.35;">
           Vous êtes revenu dans Safari.<br/>
-          Pour continuer dans l’app installée, cliquez sur <b>Open</b> (en haut à droite), puis ouvrez Ocean Infinity depuis l’icône.
+          Touchez <b>Open</b> (en haut à droite), puis ouvrez <b>Ocean Infinity</b> depuis l’icône installée.
         </div>
-        <div style="margin-top:10px; padding:10px; background:rgba(255,255,255,.06); border-radius:10px;">
-          <div style="font-weight:800; margin-bottom:6px;">Étape clé</div>
-          <div style="font-size:14px;">
-            👉 Cliquez sur <b>Open</b> (en haut à droite), puis revenez ici.
+        <div style="margin-top:10px; padding:10px 12px; border-radius:14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);">
+          <div style="font-weight:800; margin-bottom:4px;">Étape clé</div>
+          <div style="font-size:14px; opacity:.92;">👉 Touchez <b>Open</b>, puis revenez ici.</div>
+        </div>
+      </div>
+
+      <!-- Instructions block (minimal, premium) -->
+      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05);">
+
+        <!-- iPhone / iPad -->
+        <div id="installGate_ios" style="display:none;">
+          <div style="font-weight:800; font-size:14px; opacity:.92; margin-bottom:10px;">iPhone / iPad</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:15px; opacity:.92; line-height:1.35;">
+            <div>
+              Safari → <b>…</b> → <b>Sur l’écran d’accueil</b>
+            </div>
+          </div>
+          <div style="font-size:12px; opacity:.65; margin-top:10px;">
+            Si l’option n’apparaît pas, faites défiler la liste.
           </div>
         </div>
+
+        <!-- Mac -->
+        <div id="installGate_mac" style="display:none;">
+          <div style="font-weight:800; font-size:14px; opacity:.92; margin-bottom:10px;">Mac</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:15px; opacity:.92; line-height:1.35;">
+            <div>
+              Safari → <b>Partager</b> → <b>Ajouter au Dock</b>
+            </div>
+          </div>
+          <div style="font-size:12px; opacity:.65; margin-top:10px;">
+            Ensuite ouvrez Ocean Infinity depuis l’icône du Dock.
+          </div>
+        </div>
+
+        <!-- Android -->
+        <div id="installGate_android" style="display:none;">
+          <div style="font-weight:800; font-size:14px; opacity:.92; margin-bottom:10px;">Android</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:15px; opacity:.92; line-height:1.35;">
+            <div>
+              Menu <b>⋮</b> → <b>Installer l’application</b>
+            </div>
+          </div>
+          <div style="font-size:12px; opacity:.65; margin-top:10px;">
+            Si “Installer maintenant” n’apparaît pas, utilisez le menu ⋮.
+          </div>
+        </div>
+
       </div>
 
-     <!-- iPhone / iPad -->
-      <div id="installGate_ios"
-           style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
-        <div style="font-weight:800; margin-bottom:6px;">iPhone / iPad</div>
-
-          <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
-
-           <li>
-             Touchez <b>…</b> en bas de Safari
-           </li>
-
-           <li style="display:flex; align-items:center; gap:6px;">
-             Puis l’icône
-             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-               xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M12 16V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M8 8L12 4L16 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <rect x="4" y="16" width="16" height="4" rx="2"
-                stroke="currentColor" stroke-width="2"/>
-             </svg>
-           </li>
-
-           <li>
-              Faites défiler vers le bas
-           </li>
-
-            <li>
-              Sélectionnez <b>Sur l’écran d’accueil</b> (Add to Home Screen)
-            </li>
-
-          </ol>
-
-          <div style="font-size:12px; opacity:.75;">
-            Si l’option n’apparaît pas, faites défiler la liste.
-         </div>
-       </div>
-
-      <!-- Mac -->
-      <div id="installGate_mac"
-     style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
-        <div style="font-weight:800; margin-bottom:6px;">Mac</div>
-
-        <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
-          <li>
-            Cliquez sur l’icône
-            <span style="display:inline-flex; align-items:center; gap:4px;">
-              <!-- Apple Share icon (inline SVG) -->
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <rect x="4" y="11" width="16" height="10" rx="2"
-                      stroke="currentColor" stroke-width="2"/>
-              </svg>
-              <b>Partager</b>
-            </span>
-            dans Safari
-          </li>
-          <li>Sélectionnez <b>Ajouter au Dock</b></li>
-          <li>Fermez l’onglet Safari</li>
-          <li>Ouvrez <b>Ocean Infinity</b> depuis l’icône du Dock</li>
-        </ol>
-      </div>
-
-      <!-- Android -->
-      <div id="installGate_android" style="display:none; background:#101f33; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);">
-        <div style="font-weight:800; margin-bottom:6px;">Android (téléphone / tablette)</div>
-        <ol style="margin:0 0 8px 18px; opacity:.95; line-height:1.35;">
-          <li>Appuyez sur <b>⋮ Menu</b></li>
-          <li>Choisissez <b>Installer l’application</b></li>
-          <li>Ouvrez <b>Ocean Infinity</b> depuis l’icône</li>
-        </ol>
-        <div style="font-size:12px; opacity:.75;">Si “Installer maintenant” n’apparaît pas, utilisez le menu ⋮.</div>
-      </div>
-
-      <div id="installGateError" style="display:none; margin-top:10px; padding:10px; border-radius:10px; background:rgba(255,80,80,.12); border:1px solid rgba(255,80,80,.25); color:#ffd6d6;">
+      <!-- Error -->
+      <div id="installGateError"
+           style="display:none; margin-top:12px; padding:12px; border-radius:16px;
+                  background:rgba(255,80,80,.12); border:1px solid rgba(255,80,80,.26); color:#ffd6d6;">
         <b>Installation non détectée.</b><br/>
         Ouvrez Ocean Infinity depuis l’icône (Écran d’accueil / Dock), puis réessayez.
       </div>
 
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
-        <button type="button" class="btn btn-primary" id="btnInstallNow" style="display:none;">Installer maintenant</button>
-        <button type="button" class="btn btn-primary" id="btnInstalledCheck">J’ai ouvert l’app depuis l’icône</button>
+      <!-- Actions -->
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
+        <button type="button" class="btn btn-primary" id="btnInstallNow" style="display:none; border-radius:16px; padding:12px 16px; font-weight:800;">
+          Installer maintenant
+        </button>
+
+        <button type="button" class="btn" id="btnInstalledCheck"
+                style="border-radius:16px; padding:12px 16px; font-weight:800; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#fff;">
+          J’ai déjà installé l’app
+        </button>
       </div>
 
     </div>
