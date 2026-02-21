@@ -5521,17 +5521,24 @@ function initPDJTools() {
   }
 
     // Anti multi-open Stripe
-    let __checkoutInFlight = false;
+  
 
     const btnSubscribe = document.getElementById("btn_subscribe");
     const bSub = document.getElementById("btn_billing_subscribe");
 
     async function startCheckoutOnce(){
-   
-     if (__checkoutInFlight) return;
 
-   
-     // 🔎 vérifier si déjà ACTIVE
+    // ✅ GLOBAL ATOMIC GUARD — FIRST LINES (avant tout await)
+    if (window.__OI_checkoutInFlight) return;
+    window.__OI_checkoutInFlight = true;
+
+    // ✅ Disable immédiatement (avant tout await)
+    if (btnSubscribe) btnSubscribe.disabled = true;
+    if (bSub) bSub.disabled = true;
+
+    try {
+
+      // 🔎 vérifier si déjà ACTIVE
       let j = null;
       try {
         j = await revalidateCenterByJoin();
@@ -5548,52 +5555,34 @@ function initPDJTools() {
         alert("Abonnement déjà actif ✅");
         return;
       }
-     
 
-      try {
-        // bloque double tap immédiatement
-        if (btnSubscribe) btnSubscribe.disabled = true;
-        if (bSub) bSub.disabled = true;
+      try { closeLibMenu(); } catch (_) {}
 
-        try { closeLibMenu(); } catch (_) {}
+      const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
+      if (!centerId) { alert("Souscription impossible (centerId manquant)."); return; }
 
-        const centerId = (STATE && STATE.centerId) ? String(STATE.centerId).trim() : "";
-        if (!centerId) { alert("Souscription impossible (centerId manquant)."); return; }
+      const r = await fetch("/.netlify/functions/create_checkout_session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ centerId })
+      });
 
-        const r = await fetch("/.netlify/functions/create_checkout_session", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ centerId })
-        });
-        const j = await r.json().catch(() => null);
+      const pay = await r.json().catch(() => null);
 
-        if (!j || !j.ok || !j.checkoutUrl) {
-          alert("Souscription impossible: " + ((j && (j.detail || j.error)) || "checkout_failed"));
-          return;
-        }
-
-        window.location.href = j.checkoutUrl;
-      } finally {
-        // si on n'a pas redirigé (erreur), on ré-autorise
-        __checkoutInFlight = false;
-        if (btnSubscribe) btnSubscribe.disabled = false;
-        if (bSub) bSub.disabled = false;
+      if (!pay || !pay.ok || !pay.checkoutUrl) {
+        alert("Souscription impossible: " + ((pay && (pay.detail || pay.error)) || "checkout_failed"));
+        return;
       }
-    }
 
-    if (btnSubscribe) {
-      btnSubscribe.onclick = startCheckoutOnce;
-    }
+      window.location.href = pay.checkoutUrl;
 
-    if (bSub) {
-     bSub.addEventListener("click", (e) => {
-       e.preventDefault();
-       e.stopPropagation();
-       closeBillingGate();
-       startCheckoutOnce();
-     }, { once: true });
+    } finally {
+      // ✅ Toujours unlock + ré-autoriser (y compris retours early)
+      window.__OI_checkoutInFlight = false;
+      if (btnSubscribe) btnSubscribe.disabled = false;
+      if (bSub) bSub.disabled = false;
     }
-
+  }
  
 
   const btnQr = document.getElementById("btn_qr_scan_diver");
