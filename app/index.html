@@ -5584,6 +5584,18 @@ function initPDJTools() {
     }
   }
  
+  // ✅ Wiring paiement (perdu en v21) — doit rester juste après startCheckoutOnce
+  if (btnSubscribe) {
+    btnSubscribe.onclick = startCheckoutOnce;
+  }
+
+  if (bSub) {
+    bSub.addEventListener("click", () => {
+      closeBillingGate();
+      startCheckoutOnce(); // pas de .click() pour éviter les re-entrances UI
+    });
+  }
+
 
   const btnQr = document.getElementById("btn_qr_scan_diver");
   if (btnQr) btnQr.onclick = openQrScannerScreen;
