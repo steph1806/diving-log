@@ -5586,10 +5586,12 @@ function initPDJTools() {
     }
 
     if (bSub) {
-      bSub.addEventListener("click", () => {
-        closeBillingGate();
-        startCheckoutOnce(); // au lieu de .click()
-      });
+     bSub.addEventListener("click", (e) => {
+       e.preventDefault();
+       e.stopPropagation();
+       closeBillingGate();
+       startCheckoutOnce();
+     });
     }
 
  
