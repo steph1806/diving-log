@@ -3032,39 +3032,41 @@
   <div style="width:min(760px,100%); color:#fff; border-radius:22px; border:1px solid rgba(255,255,255,.14); background:rgba(10,10,12,.92); box-shadow:0 24px 90px rgba(0,0,0,.60); overflow:hidden;">
 
     <!-- Top bar -->
-   <div style="padding:16px 18px;">
+    <div style="padding:16px 18px;">
       <div style="min-width:0;">
         <div style="font-size:12px; letter-spacing:.18em; text-transform:uppercase; opacity:.70; margin-bottom:10px;">
           Ocean Infinity
         </div>
 
-        <!-- C1 -->
-       <!-- TOP (default) -->
-   <div id="installGate_topDefault">
-     <div style="font-weight:800; font-size:38px; line-height:1.12; margin:0;">
-       Installez Ocean Infinity
-     </div>
-     <div style="font-size:16px; opacity:.78; margin-top:10px; line-height:1.35;">
-       Installation requise pour continuer.
-     </div>
-   </div>
+        <!-- TOP (default) -->
+        <div id="installGate_topDefault">
+          <div style="font-weight:800; font-size:38px; line-height:1.12; margin:0;">
+            Installez Ocean Infinity
+          </div>
+          <div style="font-size:16px; opacity:.78; margin-top:10px; line-height:1.35;">
+            Installation requise pour continuer.
+          </div>
+        </div>
 
-      <!-- TOP (paid) -->
-   <div id="installGate_topPaid" style="display:none;">
-     <div style="display:flex; align-items:center; gap:10px; font-weight:900; font-size:26px; line-height:1.15;">
-       <span style="color:#4CFF9D;">✓</span>
-       <span>Paiement validé</span>
-     </div>
-     <div style="margin-top:10px; font-size:18px; opacity:.88; line-height:1.35;">
-       Appuyez sur <b>Open</b> (en haut à droite).
-     </div>
-   </div>
+        <!-- TOP (paid) -->
+        <div id="installGate_topPaid" style="display:none;">
+          <div style="display:flex; align-items:center; gap:10px; font-weight:900; font-size:26px; line-height:1.15;">
+            <span style="color:#4CFF9D;">✓</span>
+            <span>Paiement validé</span>
+          </div>
+          <div style="margin-top:10px; font-size:18px; opacity:.88; line-height:1.35;">
+            Appuyez sur <b>Open</b> (en haut à droite).
+          </div>
+        </div>
+
+      </div>
+    </div>
 
     <!-- Body -->
     <div style="padding:0 18px 18px;">
 
-        <!-- POST-PAYMENT (Safari non-standalone) -->
-      <div id="installGate_paid" style="display:none; margin-top:14px;"> </div>
+      <!-- POST-PAYMENT (Safari non-standalone) -->
+      <div id="installGate_paid" style="display:none; margin-top:14px;">
         <div style="display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; opacity:.92;">
           <span style="color:#4CFF9D;">✓</span>
           <span>Paiement validé</span>
@@ -3082,27 +3084,24 @@
           <div style="font-weight:800; font-size:14px; opacity:.92; margin-bottom:10px;">iPhone / iPad</div>
           <div style="display:flex; flex-direction:column; gap:10px; font-size:15px; opacity:.92; line-height:1.35;">
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-             <span>Safari →</span>
+              <span>Safari →</span>
 
               <span style="display:inline-flex; align-items:center; gap:6px;">
-               <span style="opacity:.9;">Partager</span>
-               <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);">
-               <!-- Share icon -->
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                 <path d="M12 16V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                 <path d="M8 8L12 4L16 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                 <rect x="4" y="16" width="16" height="4" rx="2" stroke="currentColor" stroke-width="2"/>
-               </svg>
-             </span>
-            </span>
+                <span style="opacity:.9;">Partager</span>
+                <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);">
+                  <!-- Share icon -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 16V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M8 8L12 4L16 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <rect x="4" y="16" width="16" height="4" rx="2" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </span>
+              </span>
 
-           <span>→</span>
-           <b>Sur l’écran d’accueil</b>
-        </div>
-          </div>
-          <div style="font-size:12px; opacity:.65; margin-top:10px;">
-            Si l’option n’apparaît pas, faites défiler la liste.
+              <span>→</span>
+              <b>Sur l’écran d’accueil</b>
+            </div>
           </div>
         </div>
 
@@ -3111,62 +3110,38 @@
           <div style="font-weight:800; font-size:14px; opacity:.92; margin-bottom:10px;">Mac</div>
           <div style="display:flex; flex-direction:column; gap:10px; font-size:15px; opacity:.92; line-height:1.35;">
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-             <span>Safari →</span>
-
-             <span style="display:inline-flex; align-items:center; gap:6px;">
-               <b>Partager</b>
-               <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);">
-                <!-- Share icon -->
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <rect x="4" y="11" width="16" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
-                </svg>
-             </span>
-           </span>
-
-           <span>→</span>
-           <b>Ajouter au Dock</b>
-          </div>
-
-          </div>
-          <div style="font-size:12px; opacity:.65; margin-top:10px;">
-            Ensuite ouvrez Ocean Infinity depuis l’icône du Dock.
+              <span>Safari →</span>
+              <b>Partager</b>
+              <span>→</span>
+              <b>Ajouter au Dock</b>
+            </div>
           </div>
         </div>
 
         <!-- Android -->
         <div id="installGate_android" style="display:none;">
           <div style="font-weight:800; font-size:14px; opacity:.92; margin-bottom:10px;">Android</div>
-          <div style="display:flex; flex-direction:column; gap:10px; font-size:15px; opacity:.92; line-height:1.35;">
-            <div>
-              Menu <b>⋮</b> → <b>Installer l’application</b>
-            </div>
-          </div>
-          <div style="font-size:12px; opacity:.65; margin-top:10px;">
-            Si “Installer maintenant” n’apparaît pas, utilisez le menu ⋮.
+          <div style="font-size:15px; opacity:.92; line-height:1.35;">
+            Menu <b>⋮</b> → <b>Installer l’application</b>
           </div>
         </div>
 
       </div>
 
       <!-- Error -->
-      <div id="installGateError"
-           style="display:none; margin-top:12px; padding:12px; border-radius:16px;
-                  background:rgba(255,80,80,.12); border:1px solid rgba(255,80,80,.26); color:#ffd6d6;">
+      <div id="installGateError" style="display:none; margin-top:12px; padding:12px; border-radius:16px; background:rgba(255,80,80,.12); border:1px solid rgba(255,80,80,.26); color:#ffd6d6;">
         <b>Installation non détectée.</b><br/>
         Ouvrez Ocean Infinity depuis l’icône (Écran d’accueil / Dock), puis réessayez.
       </div>
 
       <!-- Actions -->
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
+      <div id="installGate_actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
         <button type="button" class="btn btn-primary" id="btnInstallNow" style="display:none; border-radius:16px; padding:12px 16px; font-weight:800;">
           Installer maintenant
         </button>
 
         <button type="button" class="btn" id="btnInstalledCheck"
-                style="border-radius:16px; padding:12px 16px; font-weight:800; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#fff;">
+          style="border-radius:16px; padding:12px 16px; font-weight:800; background:rgba(255,255,255,.06); color:#fff;">
           J’ai déjà installé l’app
         </button>
       </div>
@@ -3536,65 +3511,84 @@ function isStandaloneMode(){
 // =======================
 let deferredPwaInstallPrompt = null;
 
-function openInstallGate(){
+function openInstallGate() {
   const m = document.getElementById("installGateModal");
   if (!m) return;
 
-  // Reset top states
+  // ---- RESET GLOBAL UI (install mode by default) ----
   const topDefault = document.getElementById("installGate_topDefault");
   const topPaid = document.getElementById("installGate_topPaid");
   if (topDefault) topDefault.style.display = "block";
   if (topPaid) topPaid.style.display = "none";
 
-  // Ensure body paid block stays hidden
   const paid = document.getElementById("installGate_paid");
   if (paid) paid.style.display = "none";
 
-  // reset error
   const err = document.getElementById("installGateError");
   if (err) err.style.display = "none";
 
+  const actions = document.getElementById("installGate_actions");
+  if (actions) actions.style.display = "none"; // Phase 1: rien d'autre
+
+  // Hide all instruction blocks first
   const iosBox = document.getElementById("installGate_ios");
   const aBox   = document.getElementById("installGate_android");
   const mBox   = document.getElementById("installGate_mac");
+  if (iosBox) iosBox.style.display = "none";
+  if (aBox)   aBox.style.display   = "none";
+  if (mBox)   mBox.style.display   = "none";
 
-  if (iosBox) iosBox.style.display = isIOS() ? "block" : "none";
-  if (aBox)   aBox.style.display   = (!isIOS() && isAndroid()) ? "block" : "none";
-  if (mBox)   mBox.style.display   = (!isIOS() && !isAndroid()) ? "block" : "none";
+  // ---- PHASE 1: Mac only (as requested) ----
+  // Important: ici on suppose que ce gate est appelé sur Mac Safari (non-standalone).
+  // Donc on force Mac block uniquement.
+  if (mBox) mBox.style.display = "block";
 
+  // Installer maintenant (deferred prompt) => inutile sur Mac, et tu veux "rien d'autre"
   const btnInstall = document.getElementById("btnInstallNow");
-  if (btnInstall) btnInstall.style.display = deferredPwaInstallPrompt ? "inline-block" : "none";
+  if (btnInstall) btnInstall.style.display = "none";
 
+  // "J'ai déjà installé" => tu veux rien d'autre
+  const btnInstalled = document.getElementById("btnInstalledCheck");
+  if (btnInstalled) btnInstalled.style.display = "none";
+
+  // Show modal
   m.style.display = "flex";
 }
 
 function showPaidSuccessModal() {
-  // Affiche le modal existant
-  openInstallGate();
+  const m = document.getElementById("installGateModal");
+  if (!m) return;
 
-  // Switch top bar to "paid"
+  // Ouvre le même modal
+  m.style.display = "flex";
+
+  // ---- PHASE 2: paid only ----
   const topDefault = document.getElementById("installGate_topDefault");
   const topPaid = document.getElementById("installGate_topPaid");
   if (topDefault) topDefault.style.display = "none";
   if (topPaid) topPaid.style.display = "block";
 
-  // Ne pas afficher le bloc paid dans le body (on garde top only)
+  // Body paid block: optionnel.
+  // Comme tu veux "rien d'autre", on le laisse caché (message déjà dans topPaid).
   const paid = document.getElementById("installGate_paid");
   if (paid) paid.style.display = "none";
 
-  // Cache les instructions normales
+  // Hide instructions + error + actions
   const iosBox = document.getElementById("installGate_ios");
-  const aBox  = document.getElementById("installGate_android");
-  const mBox  = document.getElementById("installGate_mac");
+  const aBox   = document.getElementById("installGate_android");
+  const mBox   = document.getElementById("installGate_mac");
   if (iosBox) iosBox.style.display = "none";
   if (aBox)   aBox.style.display   = "none";
   if (mBox)   mBox.style.display   = "none";
 
-  // Cache les actions (installer maintenant / déjà installé)
+  const err = document.getElementById("installGateError");
+  if (err) err.style.display = "none";
+
   const actions = document.getElementById("installGate_actions");
   if (actions) actions.style.display = "none";
 
-  try { clearHash(); } catch(_) {}
+  // Anti-hash loop
+  try { clearHash(); } catch (_) {}
 }
 
 function closeInstallGate(){
