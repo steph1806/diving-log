@@ -3039,10 +3039,10 @@
         </div>
 
         <!-- C1 -->
-        <div style="font-weight:700; font-size:30px; line-height:1.12; margin:0;">
+         <div id="installGate_title" style="font-weight:700; font-size:30px; line-height:1.12; margin:0;">
           Installez Ocean Infinity
         </div>
-        <div style="font-size:16px; opacity:.78; margin-top:10px; line-height:1.35;">
+        <div id="installGate_subtitle" style="font-size:16px; opacity:.78; margin-top:10px; line-height:1.35;">
           Installation requise pour continuer.
         </div>
       </div>
@@ -3063,7 +3063,7 @@
       </div>
 
       <!-- Instructions block (minimal, premium) -->
-      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05);">
+      <div id="installGate_instructionsWrap" style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05);">
 
         <!-- iPhone / iPad -->
         <div id="installGate_ios" style="display:none;">
@@ -3148,15 +3148,12 @@
       </div>
 
       <!-- Actions -->
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
+     <div id="installGate_actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
         <button type="button" class="btn btn-primary" id="btnInstallNow" style="display:none; border-radius:16px; padding:12px 16px; font-weight:800;">
           Installer maintenant
         </button>
 
-        <button type="button" class="btn" id="btnInstalledCheck"
-                style="border-radius:16px; padding:12px 16px; font-weight:800; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#fff;">
-          J’ai déjà installé l’app
-        </button>
+        
       </div>
 
     </div>
@@ -3531,7 +3528,20 @@ function openInstallGate(){
   // reset error
   const err = document.getElementById("installGateError");
   if (err) err.style.display = "none";
+// reset "paid" state back to normal install gate
+   const t = document.getElementById("installGate_title");
+   const st = document.getElementById("installGate_subtitle");
+   if (t)  t.textContent  = "Installez Ocean Infinity";
+   if (st) st.textContent = "Installation requise pour continuer.";
 
+   const paid = document.getElementById("installGate_paid");
+   if (paid) paid.style.display = "none";
+ 
+   const wrap = document.getElementById("installGate_instructionsWrap");
+   if (wrap) wrap.style.display = "block";
+ 
+   const actions = document.getElementById("installGate_actions");
+   if (actions) actions.style.display = "flex";
   const iosBox = document.getElementById("installGate_ios");
   const aBox   = document.getElementById("installGate_android");
   const mBox   = document.getElementById("installGate_mac");
@@ -3547,20 +3557,28 @@ function openInstallGate(){
 }
 
 function showPaidSuccessModal() {
-  // Affiche le modal existant
+  // Affiche le modal existant (et reset état)
   openInstallGate();
 
-  // Montre le bloc post-paiement
-  const paid = document.getElementById("installGate_paid");
-  if (paid) paid.style.display = "block";
+  // Top bar -> état paiement (on ne reparle plus d'installation ici)
+const t = document.getElementById("installGate_title");
+   const st = document.getElementById("installGate_subtitle");
+   if (t)  t.textContent  = "Paiement validé";
+   if (st) st.textContent = "Appuyez sur le bouton Open (en haut à droite).";
+ 
+   // Montre le bloc post-paiement (message court)
+   const paid = document.getElementById("installGate_paid");
+   if (paid) paid.style.display = "block";
+   const paid = document.getElementById("installGate_paid");
+   if (paid) paid.style.display = "block";
 
-  // Cache les instructions normales (sinon ça brouille le DP)
-  const iosBox = document.getElementById("installGate_ios");
-  const aBox   = document.getElementById("installGate_android");
-  const mBox   = document.getElementById("installGate_mac");
-  if (iosBox) iosBox.style.display = "none";
-  if (aBox)   aBox.style.display   = "none";
-  if (mBox)   mBox.style.display   = "none";
+ // Cache le bloc instructions (sinon ça fait "cadre vide")
+   const wrap = document.getElementById("installGate_instructionsWrap");
+   if (wrap) wrap.style.display = "none";
+ 
+   // Cache les actions (dont "J’ai déjà installé l’app")
+   const actions = document.getElementById("installGate_actions");
+   if (actions) actions.style.display = "none";
 
   // Important: ne pas rester bloqué sur le hash
   try { clearHash(); } catch(_) {}
