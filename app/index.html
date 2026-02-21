@@ -3514,6 +3514,14 @@ let deferredPwaInstallPrompt = null;
 function openInstallGate() {
   const m = document.getElementById("installGateModal");
   if (!m) return;
+  // --- platform detection (simple & robust) ---
+  const ua = navigator.userAgent || "";
+  const isAndroid = /Android/i.test(ua);
+
+  // iPhone/iPad (inclut iPadOS qui ment parfois en "MacIntel")
+  const isIOS =
+    /iPhone|iPad|iPod/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
   // ---- RESET GLOBAL UI (install mode by default) ----
   const topDefault = document.getElementById("installGate_topDefault");
@@ -3538,10 +3546,14 @@ function openInstallGate() {
   if (aBox)   aBox.style.display   = "none";
   if (mBox)   mBox.style.display   = "none";
 
-  // ---- PHASE 1: Mac only (as requested) ----
-  // Important: ici on suppose que ce gate est appelé sur Mac Safari (non-standalone).
-  // Donc on force Mac block uniquement.
-  if (mBox) mBox.style.display = "block";
+  // ---- PHASE 1: show ONLY the relevant platform instructions ----
+  if (isIOS) {
+    if (iosBox) iosBox.style.display = "block";
+  } else if (isAndroid) {
+    if (aBox) aBox.style.display = "block";
+  } else {
+    if (mBox) mBox.style.display = "block"; // desktop Safari (Mac)
+  }
 
   // Installer maintenant (deferred prompt) => inutile sur Mac, et tu veux "rien d'autre"
   const btnInstall = document.getElementById("btnInstallNow");
