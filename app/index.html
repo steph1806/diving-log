@@ -5527,14 +5527,18 @@ function initPDJTools() {
     const bSub = document.getElementById("btn_billing_subscribe");
 
     async function startCheckoutOnce(){
-      if (__checkoutInFlight) return;
+     console.log("[PAY] click startCheckoutOnce");
+     if (__checkoutInFlight) return;
 
-      // 🔎 vérifier si déjà ACTIVE
-      const j = await revalidateCenterByJoin();
-      if (j && j.status === "active") {
-        alert("Abonnement déjà actif ✅");
-        return;
-      }
+     console.log("[PAY] before revalidate");
+     const j = await revalidateCenterByJoin();
+     console.log("[PAY] after revalidate", j);
+
+     // vérifier si déjà actif (garde ton test existant ici, sans redéclarer j)
+     if (j && j.status === "active") {
+       alert("Abonnement déjà actif ✅");
+       return;
+     }
 
       __checkoutInFlight = true;
 
