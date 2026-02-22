@@ -836,6 +836,12 @@
       font-size: 12pt;
     }
 
+    #pdf-preview.preview-fit { overflow-x: hidden; }
+    #pdf-preview.preview-fit .pdf-page {
+      transform: scale(var(--pvScale, 1));
+      transform-origin: top center;
+    }
+
     .pdf-title {
       font-size: 16pt;
       font-weight: 700;
@@ -10351,6 +10357,18 @@ function buildPdfMock() {
   const preview = document.getElementById("pdf-preview");
   if (preview) {
    preview.innerHTML = html;
+
+   // --- Fit preview to iPhone width (visual only) ---
+   preview.classList.add("preview-fit");
+
+   const page = preview.querySelector(".pdf-page");
+   if (page) {
+     const avail = Math.max(280, preview.clientWidth - 16);
+     const naturalW = page.getBoundingClientRect().width || 1;
+     const s = Math.min(1, avail / naturalW);
+     preview.style.setProperty("--pvScale", String(s));
+   }
+
    preview.scrollIntoView({ behavior: "smooth", block: "start" });
 
    // Reset ONLY if the document context changed
