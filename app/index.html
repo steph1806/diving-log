@@ -3164,6 +3164,11 @@
 <script src="cert_catalog_v1.js"></script>
 <script>
 
+window.__OI_calls = window.__OI_calls || {};
+function __oiMark(name){
+  window.__OI_calls[name] = (window.__OI_calls[name] || 0) + 1;
+}
+
   const STORAGE_KEY_FICHE = "seaAngel_fichePlongee_v2";
   const DIVER_LIBRARY_KEY = "seaAngel_divers_library_v1";
   const CERT_LIBRARY_KEY  = "seaAngel_cert_library_v1";
@@ -3246,12 +3251,7 @@
     return Math.max(1, Math.min(8, Math.floor(x)));
   }
 
-  function syncCenterSetupButtonUI() {
-    const btnCfg = document.getElementById("btn_center_setup");
-    if (!btnCfg) return;
-    btnCfg.disabled = !STATE.configured;
-    btnCfg.style.opacity = btnCfg.disabled ? "0.5" : "1";
-  }
+
 
   function hydrateStateFromStorage(){
     const c = loadCenterCfg();
@@ -3269,7 +3269,7 @@
       STATE.boatsN >= 1
     );
 
-      syncCenterSetupButtonUI();
+  
 
       // Billing watchdog must not depend on runAfterSplash (app may stay alive for hours/days)
       if (STATE.configured) {
@@ -3283,7 +3283,7 @@
     STATE.boatsN = 1;
     STATE.centerKey = null; // NEW
     STATE.configured = false;
-    syncCenterSetupButtonUI();
+  
     return false;
   }
 
@@ -3305,12 +3305,6 @@
   function renderCenterDisplay(){
     const nm = STATE.centerName ? String(STATE.centerName) : "_";
     const id = STATE.centerId ? String(STATE.centerId) : "";
-
-    const el = document.getElementById("center_display");
-    if (el) {
-      el.textContent = id ? (nm + " — " + id) : nm;
-    }
-
     const t = document.getElementById("pdj_center_name");
     if (t) {
       t.textContent = (nm && nm !== "_") ? ("– " + nm) : "";
@@ -3415,7 +3409,7 @@ function renderGaBulkBoatSelect(){
       STATE.boatsN >= 1
     );
 
-    syncCenterSetupButtonUI();
+   
     persistStateToStorage();
     renderApp();
     try { renderCenterDisplay(); } catch (e) {}
@@ -3644,14 +3638,7 @@ window.closeInstallGate = closeInstallGate;
 window.triggerPwaInstall = triggerPwaInstall;
 
 
-  function lockCenterIdInput(lock){
-    const el = document.getElementById("center_id_input");
-    if (!el) return;
-    el.disabled = !!lock;
-    el.style.pointerEvents = lock ? "none" : "auto";
-    el.style.opacity = lock ? "0.6" : "1";
-  }
-
+  
   const FAVORITE_DIVERS_KEY = "seaAngel_favoriteDivers_v1";
   const MAX_GROUPS = 20;
 
@@ -9644,6 +9631,7 @@ return card;
 
   
 function buildPdfMock() {
+  __oiMark("buildPdfMock");
   // ===== PDF v0 (rebuild from scratch) — Phase 2: PAGE 1 only =====
   const centerName = STATE.centerName ? String(STATE.centerName) : "—";
   const centerId = STATE.centerId ? String(STATE.centerId) : "";
@@ -10539,6 +10527,7 @@ function closePdfPreview() {
    
 
   async function exportPdf() {
+  __oiMark("exportPdf");
     buildPdfMock();
 
     const preview = document.getElementById("pdf-preview");
@@ -10728,7 +10717,6 @@ function closePdfPreview() {
   const secPlongeurs = document.getElementById("sec-plongeurs-jour");
   const secGroupes   = document.getElementById("sec-groupes");
   const secExport    = document.getElementById("sec-export");
-  const secPdfMock   = document.getElementById("sec-pdf-mock");
   const secBefore    = document.getElementById("sec-before-group");
   const secAfter     = document.getElementById("sec-after-group");
   const secSiteGps   = document.getElementById("sec-site-gps");
@@ -10741,7 +10729,6 @@ function closePdfPreview() {
   if (secPlongeurs) secPlongeurs.style.display = "block";
   if (secGroupes)   secGroupes.style.display   = "block";
   if (secExport)    secExport.style.display    = "block";
-  if (secPdfMock)   secPdfMock.style.display   = "block";
   if (secSiteGps)   secSiteGps.style.display   = "";
 
   // Masquer les sections plein écran AVANT / APRÈS
@@ -10779,7 +10766,6 @@ function closePdfPreview() {
   const secPlongeurs = document.getElementById("sec-plongeurs-jour");
   const secGroupes   = document.getElementById("sec-groupes");
   const secExport    = document.getElementById("sec-export");
-  const secPdfMock   = document.getElementById("sec-pdf-mock");
   const secBefore    = document.getElementById("sec-before-group");
   const secAfter     = document.getElementById("sec-after-group");
   const headerName   = document.getElementById("before_group_name");
@@ -10793,7 +10779,6 @@ function closePdfPreview() {
   if (secPlongeurs) secPlongeurs.style.display = "none";
   if (secGroupes)   secGroupes.style.display   = "none";
   if (secExport)    secExport.style.display    = "none";
-  if (secPdfMock)   secPdfMock.style.display   = "none";
   if (secSiteGps) secSiteGps.style.display     = "none";
 
   // ne laisser visible que la section AVANT
@@ -10858,7 +10843,6 @@ function renderBeforeGroupMeta(groupId) {
   const secPlongeurs = document.getElementById("sec-plongeurs-jour");
   const secGroupes   = document.getElementById("sec-groupes");
   const secExport    = document.getElementById("sec-export");
-  const secPdfMock   = document.getElementById("sec-pdf-mock");
   const secBefore    = document.getElementById("sec-before-group");
   const secAfter     = document.getElementById("sec-after-group");
   const headerName   = document.getElementById("after_group_name");
@@ -10872,7 +10856,6 @@ function renderBeforeGroupMeta(groupId) {
   if (secPlongeurs) secPlongeurs.style.display = "none";
   if (secGroupes)   secGroupes.style.display   = "none";
   if (secExport)    secExport.style.display    = "none";
-  if (secPdfMock)   secPdfMock.style.display   = "none";
   if (secSiteGps) secSiteGps.style.display     = "none";
 
   // ne laisser visible que la section APRÈS
@@ -11045,12 +11028,7 @@ function populateBeforeForm(groupId) {
 
   // Ensure correct state immediately after populate (e.g., reload with stored RT1)
   updateBeforeAnalyseButtonState();
-  // Sync header summary (date/DTR/sortie)
-  const dtrSpan = document.getElementById("before_md_dtr");
-  if (dtrSpan) dtrSpan.textContent = (before.dtrMaxMin != null) ? (before.dtrMaxMin + " min") : "—";
-  const exitSpan = document.getElementById("before_md_exit");
-  if (exitSpan) exitSpan.textContent = (before.exitPlanned && String(before.exitPlanned).trim()) ? String(before.exitPlanned).trim() : "—";
-
+  
 
 }
 
@@ -12643,13 +12621,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    const exportBtn = document.getElementById("btn-export");
-    if (exportBtn) {
-      exportBtn.addEventListener("click", function () {
-        exportWhatsApp();
-      });
-    }
-
+    
     renderPlongeursDuJourSelector();
     const btnPJ = document.getElementById("btn_valider_plongeurs_jour");
     if (btnPJ) {
@@ -13473,14 +13445,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
-  const btnCfg = document.getElementById("btn_center_setup");
-  if (btnCfg) btnCfg.addEventListener("click", () => {
-    if (!isStandaloneMode()){
-      openInstallGate();
-      return;
-    }
-    openCenterSetupModal(false);
-  });
 
   const btnClose = document.getElementById("btnCenterSetupClose");
   if (btnClose) btnClose.addEventListener("click", () => { closeCenterSetupModal(); refreshCenterDisplay(); });
@@ -13534,8 +13498,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // =========================
 // Install assistant wiring  ← STEP 3 ICI
 // =========================
-const btnGateClose = document.getElementById("btnInstallGateClose");
-if (btnGateClose) btnGateClose.addEventListener("click", closeInstallGate);
 
 const btnInstalled = document.getElementById("btnInstalledCheck");
 if (btnInstalled) btnInstalled.addEventListener("click", () => {
