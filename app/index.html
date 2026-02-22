@@ -819,8 +819,10 @@
     /* ===========================
        PREVIEW PDF A4
        =========================== */
-    #pdf-preview {
+     #pdf-preview {
       margin-top: 14px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .pdf-page {
@@ -836,11 +838,7 @@
       font-size: 12pt;
     }
 
-    #pdf-preview.preview-fit { overflow-x: hidden; }
-    #pdf-preview.preview-fit .pdf-page {
-      transform: scale(var(--pvScale, 1));
-      transform-origin: top center;
-    }
+   
 
     .pdf-title {
       font-size: 16pt;
