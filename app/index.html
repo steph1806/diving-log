@@ -2374,6 +2374,11 @@
         <button type="button" class="btn btn-secondary btn-ellipsis" id="btn_library_menu" title="Outils bibliothèque">⋯</button>
         <div class="lib-menu" id="library_menu" style="display:none;">
           <button type="button" class="lib-menu-item" id="btn_export_library" title="Exporter la bibliothèque (plongeurs + DP/instructeurs)">⬇️ Exporter bibliothèque</button>
+
+          <button type="button" class="lib-menu-item" id="btn_instructors_pull" title="Récupérer les formateurs depuis le serveur du centre (remplace le local)">⬇️ Charger formateurs du centre</button>
+
+          <button type="button" class="lib-menu-item" id="btn_instructors_push" title="Envoyer les formateurs vers le serveur du centre (remplace le serveur)">⬆️ Publier formateurs vers le centre</button>
+
 <!--
           <button type="button" class="lib-menu-item" id="btn_import_library" title="Importer une bibliothèque (merge non destructif)">⬆️ Importer bibliothèque</button>
 
@@ -5470,6 +5475,36 @@ function initPDJTools() {
   const btnExpLib = document.getElementById("btn_export_library");
   if (btnExpLib) btnExpLib.onclick = () => { try{ closeLibMenu(); }catch(_){} exportDivinglogLibrary(); };
 
+  // Instructors server sync (REPLACE TOTAL)
+  const btnInstrPull = document.getElementById("btn_instructors_pull");
+  const btnInstrPush = document.getElementById("btn_instructors_push");
+  const _disableInstrBtns = (v) => {
+    try { if (btnInstrPull) btnInstrPull.disabled = !!v; } catch(_) {}
+    try { if (btnInstrPush) btnInstrPush.disabled = !!v; } catch(_) {}
+  };
+  const _instrGuard = async (fn) => {
+    if (window.__OI_instructorsSyncInFlight) return;
+    window.__OI_instructorsSyncInFlight = true;
+    _disableInstrBtns(true);
+    try { return await fn(); }
+    finally {
+      window.__OI_instructorsSyncInFlight = false;
+      _disableInstrBtns(false);
+    }
+  };
+
+  if (btnInstrPull) btnInstrPull.onclick = () => _instrGuard(async () => {
+    try { closeLibMenu(); } catch(_) {}
+    const res = await instructorsPullReplaceTotal();
+    toast && toast(`✅ Formateurs chargés (${res.count}).`);
+  }).catch(e => { toast && toast(`❌ Sync impossible: ${String(e && e.message ? e.message : e)}`); });
+
+  if (btnInstrPush) btnInstrPush.onclick = () => _instrGuard(async () => {
+    try { closeLibMenu(); } catch(_) {}
+    await instructorsPushReplaceTotal();
+    toast && toast("✅ Formateurs publiés.");
+  }).catch(e => { toast && toast(`❌ Sync impossible: ${String(e && e.message ? e.message : e)}`); });
+
   const btnImpLib = document.getElementById("btn_import_library");
   const fileImpLib = document.getElementById("file_import_library");
   if (btnImpLib && fileImpLib) {
@@ -5479,6 +5514,7 @@ function initPDJTools() {
       if (f) importDivinglogLibraryFromFile(f);
     };
   }
+
 
 
   const btnImpCsv = document.getElementById("btn_import_csv");
@@ -6817,6 +6853,56 @@ function saveInstructorLibrary() {
   }
 }
 
+// ==========================
+// INSTRUCTORS SYNC (SERVER) — REPLACE TOTAL
+// - Pull: server -> local (remplace localStorage)
+// - Push: local -> server (remplace serveur)
+// Contract: Netlify functions instructors_get / instructors_put
+// Uses centerKey stored in CENTER_CFG_KEY (loadCenterCfg().centerKey)
+// ==========================
+async function instructorsPullReplaceTotal() {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) throw new Error("missing_centerKey");
+
+  const r = await fetch("/.netlify/functions/instructors_get", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ centerKey })
+  });
+  const j = await r.json().catch(() => null);
+  if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "instructors_get_failed");
+
+  // Accept array or object; we store as array in local instructorLibrary
+  const incoming = j.instructors;
+  const arr = Array.isArray(incoming) ? incoming : (incoming && Array.isArray(incoming.items) ? incoming.items : []);
+  const norm = normalizeInstructorLibrary(arr);
+  instructorLibrary = norm.out;
+  try { localStorage.setItem(INSTRUCTOR_LIBRARY_KEY, JSON.stringify(norm.out)); } catch(_) {}
+  if (typeof refreshContextInstructorDatalists === "function") {
+    try { refreshContextInstructorDatalists(); } catch(e) {}
+  }
+  return { count: norm.out.length, updatedAt: j.updatedAt || 0 };
+}
+
+async function instructorsPushReplaceTotal() {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) throw new Error("missing_centerKey");
+
+  const norm = normalizeInstructorLibrary(Array.isArray(instructorLibrary) ? instructorLibrary : []);
+  instructorLibrary = norm.out;
+  try { localStorage.setItem(INSTRUCTOR_LIBRARY_KEY, JSON.stringify(norm.out)); } catch(_) {}
+
+  const r = await fetch("/.netlify/functions/instructors_put", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ centerKey, instructors: norm.out })
+  });
+  const j = await r.json().catch(() => null);
+  if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "instructors_put_failed");
+  return { updatedAt: j.updatedAt || 0 };
+}
 
 // ==========================
 // LIBRARY TRANSFER (Export / Import) — non destructif
