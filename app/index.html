@@ -2272,7 +2272,7 @@
         <div style="display:flex; gap:6px; align-items:center;">
           <input id="dive_const_dp" type="text" placeholder="Nom du Directeur de plongée" list="dp_list" style="flex:1;"/>
           <button type="button" class="btn btn-secondary" id="btn_dp_add" title="Ajouter / ouvrir la base formateurs DP" style="white-space:nowrap;">📚</button>
-          <button type="button" class="btn btn-secondary" id="btn_instructor_sync" title="Synchroniser la base instructeurs depuis la bibliothèque plongeurs (ajout uniquement)" style="white-space:nowrap;">↻</button>
+          
         </div>
       </div>
       <datalist id="dp_list"></datalist>
@@ -2380,10 +2380,6 @@
           <button type="button" class="lib-menu-item" id="btn_sync_situation">
             ↻ Synchroniser (situation)
           </button>
-
-          <button type="button" class="lib-menu-item" id="btn_instructors_pull" title="Récupérer les formateurs depuis le serveur du centre (remplace le local)">⬇️ Charger formateurs du centre</button>
-
-          <button type="button" class="lib-menu-item" id="btn_instructors_push" title="Envoyer les formateurs vers le serveur du centre (remplace le serveur)">⬆️ Publier formateurs vers le centre</button>
 
 <!--
           <button type="button" class="lib-menu-item" id="btn_import_library" title="Importer une bibliothèque (merge non destructif)">⬆️ Importer bibliothèque</button>
@@ -6923,6 +6919,39 @@ function isMasterDevice() {
   catch(_) { return false; }
 }
 
+// ===== Instructors: silent auto-pull for joiners =====
+let __OI_instructorsAutoPullTimer = null;
+
+function startInstructorsAutoPullIfJoiner() {
+  try {
+    if (__OI_instructorsAutoPullTimer) {
+      clearInterval(__OI_instructorsAutoPullTimer);
+    }
+  } catch (_) {}
+  __OI_instructorsAutoPullTimer = null;
+
+  // Master device NEVER auto-pulls
+  if (isMasterDevice()) return;
+
+  // Need centerKey
+  let cfg = null;
+  try { cfg = loadCenterCfg(); } catch (_) {}
+  const centerKey = (cfg && cfg.centerKey)
+    ? String(cfg.centerKey).trim()
+    : "";
+  if (!centerKey) return;
+
+  // Immediate silent pull
+  try { instructorsPullReplaceTotal(); } catch (_) {}
+
+  // Periodic silent pull (15 minutes)
+  __OI_instructorsAutoPullTimer = setInterval(() => {
+    try {
+      if (navigator && navigator.onLine === false) return;
+      instructorsPullReplaceTotal();
+    } catch (_) {}
+  }, 15 * 60 * 1000);
+}
 
 // ==========================
 // LIBRARY TRANSFER (Export / Import) — non destructif
