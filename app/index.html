@@ -13695,12 +13695,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // Non-master device (joined an existing center)
       try { localStorage.setItem("IS_MASTER_DEVICE", "0"); } catch(_) {}
       // Silent pull instructors on joiner devices
-      try { instructorsPullReplaceTotal(); } catch(_) {}
+      Promise.resolve(instructorsPullReplaceTotal(true)).catch(()=>{});
 
       // ✅ START watchdog immediately after JOIN (no need to restart app)
       try { clearInterval(billingWatchdogInterval); } catch (_) {}
       // Silent pull sites snapshot after JOIN
-      try { sitesPullSnapshot(true); } catch(_) {}
+      Promise.resolve(sitesPullSnapshot(true)).catch(()=>{});
       billingWatchdogInterval = null;
       try { startBillingWatchdog(); } catch (e) { console.warn("startBillingWatchdog failed", e); }
       closeCenterSetupModal();
