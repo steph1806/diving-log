@@ -2348,6 +2348,8 @@
         <button type="button" class="btn btn-secondary" id="btn_gps_capture" style="width:100%;">📍 Capturer</button>
       </div>
 
+
+
       <span id="site_gps_status" class="status-text" style="align-self:center;"></span>
     </div>
   </section>
@@ -2374,6 +2376,10 @@
         <button type="button" class="btn btn-secondary btn-ellipsis" id="btn_library_menu" title="Outils bibliothèque">⋯</button>
         <div class="lib-menu" id="library_menu" style="display:none;">
           <button type="button" class="lib-menu-item" id="btn_export_library" title="Exporter la bibliothèque (plongeurs + DP/instructeurs)">⬇️ Exporter bibliothèque</button>
+
+          <button type="button" class="lib-menu-item" id="btn_sync_situation">
+            ↻ Synchroniser (situation)
+          </button>
 
           <button type="button" class="lib-menu-item" id="btn_instructors_pull" title="Récupérer les formateurs depuis le serveur du centre (remplace le local)">⬇️ Charger formateurs du centre</button>
 
@@ -5515,7 +5521,15 @@ function initPDJTools() {
     };
   }
 
-
+  const btnSyncSituation = document.getElementById("btn_sync_situation");
+  if (btnSyncSituation) {
+    btnSyncSituation.onclick = async () => {
+      try { closeLibMenu && closeLibMenu(); } catch(_) {}
+      try { await sitesSyncSituation(); } catch(e) {
+        try { toast && toast(`❌ Sync situation impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+      }
+    };
+  }
 
   const btnImpCsv = document.getElementById("btn_import_csv");
   if (btnImpCsv) {
@@ -6903,6 +6917,12 @@ async function instructorsPushReplaceTotal() {
   if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "instructors_put_failed");
   return { updatedAt: j.updatedAt || 0 };
 }
+
+function isMasterDevice() {
+  try { return localStorage.getItem("IS_MASTER_DEVICE") === "1"; }
+  catch(_) { return false; }
+}
+
 
 // ==========================
 // LIBRARY TRANSFER (Export / Import) — non destructif
@@ -12136,6 +12156,98 @@ function saveSiteLibrary(arr) {
   }
 }
 
+// ===============================
+// SITES (server sync) — Situation merge
+// - Visible button on all devices: "Synchroniser (situation)"
+// - Server merges per site record (never replace total).
+// ===============================
+
+async function sitesPullSnapshot(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  try {
+    const r = await fetch("/.netlify/functions/sites_get", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ centerKey })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "sites_get_failed");
+
+    const sites = Array.isArray(j.sites) ? j.sites : [];
+    saveSiteLibrary(sites);
+
+    // Refresh UI bits that depend on sites
+    try { renderSiteSelect(); } catch(_) {}
+    try { updateGpsNavDisplay(); } catch(_) {}
+
+    if (!silent) {
+      try { toast && toast(`✅ Sites synchronisés (${sites.length}).`); } catch(_) {}
+    }
+
+    return { ok:true, count: sites.length, updatedAt: j.updatedAt || 0 };
+  } catch(e) {
+    if (!silent) {
+      try { toast && toast(`❌ Sync sites impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
+}
+
+async function sitesPushSituationMerge(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  const sites = loadSiteLibrary();
+
+  try {
+    const r = await fetch("/.netlify/functions/sites_put_situation", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ centerKey, sites })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "sites_put_failed");
+    return { ok:true, merged: j.merged || 0, updatedAt: j.updatedAt || 0 };
+  } catch(e) {
+    if (!silent) {
+      try { toast && toast(`❌ Push sites impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
+}
+
+async function sitesSyncSituation() {
+  // guard multi-tap
+  if (window.__OI_sitesSyncInFlight) return;
+  window.__OI_sitesSyncInFlight = true;
+
+  const btnA = document.getElementById("btn_site_sync_situation"); // ancien (si jamais)
+  const btnB = document.getElementById("btn_sync_situation");      // menu (…)
+  if (btnA) btnA.disabled = true;
+  if (btnB) btnB.disabled = true;
+
+  const st = document.getElementById("site_gps_status");
+  if (st) st.textContent = "Synchronisation…";
+
+  try {
+    await sitesPushSituationMerge(true);
+    await sitesPullSnapshot(true);
+    if (st) st.textContent = "✅ Synchronisé";
+    try { toast && toast("✅ Situation sites synchronisée."); } catch(_) {}
+  } catch(e) {
+    if (st) st.textContent = "❌ Sync impossible";
+  } finally {
+    if (btnA) btnA.disabled = false;
+    if (btnB) btnB.disabled = false;
+    window.__OI_sitesSyncInFlight = false;
+  }
+}
+
+
 function normalizeSiteName(name) {
   return (name || "").trim();
 }
@@ -12414,11 +12526,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // --- Site library & GPS ---
-    renderSiteSelect();
+    try { renderSiteSelect(); } catch(_) {}
+    // Silent pull of sites snapshot at startup (if centerKey configured)
+    try { sitesPullSnapshot(true); } catch(_) {}
+
     const siteSel = document.getElementById("dive_site_select");
     const gpsBtn  = document.getElementById("btn_gps_capture");
     const saveBtn = document.getElementById("btn_site_save");
     const delBtn  = document.getElementById("btn_site_delete");
+    const syncBtn = document.getElementById("btn_site_sync_situation");
 
     if (siteSel) {
       siteSel.addEventListener("change", function(){
@@ -12449,6 +12565,11 @@ document.addEventListener("DOMContentLoaded", function () {
       setSiteGpsStatus(r.msg);
       saveFiche();
     });
+    if (syncBtn) syncBtn.addEventListener("click", function(){
+      sitesSyncSituation();
+    });
+
+
 
 
 
@@ -13541,8 +13662,16 @@ document.addEventListener("DOMContentLoaded", () => {
         boatsN: res.boatsN || 1
       });
       updateCenter({ centerKey }); // NEW: persist credential for watchdog/revalidate
+
+      // Non-master device (joined an existing center)
+      try { localStorage.setItem("IS_MASTER_DEVICE", "0"); } catch(_) {}
+      // Silent pull instructors on joiner devices
+      try { instructorsPullReplaceTotal(); } catch(_) {}
+
       // ✅ START watchdog immediately after JOIN (no need to restart app)
       try { clearInterval(billingWatchdogInterval); } catch (_) {}
+      // Silent pull sites snapshot after JOIN
+      try { sitesPullSnapshot(true); } catch(_) {}
       billingWatchdogInterval = null;
       try { startBillingWatchdog(); } catch (e) { console.warn("startBillingWatchdog failed", e); }
       closeCenterSetupModal();
@@ -13606,6 +13735,10 @@ document.addEventListener("DOMContentLoaded", () => {
         boatsN: res.boatsN || boatsN
       });
  
+
+      // Master device (created the center)
+    try { localStorage.setItem("IS_MASTER_DEVICE", "1"); } catch(_) {}
+
       closeCenterSetupModal();
     })
     .catch(err => {
