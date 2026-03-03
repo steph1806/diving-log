@@ -2272,6 +2272,7 @@
         <div style="display:flex; gap:6px; align-items:center;">
           <input id="dive_const_dp" type="text" placeholder="Nom du Directeur de plongée" list="dp_list" style="flex:1;"/>
           <button type="button" class="btn btn-secondary" id="btn_dp_add" title="Ajouter / ouvrir la base formateurs DP" style="white-space:nowrap;">📚</button>
+          <button type="button" class="btn btn-secondary" id="btn_instructor_sync" title="Synchroniser la base instructeurs depuis la bibliothèque plongeurs (ajout uniquement)" style="white-space:nowrap;">↻</button>
         </div>
       </div>
       <datalist id="dp_list"></datalist>
@@ -2347,6 +2348,8 @@
         <button type="button" class="btn btn-secondary" id="btn_gps_capture" style="width:100%;">📍 Capturer</button>
       </div>
 
+
+
       <span id="site_gps_status" class="status-text" style="align-self:center;"></span>
     </div>
   </section>
@@ -2373,6 +2376,14 @@
         <button type="button" class="btn btn-secondary btn-ellipsis" id="btn_library_menu" title="Outils bibliothèque">⋯</button>
         <div class="lib-menu" id="library_menu" style="display:none;">
           <button type="button" class="lib-menu-item" id="btn_export_library" title="Exporter la bibliothèque (plongeurs + DP/instructeurs)">⬇️ Exporter bibliothèque</button>
+
+          <button type="button" class="lib-menu-item" id="btn_sync_situation">
+            ↻ Synchroniser (situation)
+          </button>
+
+          <button type="button" class="lib-menu-item" id="btn_instructors_pull" title="Récupérer les formateurs depuis le serveur du centre (remplace le local)">⬇️ Charger formateurs du centre</button>
+
+          <button type="button" class="lib-menu-item" id="btn_instructors_push" title="Envoyer les formateurs vers le serveur du centre (remplace le serveur)">⬆️ Publier formateurs vers le centre</button>
 
 <!--
           <button type="button" class="lib-menu-item" id="btn_import_library" title="Importer une bibliothèque (merge non destructif)">⬆️ Importer bibliothèque</button>
@@ -5471,6 +5482,35 @@ function initPDJTools() {
   if (btnExpLib) btnExpLib.onclick = () => { try{ closeLibMenu(); }catch(_){} exportDivinglogLibrary(); };
 
   // Instructors server sync (REPLACE TOTAL)
+  const btnInstrPull = document.getElementById("btn_instructors_pull");
+  const btnInstrPush = document.getElementById("btn_instructors_push");
+  const _disableInstrBtns = (v) => {
+    try { if (btnInstrPull) btnInstrPull.disabled = !!v; } catch(_) {}
+    try { if (btnInstrPush) btnInstrPush.disabled = !!v; } catch(_) {}
+  };
+  const _instrGuard = async (fn) => {
+    if (window.__OI_instructorsSyncInFlight) return;
+    window.__OI_instructorsSyncInFlight = true;
+    _disableInstrBtns(true);
+    try { return await fn(); }
+    finally {
+      window.__OI_instructorsSyncInFlight = false;
+      _disableInstrBtns(false);
+    }
+  };
+
+  if (btnInstrPull) btnInstrPull.onclick = () => _instrGuard(async () => {
+    try { closeLibMenu(); } catch(_) {}
+    const res = await instructorsPullReplaceTotal();
+    toast && toast(`✅ Formateurs chargés (${res.count}).`);
+  }).catch(e => { toast && toast(`❌ Sync impossible: ${String(e && e.message ? e.message : e)}`); });
+
+  if (btnInstrPush) btnInstrPush.onclick = () => _instrGuard(async () => {
+    try { closeLibMenu(); } catch(_) {}
+    await instructorsPushReplaceTotal();
+    toast && toast("✅ Formateurs publiés.");
+  }).catch(e => { toast && toast(`❌ Sync impossible: ${String(e && e.message ? e.message : e)}`); });
+
   const btnImpLib = document.getElementById("btn_import_library");
   const fileImpLib = document.getElementById("file_import_library");
   if (btnImpLib && fileImpLib) {
@@ -5481,7 +5521,15 @@ function initPDJTools() {
     };
   }
 
-
+  const btnSyncSituation = document.getElementById("btn_sync_situation");
+  if (btnSyncSituation) {
+    btnSyncSituation.onclick = async () => {
+      try { closeLibMenu && closeLibMenu(); } catch(_) {}
+      try { await sitesSyncSituation(); } catch(e) {
+        try { toast && toast(`❌ Sync situation impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+      }
+    };
+  }
 
   const btnImpCsv = document.getElementById("btn_import_csv");
   if (btnImpCsv) {
@@ -6810,59 +6858,6 @@ function loadInstructorLibrary() {
     return norm.out;
   } catch(e) { return []; }
 }
-
-// ==========================
-// MASTER FLAG + AUTO SYNC (INSTRUCTEURS)
-// - Master device (center_create) publishes silently (debounced)
-// - Other devices pull silently (startup + join + periodic)
-// ==========================
-const OI_MASTER_FLAG_KEY = "IS_MASTER_DEVICE";
-function setMasterDeviceFlag(isMaster){
-  try { localStorage.setItem(OI_MASTER_FLAG_KEY, isMaster ? "1" : "0"); } catch(_) {}
-}
-function isMasterDevice(){
-  try { return localStorage.getItem(OI_MASTER_FLAG_KEY) === "1"; } catch(_) { return false; }
-}
-
-let __OI_instructorsAutoPullTimer = null;
-function startInstructorsAutoPull(){
-  // idempotent
-  if (__OI_instructorsAutoPullTimer) return;
-  // Only if centerKey is configured
-  try {
-    const cfg = loadCenterCfg();
-    const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
-    if (!centerKey) return;
-  } catch(_) { return; }
-
-  // Immediate silent pull
-  try { instructorsPullReplaceTotal().catch(()=>{}); } catch(_) {}
-
-  // Periodic silent pull (15 min) while app is open
-  __OI_instructorsAutoPullTimer = setInterval(() => {
-    try { instructorsPullReplaceTotal().catch(()=>{}); } catch(_) {}
-  }, 15 * 60 * 1000);
-}
-
-let __OI_instructorsPushDebounceTimer = null;
-function scheduleInstructorsPush(){
-  // Master-only guard
-  if (!isMasterDevice()) return;
-  try {
-    if (__OI_instructorsPushDebounceTimer) clearTimeout(__OI_instructorsPushDebounceTimer);
-  } catch(_) {}
-  __OI_instructorsPushDebounceTimer = setTimeout(() => {
-    try {
-      // Prevent multi taps / re-entrant publishes
-      if (window.__OI_instructorsPublishInFlight) return;
-      window.__OI_instructorsPublishInFlight = true;
-      instructorsPushReplaceTotal().catch(()=>{}).finally(()=>{ window.__OI_instructorsPublishInFlight = false; });
-    } catch(_) {
-      try { window.__OI_instructorsPublishInFlight = false; } catch(__) {}
-    }
-  }, 600); // debounce
-}
-
 function saveInstructorLibrary() {
   const norm = normalizeInstructorLibrary(Array.isArray(instructorLibrary) ? instructorLibrary : []);
   instructorLibrary = norm.out;
@@ -6870,8 +6865,6 @@ function saveInstructorLibrary() {
   if (typeof refreshContextInstructorDatalists === "function") {
     try { refreshContextInstructorDatalists(); } catch(e) {}
   }
-  // Master-only: publish silently (debounced)
-  try { scheduleInstructorsPush(); } catch(_) {}
 }
 
 // ==========================
@@ -6924,6 +6917,12 @@ async function instructorsPushReplaceTotal() {
   if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "instructors_put_failed");
   return { updatedAt: j.updatedAt || 0 };
 }
+
+function isMasterDevice() {
+  try { return localStorage.getItem("IS_MASTER_DEVICE") === "1"; }
+  catch(_) { return false; }
+}
+
 
 // ==========================
 // LIBRARY TRANSFER (Export / Import) — non destructif
@@ -12157,6 +12156,98 @@ function saveSiteLibrary(arr) {
   }
 }
 
+// ===============================
+// SITES (server sync) — Situation merge
+// - Visible button on all devices: "Synchroniser (situation)"
+// - Server merges per site record (never replace total).
+// ===============================
+
+async function sitesPullSnapshot(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  try {
+    const r = await fetch("/.netlify/functions/sites_get", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ centerKey })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "sites_get_failed");
+
+    const sites = Array.isArray(j.sites) ? j.sites : [];
+    saveSiteLibrary(sites);
+
+    // Refresh UI bits that depend on sites
+    try { renderSiteSelect(); } catch(_) {}
+    try { updateGpsNavDisplay(); } catch(_) {}
+
+    if (!silent) {
+      try { toast && toast(`✅ Sites synchronisés (${sites.length}).`); } catch(_) {}
+    }
+
+    return { ok:true, count: sites.length, updatedAt: j.updatedAt || 0 };
+  } catch(e) {
+    if (!silent) {
+      try { toast && toast(`❌ Sync sites impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
+}
+
+async function sitesPushSituationMerge(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  const sites = loadSiteLibrary();
+
+  try {
+    const r = await fetch("/.netlify/functions/sites_put_situation", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ centerKey, sites })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "sites_put_failed");
+    return { ok:true, merged: j.merged || 0, updatedAt: j.updatedAt || 0 };
+  } catch(e) {
+    if (!silent) {
+      try { toast && toast(`❌ Push sites impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
+}
+
+async function sitesSyncSituation() {
+  // guard multi-tap
+  if (window.__OI_sitesSyncInFlight) return;
+  window.__OI_sitesSyncInFlight = true;
+
+  const btnA = document.getElementById("btn_site_sync_situation"); // ancien (si jamais)
+  const btnB = document.getElementById("btn_sync_situation");      // menu (…)
+  if (btnA) btnA.disabled = true;
+  if (btnB) btnB.disabled = true;
+
+  const st = document.getElementById("site_gps_status");
+  if (st) st.textContent = "Synchronisation…";
+
+  try {
+    await sitesPushSituationMerge(true);
+    await sitesPullSnapshot(true);
+    if (st) st.textContent = "✅ Synchronisé";
+    try { toast && toast("✅ Situation sites synchronisée."); } catch(_) {}
+  } catch(e) {
+    if (st) st.textContent = "❌ Sync impossible";
+  } finally {
+    if (btnA) btnA.disabled = false;
+    if (btnB) btnB.disabled = false;
+    window.__OI_sitesSyncInFlight = false;
+  }
+}
+
+
 function normalizeSiteName(name) {
   return (name || "").trim();
 }
@@ -12354,8 +12445,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     } catch(e) {}
     try { refreshContextInstructorDatalists(); } catch(e) {}
-    // Silent auto-pull instructors (startup + periodic) when centerKey is configured
-    try { startInstructorsAutoPull(); } catch(_) {}
     loadCertLibrary();
 
     // Live validation: DP (Contexte du jour)
@@ -12386,6 +12475,20 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
 
+
+      // Quick sync: enrich instructor library from diver library (non-destructive)
+      const syncBtn = document.getElementById("btn_instructor_sync");
+      if (syncBtn) {
+        syncBtn.addEventListener("click", function(){
+          const n = (typeof syncInstructorsFromDiverLibrary === "function") ? syncInstructorsFromDiverLibrary({ onlyIfEmpty: false }) : 0;
+          instructorLibrary = loadInstructorLibrary();
+          try { refreshContextInstructorDatalists(); } catch(e) {}
+          // Small feedback
+          try {
+            openToast && openToast((n>0? (n + " instructeur(s) ajouté(s).") : "Aucun nouvel instructeur détecté."));
+          } catch(e) {}
+        });
+      }
 
       dpEl.addEventListener("input", function(){ renderValidationBanner(); });
       dpEl.addEventListener("change", function(){
@@ -12423,11 +12526,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // --- Site library & GPS ---
-    renderSiteSelect();
+    try { renderSiteSelect(); } catch(_) {}
+    // Silent pull of sites snapshot at startup (if centerKey configured)
+    try { sitesPullSnapshot(true); } catch(_) {}
+
     const siteSel = document.getElementById("dive_site_select");
     const gpsBtn  = document.getElementById("btn_gps_capture");
     const saveBtn = document.getElementById("btn_site_save");
     const delBtn  = document.getElementById("btn_site_delete");
+    const syncBtn = document.getElementById("btn_site_sync_situation");
 
     if (siteSel) {
       siteSel.addEventListener("change", function(){
@@ -12458,6 +12565,11 @@ document.addEventListener("DOMContentLoaded", function () {
       setSiteGpsStatus(r.msg);
       saveFiche();
     });
+    if (syncBtn) syncBtn.addEventListener("click", function(){
+      sitesSyncSituation();
+    });
+
+
 
 
 
@@ -13550,11 +13662,16 @@ document.addEventListener("DOMContentLoaded", () => {
         boatsN: res.boatsN || 1
       });
       updateCenter({ centerKey }); // NEW: persist credential for watchdog/revalidate
-      // Non-master device (JOIN) : pull only, never publish
-      try { setMasterDeviceFlag(false); } catch(_) {}
-      try { startInstructorsAutoPull(); } catch(_) {}
+
+      // Non-master device (joined an existing center)
+      try { localStorage.setItem("IS_MASTER_DEVICE", "0"); } catch(_) {}
+      // Silent pull instructors on joiner devices
+      try { instructorsPullReplaceTotal(); } catch(_) {}
+
       // ✅ START watchdog immediately after JOIN (no need to restart app)
       try { clearInterval(billingWatchdogInterval); } catch (_) {}
+      // Silent pull sites snapshot after JOIN
+      try { sitesPullSnapshot(true); } catch(_) {}
       billingWatchdogInterval = null;
       try { startBillingWatchdog(); } catch (e) { console.warn("startBillingWatchdog failed", e); }
       closeCenterSetupModal();
@@ -13617,9 +13734,11 @@ document.addEventListener("DOMContentLoaded", () => {
         centerName: res.centerName || name,
         boatsN: res.boatsN || boatsN
       });
-      // Master device = created via center_create
-      try { setMasterDeviceFlag(true); } catch(_) {}
  
+
+      // Master device (created the center)
+    try { localStorage.setItem("IS_MASTER_DEVICE", "1"); } catch(_) {}
+
       closeCenterSetupModal();
     })
     .catch(err => {
