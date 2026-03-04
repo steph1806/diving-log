@@ -12260,20 +12260,21 @@ async function sitesSyncSituation() {
   if (btnB) btnB.disabled = true;
 
   const st = document.getElementById("site_gps_status");
-  if (st) st.textContent = "Synchronisation…";
 
   try {
     await sitesPushSituationMerge(true);
     await sitesPullSnapshot(true);
-    if (st) st.textContent = "✅ Synchronisé";
+
     try { toast && toast("✅ Situation sites synchronisée."); } catch(_) {}
+
     showSyncOverlay(
-          "✅ Situation synchronisée",
-          "Sites et GPS mis à jour sur tous les appareils.",
-          1200
-      );
+      "✅ Situation synchronisée",
+      "Sites et GPS mis à jour sur tous les appareils.",
+      1200
+    );
+
   } catch(e) {
-    if (st) st.textContent = "❌ Sync impossible";
+
   } finally {
     if (btnA) btnA.disabled = false;
     if (btnB) btnB.disabled = false;
@@ -12589,12 +12590,17 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     } catch(_) {}
 
+    let __oiLastInstructorPull = 0;
     // Auto pull instructors when app becomes visible again (join devices)
     try {
       if (typeof isMasterDevice === "function" && !isMasterDevice()) {
         document.addEventListener("visibilitychange", function() {
           if (!document.hidden) {
-            Promise.resolve(instructorsPullReplaceTotal(true)).catch(()=>{});
+            const now = Date.now();
+            if (now - __oiLastInstructorPull > 2000) {
+             __oiLastInstructorPull = now;
+             Promise.resolve(instructorsPullReplaceTotal(true)).catch(()=>{});
+            }
           }
         });
       }
