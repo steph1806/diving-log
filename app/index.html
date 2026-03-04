@@ -12267,6 +12267,11 @@ async function sitesSyncSituation() {
     await sitesPullSnapshot(true);
     if (st) st.textContent = "✅ Synchronisé";
     try { toast && toast("✅ Situation sites synchronisée."); } catch(_) {}
+    showSyncOverlay(
+          "✅ Situation synchronisée",
+          "Sites et GPS mis à jour sur tous les appareils.",
+          1200
+      );
   } catch(e) {
     if (st) st.textContent = "❌ Sync impossible";
   } finally {
@@ -12276,6 +12281,23 @@ async function sitesSyncSituation() {
   }
 }
 
+
+function showSyncOverlay(title, msg, autoMs) {
+  const ov = document.getElementById("oiSyncOverlay");
+  if (!ov) return;
+  const t = document.getElementById("oiSyncOverlayTitle");
+  const m = document.getElementById("oiSyncOverlayMsg");
+  if (t) t.textContent = title || "✅ Synchronisé";
+  if (m) m.textContent = msg || "Synchronisation terminée.";
+  ov.style.display = "flex";
+
+  // close on click/tap
+  const close = () => { ov.style.display = "none"; ov.removeEventListener("click", close); };
+  ov.addEventListener("click", close);
+
+  // optional auto close
+  if (autoMs && Number.isFinite(autoMs)) setTimeout(() => { try { close(); } catch(_) {} }, autoMs);
+}
 
 function normalizeSiteName(name) {
   return (name || "").trim();
@@ -12556,8 +12578,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Site library & GPS ---
     try { renderSiteSelect(); } catch(_) {}
-    // Silent pull of sites snapshot at startup (if centerKey configured)
+
+    // Silent pull of sites snapshot at startup
     try { sitesPullSnapshot(true); } catch(_) {}
+
+    // Silent pull instructors at startup (join devices only)
+    try {
+      if (typeof isMasterDevice === "function" && !isMasterDevice()) {
+        Promise.resolve(instructorsPullReplaceTotal(true)).catch(()=>{});
+      }
+    } catch(_) {}
+
+    // Auto pull instructors when app becomes visible again (join devices)
+    try {
+      if (typeof isMasterDevice === "function" && !isMasterDevice()) {
+        document.addEventListener("visibilitychange", function() {
+          if (!document.hidden) {
+            Promise.resolve(instructorsPullReplaceTotal(true)).catch(()=>{});
+          }
+        });
+      }
+    } catch(_) {}
 
     const siteSel = document.getElementById("dive_site_select");
     const gpsBtn  = document.getElementById("btn_gps_capture");
@@ -13908,6 +13949,18 @@ window.addEventListener("beforeinstallprompt", (e) => {
   </div>
 </div>
 
+<div id="oiSyncOverlay" style="display:none; position:fixed; inset:0; z-index:99999;
+  background:rgba(0,0,0,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  align-items:center; justify-content:center; padding:24px;">
+  <div style="max-width:520px; width:100%; background:rgba(20,30,45,.92); color:#fff;
+    border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:18px 16px; text-align:center;">
+    <div id="oiSyncOverlayTitle" style="font-weight:900; font-size:20px; margin-bottom:8px;">✅ Synchronisé</div>
+    <div id="oiSyncOverlayMsg" style="opacity:.9; font-size:14px; line-height:1.35;">
+      Synchronisation terminée.
+    </div>
+    <div style="margin-top:12px; opacity:.7; font-size:12px;">Touchez pour fermer</div>
+  </div>
+</div>
 
 </body>
 </html>
