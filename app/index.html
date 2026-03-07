@@ -2375,24 +2375,26 @@
       <span class="lib-menu-wrap">
         <button type="button" class="btn btn-secondary btn-ellipsis" id="btn_library_menu" title="Outils bibliothèque">⋯</button>
         <div class="lib-menu" id="library_menu" style="display:none;">
-          <button type="button" class="lib-menu-item" id="btn_export_library" title="Exporter la bibliothèque (plongeurs + DP/instructeurs)">⬇️ Exporter bibliothèque</button>
-
           <button type="button" class="lib-menu-item" id="btn_sync_situation">
             ↻ Synchroniser (situation)
           </button>
 
 <!--
+          <button type="button" class="lib-menu-item" id="btn_export_library" title="Exporter la bibliothèque (plongeurs + DP/instructeurs)">⬇️ Exporter bibliothèque</button>
+
           <button type="button" class="lib-menu-item" id="btn_import_library" title="Importer une bibliothèque (merge non destructif)">⬆️ Importer bibliothèque</button>
 
 -->
           <button type="button" class="lib-menu-item" id="btn_import_csv" title="Importer votre base clients / plongeurs (outil avancé)">⬆️ Importer base clients / plongeurs</button>
+          <button type="button" class="lib-menu-item" id="btn_center_rename">
+            ✏️ Modifier le nom du centre
+          </button>
+          <button type="button" class="lib-menu-item" id="btn_copy_center_key" title="Copier l'ID centre (clé) utilisé dans le PDF">📋 Copier clé centre</button>
 
-         <button type="button" class="lib-menu-item" id="btn_copy_center_key" title="Copier l'ID centre (clé) utilisé dans le PDF">📋 Copier clé centre</button>
-
-         <button type="button" class="lib-menu-item" id="btn_subscribe"
-                 title="Souscrire (paiement Stripe)">
-           💳 Souscrire
-         </button>
+          <button type="button" class="lib-menu-item" id="btn_subscribe"
+                  title="Souscrire (paiement Stripe)">
+            💳 Souscrire
+          </button>
 
         </div>
       </span>
@@ -5533,6 +5535,72 @@ function initPDJTools() {
       try { closeLibMenu(); } catch (_) {}
       // Ouvre l’outil CSV v5 (export JSON) — import JSON ensuite via "Importer bibliothèque"
       window.open("csv_multi-diving-agency_v5.html", "_blank", "noopener");
+    };
+  }
+
+
+  const btnCenterRename = document.getElementById("btn_center_rename");
+
+  if (btnCenterRename) {
+    btnCenterRename.onclick = async () => {
+      try { closeLibMenu(); } catch(_) {}
+
+      // master only
+      try {
+        if (typeof isMasterDevice === "function" && !isMasterDevice()) {
+          alert("Seul l’app maître peut modifier le nom du centre.");
+          return;
+        }
+      } catch(_) {
+        alert("Impossible de vérifier le rôle maître.");
+        return;
+      }
+
+      const currentName = (STATE && STATE.centerName) ? String(STATE.centerName) : "";
+      const nextName = window.prompt("Nouveau nom du centre :", currentName);
+
+      if (nextName == null) return; // cancel
+      const centerName = String(nextName || "").trim();
+      if (!centerName) {
+        alert("Nom du centre manquant.");
+        return;
+      }
+
+      const cfg = loadCenterCfg();
+      const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+      if (!centerKey) {
+        alert("Clé centre manquante.");
+        return;
+      }
+
+      btnCenterRename.disabled = true;
+
+      try {
+        const r = await fetch("/.netlify/functions/center_rename", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ centerKey, centerName })
+        });
+
+        const j = await r.json().catch(() => null);
+        if (!j || !j.ok) {
+          throw new Error((j && j.error) ? j.error : "center_rename_failed");
+        }
+
+        // update local STATE + storage + UI
+        updateCenter({
+          centerName: j.centerName || centerName,
+          centerId: j.centerId || (STATE && STATE.centerId) || "",
+          boatsN: j.boatsN || (STATE && STATE.boatsN) || 1
+        });
+
+        try { toast && toast("✅ Nom du centre mis à jour."); } catch(_) {}
+      } catch (e) {
+        console.error(e);
+        alert("Impossible de modifier le nom du centre.");
+      } finally {
+        btnCenterRename.disabled = false;
+      }
     };
   }
 
