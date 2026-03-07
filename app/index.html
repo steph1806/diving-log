@@ -13919,7 +13919,17 @@ window.addEventListener("beforeinstallprompt", (e) => {
     if (b) b.style.display = "inline-block";
   } catch(_) {}
 });
-  refreshCenterDisplay();
+
+// Migration legacy master devices created before IS_MASTER_DEVICE existed
+try {
+  const v = localStorage.getItem("IS_MASTER_DEVICE");
+  const cfg = loadCenterCfg();
+  if (cfg && cfg.id && v === null) {
+    localStorage.setItem("IS_MASTER_DEVICE", "1");
+  }
+} catch(_) {}
+
+refreshCenterDisplay();
 
   // =========================
   // QR Scanner screen wiring
