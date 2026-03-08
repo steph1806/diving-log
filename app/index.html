@@ -2741,6 +2741,10 @@
       📄 Exporter la fiche officielle (PDF)
     </button>
 
+    <button type="button" class="btn" id="btn-new-dive">
+      Nouvelle plongée
+    </button>
+
     <button type="button" class="btn btn-reset" id="btn-reset">
       RESET
     </button>
@@ -3182,6 +3186,8 @@
 
 
   const RECENT_DIVERS_KEY   = "seaAngel_recentDivers_v1";
+  const GROUPS_LIBRARY_KEY  = "seaAngel_groupsLibrary_v1";
+  const RECENT_STAYS_KEY    = "seaAngel_recentStays_v1";
 
   const CENTER_CFG_KEY      = "seaAngel_center_cfg_v1";
 
@@ -3701,6 +3707,8 @@ window.triggerPwaInstall = triggerPwaInstall;
   let pdjSearchQuery = ""; // recherche texte (PDJ) valeur brute d.aptitudes
   let recentDivers = [];
   let favoriteDivers = [];
+  let groupsLibrary = [];
+  let recentStays = [];
 
   let pdjToolsInitDone = false;
 
@@ -3823,10 +3831,12 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
     }
   }
 
-    function clearFiche() {
+    function resetCore(options) {
+    const keepStayStructure = !!(options && options.keepStayStructure);
+
     // 1) Effacer les champs texte / dates / etc.
     document.querySelectorAll("input[type='text'], input[type='number'], textarea").forEach(function (el) {
-      // Keep day-constants (DP / bateau / sécurité surface) across reset
+      // Keep day-constants (DP / bateau / sécurité surface) across both reset levels
       if (el && (el.id === "dive_const_dp" || el.id === "dive_const_boat" || el.id === "dive_const_surface")) return;
       el.value = "";
     });
@@ -3841,104 +3851,110 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
       el.selectedIndex = 0;
     });
 
-    // 4) Réinitialiser les structures en mémoire
-    diversDuJour = [];              // ✅ bon nom de variable
-    saveDiversDuJour();
-   if (typeof updateRecentFromSelection === "function") {
-  updateRecentFromSelection([]);
-}
+    // 4) Réinitialiser les données de plongée / PDF (toujours)
     showMissingPalierWarnings = false;
 
-    groupAssignments = {};
-    groupLeaders = {};
-
-    // IMPORTANT : remettre la liste des groupes à un seul groupe : G1
-    // (GROUP_IDS est const, on modifie son contenu)
-    GROUP_IDS.splice(0, GROUP_IDS.length, "G1");
-
-    // 5) Nettoyer le DOM des groupes supplémentaires (G2, G3, …)
-    const mainRow = document.getElementById("group-main-row");
-    if (mainRow) {
-      const cols = Array.from(mainRow.querySelectorAll(".group-column"));
-      cols.forEach(col => {
-        const gid = col.getAttribute("data-group");
-        if (gid && gid !== "G1") {
-          mainRow.removeChild(col);
-        }
-      });
+    try {
+      localStorage.removeItem(GROUP_DETAILS_KEY);
+      groupDetails = {};
+    } catch(e) {
+      console.warn("resetCore groupDetails error:", e);
     }
 
-    // 6) Réinitialiser les affectations pour les groupes existants (ici seulement G1)
-    resetGroupAssignments();
-    saveGroupAssignments();
-    saveGroupLeaders();
-
-    // 7) Re-rendu de l’UI des groupes
-    renderGroupAssignments();
-    setupGroupDropZones();
-    updateGroupStatus();
-
-    // G4: Export QR par bateau (wiring UI)
-    try { ensureGaExportQrWiring(); } catch(e) {}
-
-    initGroupModeUI();
-    updateGroupHeadersWithLeaders();
-
-    
-    renderValidationBanner();
-// 8) Effacer le preview PDF
     const pdfPreview = document.getElementById("pdf-preview");
     if (pdfPreview) {
       pdfPreview.innerHTML = "";
     }
 
-   // 9) Effacer le localStorage spécifique
     try {
-      localStorage.removeItem(STORAGE_KEY_FICHE);     // ✅ bon nom
-      localStorage.removeItem(DIVERS_DU_JOUR_KEY);
-      localStorage.removeItem(GROUP_ASSIGN_KEY);
-      localStorage.removeItem(GROUP_LEADER_KEY);
-      localStorage.removeItem(GROUP_PRACTICE_KEY);
-      localStorage.removeItem(GROUP_SUPERVISOR_KEY);
+      if (typeof resetPdfActionsState === "function") resetPdfActionsState();
+      if (typeof updatePdfActionsUi === "function") updatePdfActionsUi();
+      if (typeof hidePdfActionsBar === "function") hidePdfActionsBar();
     } catch (e) {
-      console.warn("clearFiche localStorage error:", e);
+      console.warn("resetCore pdf state error:", e);
     }
 
-    // 10) Statut d’info
-    updatePlongeursJourStatus();
-    // 10-bis) Effacer les données Avant/Après
-    try {
-      localStorage.removeItem(GROUP_DETAILS_KEY);
-      groupDetails = {};
-    } catch(e) {
-      console.warn("clearFiche groupDetails error:", e);
+    // 5) Repositionner automatiquement la date du jour
+    const today = new Date().toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+
+    const beforeDate = document.getElementById("group_before_date");
+    if (beforeDate) beforeDate.value = today;
+
+    const afterDate = document.getElementById("group_after_date");
+    if (afterDate) afterDate.value = today;
+
+    // 6) Full reset only: effacer la structure de séjour
+    if (!keepStayStructure) {
+      diversDuJour = [];
+      saveDiversDuJour();
+      if (typeof updateRecentFromSelection === "function") {
+        updateRecentFromSelection([]);
+      }
+
+      groupAssignments = {};
+      groupLeaders = {};
+      groupPractice = {};
+      groupSupervisors = {};
+      diversDuJourUnits = {};
+
+      // IMPORTANT : remettre la liste des groupes à un seul groupe : G1
+      GROUP_IDS.splice(0, GROUP_IDS.length, "G1");
+
+      // Nettoyer le DOM des groupes supplémentaires (G2, G3, …)
+      const mainRow = document.getElementById("group-main-row");
+      if (mainRow) {
+        const cols = Array.from(mainRow.querySelectorAll(".group-column"));
+        cols.forEach(col => {
+          const gid = col.getAttribute("data-group");
+          if (gid && gid !== "G1") {
+            mainRow.removeChild(col);
+          }
+        });
+      }
+
+      resetGroupAssignments();
+      saveGroupAssignments();
+      saveGroupLeaders();
+      saveGroupPractice();
+      saveGroupSupervisors();
+      saveDiversDuJourUnits();
+
+      try {
+        localStorage.removeItem(STORAGE_KEY_FICHE);
+        localStorage.removeItem(DIVERS_DU_JOUR_KEY);
+        localStorage.removeItem(DIVERS_DU_JOUR_UNITS_KEY);
+        localStorage.removeItem(GROUP_ASSIGN_KEY);
+        localStorage.removeItem(GROUP_LEADER_KEY);
+        localStorage.removeItem(GROUP_PRACTICE_KEY);
+        localStorage.removeItem(GROUP_SUPERVISOR_KEY);
+      } catch (e) {
+        console.warn("resetCore full localStorage error:", e);
+      }
     }
-   // 11) Repositionner automatiquement la date du jour
-   const today = new Date().toLocaleDateString("fr-FR", {
-     weekday: "long",
-     day: "numeric",
-     month: "long",
-     year: "numeric"
-   });
 
-   // Pour Avant Plongée
-   const beforeDate = document.getElementById("group_before_date");
-   if (beforeDate) beforeDate.value = today;
-
-   // Pour Après Plongée
-   const afterDate = document.getElementById("group_after_date");
-   if (afterDate) afterDate.value = today;
-
-   // 12) Reset d’affichage (évite état bloqué entre Plongeurs du jour / Groupes)
-   showMissingPalierWarnings = false;
-   currentGroupId = null;
-   pdjView = "ALL";
-   try { showMainLayout(currentGroupId); } catch(e) {}
-   try { updateGpsNavDisplay();
-    renderPlongeursDuJourSelector(); } catch(e) {}
-   try { renderGroupAssignments(); setupGroupDropZones(); updateGroupHeadersWithLeaders(); initGroupModeUI(); updateGroupStatus(); } catch(e) {}
-
+    // 7) Reset d’affichage
+    currentGroupId = null;
+    pdjView = "ALL";
+    try { showMainLayout(currentGroupId); } catch(e) {}
+    try { updateGpsNavDisplay(); renderPlongeursDuJourSelector(); } catch(e) {}
+    try { renderGroupAssignments(); setupGroupDropZones(); updateGroupHeadersWithLeaders(); initGroupModeUI(); updateGroupStatus(); } catch(e) {}
+    try { renderValidationBanner(); } catch(e) {}
+    try { updatePlongeursJourStatus(); } catch(e) {}
   }
+
+  function clearFiche() {
+    resetCore({ keepStayStructure: false });
+  }
+
+  function clearDiveOnly() {
+    resetCore({ keepStayStructure: true });
+  }
+
 
   // ==========================
   // Storage helper: localStorage + IndexedDB fallback (iOS/PWA persistence)
@@ -5241,6 +5257,48 @@ function saveFavoriteDivers() {
     localStorage.setItem(FAVORITE_DIVERS_KEY, JSON.stringify(favoriteDivers));
   } catch (e) {
     console.warn("saveFavoriteDivers error:", e);
+  }
+}
+
+function loadGroupsLibrary() {
+  groupsLibrary = [];
+  try {
+    const raw = localStorage.getItem(GROUPS_LIBRARY_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) groupsLibrary = arr;
+  } catch (e) {
+    console.warn("loadGroupsLibrary error:", e);
+    groupsLibrary = [];
+  }
+}
+
+function saveGroupsLibrary() {
+  try {
+    localStorage.setItem(GROUPS_LIBRARY_KEY, JSON.stringify(groupsLibrary || []));
+  } catch (e) {
+    console.warn("saveGroupsLibrary error:", e);
+  }
+}
+
+function loadRecentStays() {
+  recentStays = [];
+  try {
+    const raw = localStorage.getItem(RECENT_STAYS_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) recentStays = arr;
+  } catch (e) {
+    console.warn("loadRecentStays error:", e);
+    recentStays = [];
+  }
+}
+
+function saveRecentStays() {
+  try {
+    localStorage.setItem(RECENT_STAYS_KEY, JSON.stringify(recentStays || []));
+  } catch (e) {
+    console.warn("saveRecentStays error:", e);
   }
 }
 
@@ -12931,6 +12989,8 @@ document.addEventListener("DOMContentLoaded", function () {
     loadGroupAssignments();
     loadGroupLeaders();
     loadGroupDetails();
+    loadGroupsLibrary();
+    loadRecentStays();
     groupPractice = loadGroupPractice();
     groupSupervisors = loadGroupSupervisors();
     instructorLibrary = loadInstructorLibrary();
@@ -12988,8 +13048,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const resetBtn = document.getElementById("btn-reset");
     if (resetBtn) {
       resetBtn.addEventListener("click", function () {
-        if (confirm("Effacer tous les champs de la fiche ?")) {
+        if (confirm("Effacer toute la fiche et la structure du séjour ?")) {
           clearFiche();
+        }
+      });
+    }
+
+    const newDiveBtn = document.getElementById("btn-new-dive");
+    if (newDiveBtn) {
+      newDiveBtn.addEventListener("click", function () {
+        if (confirm("Nouvelle plongée : conserver les groupes et effacer uniquement Avant / Après + PDF ?")) {
+          clearDiveOnly();
         }
       });
     }
