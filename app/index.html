@@ -2593,6 +2593,8 @@
       <div class="pdj-row">
         <button type="button" class="btn pdj-chip" id="pdj_view_all">Tous</button>
         <button type="button" class="btn pdj-chip" id="pdj_view_fav">Favoris</button>
+        <button type="button" class="btn pdj-chip" id="pdj_view_groups">Groupes</button>
+        <button type="button" class="btn pdj-chip" id="pdj_view_stays">Récents</button>
         <input type="text" id="pdj_search" class="pdj-search" placeholder="Rechercher…">
         <datalist id="pdj_search_list"></datalist>
         <select id="pdj_filter_apt" class="pdj-select" title="Filtrer par aptitude">
@@ -2739,6 +2741,10 @@
 
     <button type="button" class="btn btn-primary" id="btn-export-pdf">
       📄 Exporter la fiche officielle (PDF)
+    </button>
+
+    <button type="button" class="btn" id="btn-new-dive">
+      Nouvelle plongée
     </button>
 
     <button type="button" class="btn btn-reset" id="btn-reset">
@@ -3182,6 +3188,8 @@
 
 
   const RECENT_DIVERS_KEY   = "seaAngel_recentDivers_v1";
+  const GROUPS_LIBRARY_KEY  = "seaAngel_groupsLibrary_v1";
+  const RECENT_STAYS_KEY    = "seaAngel_recentStays_v1";
 
   const CENTER_CFG_KEY      = "seaAngel_center_cfg_v1";
 
@@ -3701,6 +3709,8 @@ window.triggerPwaInstall = triggerPwaInstall;
   let pdjSearchQuery = ""; // recherche texte (PDJ) valeur brute d.aptitudes
   let recentDivers = [];
   let favoriteDivers = [];
+  let groupsLibrary = [];
+  let recentStays = [];
 
   let pdjToolsInitDone = false;
 
@@ -3823,10 +3833,12 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
     }
   }
 
-    function clearFiche() {
+    function resetCore(options) {
+    const keepStayStructure = !!(options && options.keepStayStructure);
+
     // 1) Effacer les champs texte / dates / etc.
     document.querySelectorAll("input[type='text'], input[type='number'], textarea").forEach(function (el) {
-      // Keep day-constants (DP / bateau / sécurité surface) across reset
+      // Keep day-constants (DP / bateau / sécurité surface) across both reset levels
       if (el && (el.id === "dive_const_dp" || el.id === "dive_const_boat" || el.id === "dive_const_surface")) return;
       el.value = "";
     });
@@ -3841,104 +3853,110 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
       el.selectedIndex = 0;
     });
 
-    // 4) Réinitialiser les structures en mémoire
-    diversDuJour = [];              // ✅ bon nom de variable
-    saveDiversDuJour();
-   if (typeof updateRecentFromSelection === "function") {
-  updateRecentFromSelection([]);
-}
+    // 4) Réinitialiser les données de plongée / PDF (toujours)
     showMissingPalierWarnings = false;
 
-    groupAssignments = {};
-    groupLeaders = {};
-
-    // IMPORTANT : remettre la liste des groupes à un seul groupe : G1
-    // (GROUP_IDS est const, on modifie son contenu)
-    GROUP_IDS.splice(0, GROUP_IDS.length, "G1");
-
-    // 5) Nettoyer le DOM des groupes supplémentaires (G2, G3, …)
-    const mainRow = document.getElementById("group-main-row");
-    if (mainRow) {
-      const cols = Array.from(mainRow.querySelectorAll(".group-column"));
-      cols.forEach(col => {
-        const gid = col.getAttribute("data-group");
-        if (gid && gid !== "G1") {
-          mainRow.removeChild(col);
-        }
-      });
+    try {
+      localStorage.removeItem(GROUP_DETAILS_KEY);
+      groupDetails = {};
+    } catch(e) {
+      console.warn("resetCore groupDetails error:", e);
     }
 
-    // 6) Réinitialiser les affectations pour les groupes existants (ici seulement G1)
-    resetGroupAssignments();
-    saveGroupAssignments();
-    saveGroupLeaders();
-
-    // 7) Re-rendu de l’UI des groupes
-    renderGroupAssignments();
-    setupGroupDropZones();
-    updateGroupStatus();
-
-    // G4: Export QR par bateau (wiring UI)
-    try { ensureGaExportQrWiring(); } catch(e) {}
-
-    initGroupModeUI();
-    updateGroupHeadersWithLeaders();
-
-    
-    renderValidationBanner();
-// 8) Effacer le preview PDF
     const pdfPreview = document.getElementById("pdf-preview");
     if (pdfPreview) {
       pdfPreview.innerHTML = "";
     }
 
-   // 9) Effacer le localStorage spécifique
     try {
-      localStorage.removeItem(STORAGE_KEY_FICHE);     // ✅ bon nom
-      localStorage.removeItem(DIVERS_DU_JOUR_KEY);
-      localStorage.removeItem(GROUP_ASSIGN_KEY);
-      localStorage.removeItem(GROUP_LEADER_KEY);
-      localStorage.removeItem(GROUP_PRACTICE_KEY);
-      localStorage.removeItem(GROUP_SUPERVISOR_KEY);
+      if (typeof resetPdfActionsState === "function") resetPdfActionsState();
+      if (typeof updatePdfActionsUi === "function") updatePdfActionsUi();
+      if (typeof hidePdfActionsBar === "function") hidePdfActionsBar();
     } catch (e) {
-      console.warn("clearFiche localStorage error:", e);
+      console.warn("resetCore pdf state error:", e);
     }
 
-    // 10) Statut d’info
-    updatePlongeursJourStatus();
-    // 10-bis) Effacer les données Avant/Après
-    try {
-      localStorage.removeItem(GROUP_DETAILS_KEY);
-      groupDetails = {};
-    } catch(e) {
-      console.warn("clearFiche groupDetails error:", e);
+    // 5) Repositionner automatiquement la date du jour
+    const today = new Date().toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+
+    const beforeDate = document.getElementById("group_before_date");
+    if (beforeDate) beforeDate.value = today;
+
+    const afterDate = document.getElementById("group_after_date");
+    if (afterDate) afterDate.value = today;
+
+    // 6) Full reset only: effacer la structure de séjour
+    if (!keepStayStructure) {
+      diversDuJour = [];
+      saveDiversDuJour();
+      if (typeof updateRecentFromSelection === "function") {
+        updateRecentFromSelection([]);
+      }
+
+      groupAssignments = {};
+      groupLeaders = {};
+      groupPractice = {};
+      groupSupervisors = {};
+      diversDuJourUnits = {};
+
+      // IMPORTANT : remettre la liste des groupes à un seul groupe : G1
+      GROUP_IDS.splice(0, GROUP_IDS.length, "G1");
+
+      // Nettoyer le DOM des groupes supplémentaires (G2, G3, …)
+      const mainRow = document.getElementById("group-main-row");
+      if (mainRow) {
+        const cols = Array.from(mainRow.querySelectorAll(".group-column"));
+        cols.forEach(col => {
+          const gid = col.getAttribute("data-group");
+          if (gid && gid !== "G1") {
+            mainRow.removeChild(col);
+          }
+        });
+      }
+
+      resetGroupAssignments();
+      saveGroupAssignments();
+      saveGroupLeaders();
+      saveGroupPractice();
+      saveGroupSupervisors();
+      saveDiversDuJourUnits();
+
+      try {
+        localStorage.removeItem(STORAGE_KEY_FICHE);
+        localStorage.removeItem(DIVERS_DU_JOUR_KEY);
+        localStorage.removeItem(DIVERS_DU_JOUR_UNITS_KEY);
+        localStorage.removeItem(GROUP_ASSIGN_KEY);
+        localStorage.removeItem(GROUP_LEADER_KEY);
+        localStorage.removeItem(GROUP_PRACTICE_KEY);
+        localStorage.removeItem(GROUP_SUPERVISOR_KEY);
+      } catch (e) {
+        console.warn("resetCore full localStorage error:", e);
+      }
     }
-   // 11) Repositionner automatiquement la date du jour
-   const today = new Date().toLocaleDateString("fr-FR", {
-     weekday: "long",
-     day: "numeric",
-     month: "long",
-     year: "numeric"
-   });
 
-   // Pour Avant Plongée
-   const beforeDate = document.getElementById("group_before_date");
-   if (beforeDate) beforeDate.value = today;
-
-   // Pour Après Plongée
-   const afterDate = document.getElementById("group_after_date");
-   if (afterDate) afterDate.value = today;
-
-   // 12) Reset d’affichage (évite état bloqué entre Plongeurs du jour / Groupes)
-   showMissingPalierWarnings = false;
-   currentGroupId = null;
-   pdjView = "ALL";
-   try { showMainLayout(currentGroupId); } catch(e) {}
-   try { updateGpsNavDisplay();
-    renderPlongeursDuJourSelector(); } catch(e) {}
-   try { renderGroupAssignments(); setupGroupDropZones(); updateGroupHeadersWithLeaders(); initGroupModeUI(); updateGroupStatus(); } catch(e) {}
-
+    // 7) Reset d’affichage
+    currentGroupId = null;
+    pdjView = "ALL";
+    try { showMainLayout(currentGroupId); } catch(e) {}
+    try { updateGpsNavDisplay(); renderPlongeursDuJourSelector(); } catch(e) {}
+    try { renderGroupAssignments(); setupGroupDropZones(); updateGroupHeadersWithLeaders(); initGroupModeUI(); updateGroupStatus(); } catch(e) {}
+    try { renderValidationBanner(); } catch(e) {}
+    try { updatePlongeursJourStatus(); } catch(e) {}
   }
+
+  function clearFiche() {
+    resetCore({ keepStayStructure: false });
+  }
+
+  function clearDiveOnly() {
+    resetCore({ keepStayStructure: true });
+  }
+
 
   // ==========================
   // Storage helper: localStorage + IndexedDB fallback (iOS/PWA persistence)
@@ -5244,6 +5262,436 @@ function saveFavoriteDivers() {
   }
 }
 
+function loadGroupsLibrary() {
+  groupsLibrary = [];
+  try {
+    const raw = localStorage.getItem(GROUPS_LIBRARY_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) groupsLibrary = arr;
+  } catch (e) {
+    console.warn("loadGroupsLibrary error:", e);
+    groupsLibrary = [];
+  }
+}
+
+function saveGroupsLibrary() {
+  try {
+    localStorage.setItem(GROUPS_LIBRARY_KEY, JSON.stringify(groupsLibrary || []));
+  } catch (e) {
+    console.warn("saveGroupsLibrary error:", e);
+  }
+}
+
+function loadRecentStays() {
+  recentStays = [];
+  try {
+    const raw = localStorage.getItem(RECENT_STAYS_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) recentStays = arr;
+  } catch (e) {
+    console.warn("loadRecentStays error:", e);
+    recentStays = [];
+  }
+}
+
+function saveRecentStays() {
+  try {
+    localStorage.setItem(RECENT_STAYS_KEY, JSON.stringify(recentStays || []));
+  } catch (e) {
+    console.warn("saveRecentStays error:", e);
+  }
+}
+
+function getDiverIdByName(name) {
+  const d = getDiverByName(name);
+  return d && d.id ? d.id : "";
+}
+
+function getDiverNameByIdOrFallback(id, fallbackName) {
+  if (id) {
+    const d = getDiverById(id);
+    if (d && d.name) return d.name;
+  }
+  return fallbackName || "";
+}
+
+function currentStayDiverRefs() {
+  const names = Array.isArray(diversDuJour) ? diversDuJour.filter(Boolean) : [];
+  return names.map(function(name){
+    return { id: getDiverIdByName(name) || "", name: String(name || "").trim() };
+  }).filter(function(x){ return x.name; });
+}
+
+function resolveStoredDiverRefsToNames(refs) {
+  if (!Array.isArray(refs)) return [];
+  const out = [];
+  refs.forEach(function(ref){
+    if (!ref) return;
+    let name = "";
+    if (typeof ref === "string") name = ref;
+    else name = getDiverNameByIdOrFallback(ref.id || "", ref.name || "");
+    name = String(name || "").trim();
+    if (name && !out.includes(name)) out.push(name);
+  });
+  return out;
+}
+
+function mergeDiversIntoPDJ(namesToAdd) {
+  const merged = [];
+  const seen = new Set();
+  (Array.isArray(diversDuJour) ? diversDuJour : []).forEach(function(n){
+    n = String(n || "").trim();
+    if (!n || seen.has(n)) return;
+    seen.add(n);
+    merged.push(n);
+  });
+  (Array.isArray(namesToAdd) ? namesToAdd : []).forEach(function(n){
+    n = String(n || "").trim();
+    if (!n || seen.has(n)) return;
+    seen.add(n);
+    merged.push(n);
+  });
+  diversDuJour = merged;
+  saveDiversDuJour();
+  try { updateRecentFromSelection(diversDuJour); } catch(_) {}
+  try { syncGroupsWithDiversDuJour(); } catch(_) {}
+  try { renderPlongeursDuJourSelector(); } catch(_) {}
+  try { renderGroupAssignments(); } catch(_) {}
+}
+
+function replacePDJWithNames(names) {
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(names) ? names : []).forEach(function(n){
+    n = String(n || "").trim();
+    if (!n || seen.has(n)) return;
+    seen.add(n);
+    out.push(n);
+  });
+  diversDuJour = out;
+  saveDiversDuJour();
+  try { updateRecentFromSelection(diversDuJour); } catch(_) {}
+  try { syncGroupsWithDiversDuJour(); } catch(_) {}
+  try { renderPlongeursDuJourSelector(); } catch(_) {}
+  try { renderGroupAssignments(); } catch(_) {}
+}
+
+function upsertClientGroupFromCurrentSelection(groupName) {
+  const name = String(groupName || "").trim();
+  if (!name) return false;
+  const refs = currentStayDiverRefs();
+  if (!refs.length) return false;
+  if (!Array.isArray(groupsLibrary)) groupsLibrary = [];
+  const now = Date.now();
+  const key = name.toLowerCase();
+  let hit = groupsLibrary.find(function(g){ return g && String(g.name || "").trim().toLowerCase() === key; });
+  if (!hit) {
+    hit = { id: "grp_" + now, name: name, memberRefs: [], createdAt: now, updatedAt: now };
+    groupsLibrary.push(hit);
+  }
+  hit.name = name;
+  hit.memberRefs = refs;
+  hit.updatedAt = now;
+  if (!hit.createdAt) hit.createdAt = now;
+  saveGroupsLibrary();
+  return true;
+}
+
+function loadClientGroupIntoPDJ(groupObj) {
+  if (!groupObj) return;
+  const names = resolveStoredDiverRefsToNames(groupObj.memberRefs || groupObj.memberIds || []);
+  if (!names.length) {
+    alert("Aucun plongeur exploitable dans ce groupe.");
+    return;
+  }
+  mergeDiversIntoPDJ(names);
+}
+
+function upsertRecentStaySnapshot(stayName) {
+  const refs = currentStayDiverRefs();
+  if (!refs.length) return false;
+  if (!Array.isArray(recentStays)) recentStays = [];
+  const inferredName = String(stayName || "").trim() || (document.getElementById("dive_const_site") && document.getElementById("dive_const_site").value ? String(document.getElementById("dive_const_site").value).trim() : "Séjour récent");
+  const now = Date.now();
+  const key = inferredName.toLowerCase();
+  const entry = { id: "stay_" + now, name: inferredName, diverRefs: refs, updatedAt: now, createdAt: now };
+  const idx = recentStays.findIndex(function(s){ return s && String(s.name || "").trim().toLowerCase() === key; });
+  if (idx >= 0) {
+    entry.id = recentStays[idx].id || entry.id;
+    entry.createdAt = recentStays[idx].createdAt || now;
+    recentStays[idx] = entry;
+  } else {
+    recentStays.unshift(entry);
+  }
+  recentStays = recentStays
+    .sort(function(a,b){ return Number(b && b.updatedAt || 0) - Number(a && a.updatedAt || 0); })
+    .slice(0, 12);
+  saveRecentStays();
+  return true;
+}
+
+function loadRecentStayIntoPDJ(stayObj, mode) {
+  if (!stayObj) return;
+  const names = resolveStoredDiverRefsToNames(stayObj.diverRefs || stayObj.diverIds || []);
+  if (!names.length) {
+    alert("Aucun plongeur exploitable dans ce séjour récent.");
+    return;
+  }
+  if (mode === "replace") replacePDJWithNames(names);
+  else mergeDiversIntoPDJ(names);
+}
+
+function closeManagedOverlayById(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  try { document.body.classList.remove("modal-open"); } catch(_) {}
+  el.remove();
+}
+
+function openClientGroupsModal() {
+  closeManagedOverlayById("client_groups_overlay");
+  const overlay = document.createElement("div");
+  overlay.id = "client_groups_overlay";
+  overlay.className = "modal-overlay";
+  overlay.style.display = "flex";
+  const card = document.createElement("div");
+  card.className = "modal-card";
+  card.style.maxWidth = "680px";
+  card.style.width = "92%";
+  card.style.padding = "16px";
+
+  const title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Groupes clients";
+  card.appendChild(title);
+
+  const help = document.createElement("p");
+  help.className = "help-text";
+  help.textContent = "Enregistrer la sélection actuelle PDJ comme groupe client, puis la recharger en 1 clic.";
+  card.appendChild(help);
+
+  const top = document.createElement("div");
+  top.style.display = "flex";
+  top.style.gap = "8px";
+  top.style.alignItems = "center";
+  top.style.flexWrap = "wrap";
+  top.style.margin = "10px 0 12px";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Nom du groupe client (ex: Marseille)";
+  input.style.flex = "1 1 260px";
+  input.style.minWidth = "220px";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "btn btn-primary";
+  saveBtn.textContent = "Enregistrer la sélection actuelle";
+
+  top.appendChild(input);
+  top.appendChild(saveBtn);
+  card.appendChild(top);
+
+  const status = document.createElement("div");
+  status.className = "status-text";
+  status.style.marginBottom = "8px";
+  card.appendChild(status);
+
+  const list = document.createElement("div");
+  list.style.display = "grid";
+  list.style.gap = "8px";
+  card.appendChild(list);
+
+  function redraw() {
+    list.innerHTML = "";
+    const arr = Array.isArray(groupsLibrary) ? groupsLibrary.slice() : [];
+    if (!arr.length) {
+      const empty = document.createElement("div");
+      empty.className = "help-text";
+      empty.textContent = "Aucun groupe client enregistré.";
+      list.appendChild(empty);
+      return;
+    }
+    arr.sort(function(a,b){ return String(a.name||"").localeCompare(String(b.name||""), 'fr'); }).forEach(function(g){
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "8px";
+      row.style.alignItems = "center";
+      row.style.justifyContent = "space-between";
+      row.style.padding = "10px 12px";
+      row.style.border = "1px solid #dbe7ff";
+      row.style.borderRadius = "12px";
+      const refs = Array.isArray(g.memberRefs) ? g.memberRefs : [];
+      const label = document.createElement("div");
+      label.innerHTML = "<strong>" + String(g.name || "(sans nom)").replace(/</g,'&lt;') + "</strong><div class='help-text'>" + refs.length + " plongeur(s)</div>";
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "8px";
+      const loadBtn = document.createElement("button");
+      loadBtn.type = "button";
+      loadBtn.className = "btn btn-primary";
+      loadBtn.textContent = "Ajouter au PDJ";
+      loadBtn.onclick = function(){ loadClientGroupIntoPDJ(g); status.textContent = "Groupe chargé dans les plongeurs du jour."; };
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "btn";
+      delBtn.textContent = "Supprimer";
+      delBtn.onclick = function(){ if (!confirm("Supprimer le groupe client '" + String(g.name||"") + "' ?")) return; groupsLibrary = (groupsLibrary || []).filter(function(x){ return x !== g; }); saveGroupsLibrary(); redraw(); };
+      actions.appendChild(loadBtn);
+      actions.appendChild(delBtn);
+      row.appendChild(label);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+
+  saveBtn.onclick = function(){
+    const nm = String(input.value || "").trim();
+    if (!nm) { status.textContent = "Saisissez un nom de groupe."; return; }
+    if (!Array.isArray(diversDuJour) || !diversDuJour.length) { status.textContent = "Aucun plongeur actuellement sélectionné dans le PDJ."; return; }
+    upsertClientGroupFromCurrentSelection(nm);
+    input.value = "";
+    status.textContent = "Groupe enregistré.";
+    redraw();
+  };
+
+  const footer = document.createElement("div");
+  footer.style.display = "flex";
+  footer.style.justifyContent = "flex-end";
+  footer.style.marginTop = "12px";
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "btn";
+  closeBtn.textContent = "Fermer";
+  closeBtn.onclick = function(){ closeManagedOverlayById("client_groups_overlay"); };
+  footer.appendChild(closeBtn);
+  card.appendChild(footer);
+
+  overlay.appendChild(card);
+  overlay.addEventListener("click", function(ev){ if (ev.target === overlay) closeManagedOverlayById("client_groups_overlay"); });
+  document.body.appendChild(overlay);
+  try { document.body.classList.add("modal-open"); } catch(_) {}
+  redraw();
+}
+
+function openRecentStaysModal() {
+  closeManagedOverlayById("recent_stays_overlay");
+  const overlay = document.createElement("div");
+  overlay.id = "recent_stays_overlay";
+  overlay.className = "modal-overlay";
+  overlay.style.display = "flex";
+  const card = document.createElement("div");
+  card.className = "modal-card";
+  card.style.maxWidth = "720px";
+  card.style.width = "92%";
+  card.style.padding = "16px";
+
+  const title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Séjours récents";
+  card.appendChild(title);
+
+  const help = document.createElement("p");
+  help.className = "help-text";
+  help.textContent = "Recharger un roster déjà utilisé. Ajouter = fusion sans doublon. Remplacer = recharge uniquement ce séjour.";
+  card.appendChild(help);
+
+  const list = document.createElement("div");
+  list.style.display = "grid";
+  list.style.gap = "8px";
+  card.appendChild(list);
+
+  const status = document.createElement("div");
+  status.className = "status-text";
+  status.style.marginTop = "8px";
+  card.appendChild(status);
+
+  function redraw() {
+    list.innerHTML = "";
+    const arr = Array.isArray(recentStays) ? recentStays.slice() : [];
+    if (!arr.length) {
+      const empty = document.createElement("div");
+      empty.className = "help-text";
+      empty.textContent = "Aucun séjour récent enregistré.";
+      list.appendChild(empty);
+      return;
+    }
+    arr.sort(function(a,b){ return Number(b && b.updatedAt || 0) - Number(a && a.updatedAt || 0); }).forEach(function(s){
+      const refs = Array.isArray(s.diverRefs) ? s.diverRefs : [];
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "8px";
+      row.style.alignItems = "center";
+      row.style.justifyContent = "space-between";
+      row.style.padding = "10px 12px";
+      row.style.border = "1px solid #dbe7ff";
+      row.style.borderRadius = "12px";
+      const dt = s.updatedAt ? new Date(s.updatedAt).toLocaleString('fr-FR') : "";
+      const label = document.createElement("div");
+      label.innerHTML = "<strong>" + String(s.name || "Séjour récent").replace(/</g,'&lt;') + "</strong><div class='help-text'>" + refs.length + " plongeur(s)" + (dt ? (" · " + dt) : "") + "</div>";
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "8px";
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn btn-primary";
+      addBtn.textContent = "Ajouter";
+      addBtn.onclick = function(){ loadRecentStayIntoPDJ(s, 'merge'); status.textContent = "Séjour ajouté au PDJ."; };
+      const repBtn = document.createElement("button");
+      repBtn.type = "button";
+      repBtn.className = "btn";
+      repBtn.textContent = "Remplacer";
+      repBtn.onclick = function(){ if (!confirm("Remplacer les plongeurs du jour par ce séjour récent ?")) return; loadRecentStayIntoPDJ(s, 'replace'); status.textContent = "Séjour rechargé dans le PDJ."; };
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "btn";
+      delBtn.textContent = "Supprimer";
+      delBtn.onclick = function(){ if (!confirm("Supprimer ce séjour récent ?")) return; recentStays = (recentStays || []).filter(function(x){ return x !== s; }); saveRecentStays(); redraw(); };
+      actions.appendChild(addBtn);
+      actions.appendChild(repBtn);
+      actions.appendChild(delBtn);
+      row.appendChild(label);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+
+  const footer = document.createElement("div");
+  footer.style.display = "flex";
+  footer.style.justifyContent = "space-between";
+  footer.style.alignItems = "center";
+  footer.style.marginTop = "12px";
+  const snapBtn = document.createElement("button");
+  snapBtn.type = "button";
+  snapBtn.className = "btn btn-primary";
+  snapBtn.textContent = "Sauver le séjour actuel";
+  snapBtn.onclick = function(){
+    const suggested = (document.getElementById("dive_const_site") && document.getElementById("dive_const_site").value) ? String(document.getElementById("dive_const_site").value).trim() : "";
+    const nm = prompt("Nom du séjour récent", suggested || "Marseille");
+    if (nm === null) return;
+    if (!String(nm || "").trim()) { status.textContent = "Nom de séjour invalide."; return; }
+    if (!upsertRecentStaySnapshot(nm)) { status.textContent = "Aucun plongeur du jour à sauver."; return; }
+    status.textContent = "Séjour enregistré.";
+    redraw();
+  };
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "btn";
+  closeBtn.textContent = "Fermer";
+  closeBtn.onclick = function(){ closeManagedOverlayById("recent_stays_overlay"); };
+  footer.appendChild(snapBtn);
+  footer.appendChild(closeBtn);
+  card.appendChild(footer);
+
+  overlay.appendChild(card);
+  overlay.addEventListener("click", function(ev){ if (ev.target === overlay) closeManagedOverlayById("recent_stays_overlay"); });
+  document.body.appendChild(overlay);
+  try { document.body.classList.add("modal-open"); } catch(_) {}
+  redraw();
+}
+
 function isFavoriteDiver(name) {
   return Array.isArray(favoriteDivers) && favoriteDivers.includes(name);
 }
@@ -5398,6 +5846,11 @@ function initPDJTools() {
   if (btnAll) btnAll.onclick = () => setView("ALL");
   if (btnRec) btnRec.onclick = () => setView("RECENT");
   if (btnFav) btnFav.onclick = () => setView("FAV");
+
+  const btnGroups = document.getElementById("pdj_view_groups");
+  const btnStays = document.getElementById("pdj_view_stays");
+  if (btnGroups) btnGroups.onclick = () => { try { persistPDJSelectionFromDOM(); } catch(_) {} openClientGroupsModal(); };
+  if (btnStays) btnStays.onclick = () => { try { persistPDJSelectionFromDOM(); } catch(_) {} openRecentStaysModal(); };
 
   if (selApt) {
     selApt.onchange = () => {
@@ -8614,6 +9067,8 @@ function diverNeedsRT1(diverName) {
   if (!pdjToolsInitDone) {
     loadRecentDivers();
     loadFavoriteDivers();
+    loadGroupsLibrary();
+    loadRecentStays();
     initPDJTools();
     pdjToolsInitDone = true;
   }
@@ -12931,6 +13386,8 @@ document.addEventListener("DOMContentLoaded", function () {
     loadGroupAssignments();
     loadGroupLeaders();
     loadGroupDetails();
+    loadGroupsLibrary();
+    loadRecentStays();
     groupPractice = loadGroupPractice();
     groupSupervisors = loadGroupSupervisors();
     instructorLibrary = loadInstructorLibrary();
@@ -12988,8 +13445,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const resetBtn = document.getElementById("btn-reset");
     if (resetBtn) {
       resetBtn.addEventListener("click", function () {
-        if (confirm("Effacer tous les champs de la fiche ?")) {
+        if (confirm("Effacer toute la fiche et la structure du séjour ?")) {
           clearFiche();
+        }
+      });
+    }
+
+    const newDiveBtn = document.getElementById("btn-new-dive");
+    if (newDiveBtn) {
+      newDiveBtn.addEventListener("click", function () {
+        if (confirm("Nouvelle plongée : conserver les groupes et effacer uniquement Avant / Après + PDF ?")) {
+          clearDiveOnly();
         }
       });
     }
@@ -13022,6 +13488,18 @@ document.addEventListener("DOMContentLoaded", function () {
     updateGroupHeadersWithLeaders();
     // G4: Export QR par bateau (wiring UI)
     try { ensureGaExportQrWiring(); } catch(e) {}
+   function snapshotRecentStayForPdfFlow() {
+     try {
+       if (!Array.isArray(diversDuJour) || !diversDuJour.length) return;
+       const suggested = (document.getElementById("dive_const_site") && document.getElementById("dive_const_site").value)
+         ? String(document.getElementById("dive_const_site").value).trim()
+         : "Séjour récent";
+       upsertRecentStaySnapshot(suggested || "Séjour récent");
+     } catch (e) {
+       console.warn("snapshotRecentStayForPdfFlow error:", e);
+     }
+   }
+
    const previewBtn = document.getElementById("btn-preview-pdf");
    if (previewBtn) {
      previewBtn.addEventListener("click", function(){
@@ -13031,6 +13509,7 @@ document.addEventListener("DOMContentLoaded", function () {
           renderValidationBanner();
           return;
         }
+        snapshotRecentStayForPdfFlow();
         buildPdfMock();
       });
    }
@@ -13044,6 +13523,7 @@ document.addEventListener("DOMContentLoaded", function () {
           renderValidationBanner();
           return;
         }
+        snapshotRecentStayForPdfFlow();
         exportPdf();
       });
    }
