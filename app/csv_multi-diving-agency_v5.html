@@ -553,6 +553,19 @@ const HEADER_DICT = Object.freeze({
     "capacite", "capacites", "capacité", "capacités",
     "rating", "ratings"
     // NOTE: PAS de "profondeur max" ici (refusé comme tu l’as demandé)
+  ],
+
+  // -------------------------
+  // GROUPES CLIENTS (Ocean Infinity)
+  // -------------------------
+  groups: [
+    "group", "groups",
+    "groupe", "groupes",
+    "groupe client", "groupes clients",
+    "client group", "client groups",
+    "club", "clubs",
+    "team", "teams",
+    "roster group", "booking group"
   ]
 });
 
@@ -734,8 +747,16 @@ function matchHeaderToCanon(headerCell) {
     words.has('level') || words.has('levels');
   if (isCert) return 'certifications';
 
+  // groupe / club / team -> GROUPES CLIENTS
+  const isGroup =
+    words.has('group') || words.has('groups') ||
+    words.has('groupe') || words.has('groupes') ||
+    words.has('club') || words.has('clubs') ||
+    words.has('team') || words.has('teams');
+  if (isGroup) return 'groups';
+
   // 3) Règles de priorité strictes
-  const ORDER = ['fullName', 'firstName', 'lastName', 'licence', 'aptitudes', 'certifications'];
+  const ORDER = ['fullName', 'firstName', 'lastName', 'licence', 'groups', 'aptitudes', 'certifications'];
 
   for (const canonKey of ORDER) {
     const synonyms = HEADER_DICT[canonKey] || [];
@@ -761,8 +782,8 @@ function matchHeaderToCanon(headerCell) {
 }
 
 function buildColumnMap(headerRow) {
-  // Returns { fullNameIdx, firstNameIdx, lastNameIdx, licenceIdx, certIdxs[], aptIdxs[] }
-  const m = { fullNameIdx: null, firstNameIdx: null, lastNameIdx: null, licenceIdx: null, certIdxs: [], aptIdxs: [] };
+  // Returns { fullNameIdx, firstNameIdx, lastNameIdx, licenceIdx, certIdxs[], aptIdxs[], groupIdxs[] }
+  const m = { fullNameIdx: null, firstNameIdx: null, lastNameIdx: null, licenceIdx: null, certIdxs: [], aptIdxs: [], groupIdxs: [] };
   for (let i = 0; i < headerRow.length; i++) {
     const canon = matchHeaderToCanon(headerRow[i]);
     if (!canon) continue;
@@ -772,6 +793,7 @@ function buildColumnMap(headerRow) {
     if (canon === 'licence' && m.licenceIdx == null) m.licenceIdx = i;
     if (canon === 'certifications') m.certIdxs.push(i);
     if (canon === 'aptitudes') m.aptIdxs.push(i);
+    if (canon === 'groups') m.groupIdxs.push(i);
   }
   return m;
 }
@@ -853,11 +875,21 @@ function extractDivers(rows, hasHeader) {
       for (const t of parts) aptTokens.push(t);
     }
 
+    // Groupes clients : concat de TOUTES les colonnes groupIdxs, puis explode
+    const groupTokens = [];
+    for (const idx of (colMap.groupIdxs || [])) {
+      const cell = getCell(row, idx);
+      if (!cell) continue;
+      const parts = explodeTokens(cell);
+      for (const t of parts) groupTokens.push(t);
+    }
+
     divers.push({
       fullName: name,
       licence: licence || "",
       certifications_sources: certTokens,
       aptitudes_sources: aptTokens,
+      groups_sources: Array.from(new Set(groupTokens)),
       _rowIndex: r
     });
   }
@@ -1237,7 +1269,8 @@ function projectOceanInfinityJson(diversInternal) {
         certification_label: mergedLabel,
         certification_key: b.key,
         depthMax: (b.depthMax != null) ? b.depthMax : null,
-        aptitude_ffessm
+        aptitude_ffessm,
+        groups: Array.isArray(d.groups_sources) ? Array.from(new Set(d.groups_sources.map(x => String(x || "").trim()).filter(Boolean))) : []
       });
     }
   }
@@ -1270,7 +1303,7 @@ function hashString(s) {
 }
 
 function projectOceanInfinityLibrary(rows) {
-  const diverLibrary = [];
+  const byId = new Map();
 
   for (const r of (rows || [])) {
     const name = String(r.fullName || "").trim();
@@ -1278,20 +1311,39 @@ function projectOceanInfinityLibrary(rows) {
 
     const cert = String(r.certification_label || "").trim();
     const aptitudes = String(r.aptitude_ffessm || "").trim();
-    const licence = String(r.licence || "").trim(); // v2 ne fournit pas licence => "" (OK)
+    const licence = String(r.licence || "").trim();
 
     if (!(cert || aptitudes || licence)) continue;
 
-    const path = (r.path === "CCR") ? "CCR" : "OC"; // normalisation défensive
+    const path = (r.path === "CCR") ? "CCR" : "OC";
     const id = "d_" + hashString(name + "|" + path + "|" + licence);
 
-    diverLibrary.push({ id, name, licence, cert, aptitudes });
+    if (!byId.has(id)) {
+      byId.set(id, {
+        id,
+        name,
+        licence,
+        cert,
+        aptitudes,
+        groups: []
+      });
+    }
+
+    const rec = byId.get(id);
+    if (!rec.cert && cert) rec.cert = cert;
+    if (!rec.aptitudes && aptitudes) rec.aptitudes = aptitudes;
+
+    const groups = Array.isArray(r.groups) ? r.groups : [];
+    for (const g of groups) {
+      const gg = String(g || "").trim();
+      if (gg && !rec.groups.includes(gg)) rec.groups.push(gg);
+    }
   }
 
   return {
     schema: "divinglog_library_export_v1",
     exportedAt: new Date().toISOString(),
-    diverLibrary,
+    diverLibrary: Array.from(byId.values()),
     instructorLibrary: []
   };
 }
@@ -1353,6 +1405,8 @@ function runAll() {
       fullName: d.fullName,
       licence: d.licence || "",
       certifications_sources: d.certifications_sources,
+      aptitudes_sources: d.aptitudes_sources || [],
+      groups_sources: d.groups_sources || [],
       certifications_normalized: normalized,
       best
     });
