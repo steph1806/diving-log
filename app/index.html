@@ -5521,11 +5521,19 @@ function openClientGroupsModal() {
       row.style.alignItems = "center";
       row.style.justifyContent = "space-between";
       row.style.padding = "10px 12px";
-      row.style.border = "1px solid #dbe7ff";
+      row.style.border = "1px solid #e2e8f0";
       row.style.borderRadius = "12px";
+      row.style.background = "#ffffff";
+      row.style.color = "#111111";
       const refs = Array.isArray(g.memberRefs) ? g.memberRefs : [];
       const label = document.createElement("div");
-      label.innerHTML = "<strong>" + String(g.name || "(sans nom)").replace(/</g,'&lt;') + "</strong><div class='help-text'>" + refs.length + " plongeur(s)</div>";
+      label.innerHTML =
+      "<div style='font-weight:600;font-size:15px;color:#111'>" +
+      String(g.name || "(sans nom)").replace(/</g,'&lt;') +
+      "</div>" +
+      "<div style='font-size:12px;color:#6b7280'>" +
+      refs.length + " plongeur(s)" +
+      "</div>";
       const actions = document.createElement("div");
       actions.style.display = "flex";
       actions.style.gap = "8px";
@@ -5626,11 +5634,20 @@ function openRecentStaysModal() {
       row.style.alignItems = "center";
       row.style.justifyContent = "space-between";
       row.style.padding = "10px 12px";
-      row.style.border = "1px solid #dbe7ff";
+      row.style.border = "1px solid #e2e8f0";
       row.style.borderRadius = "12px";
+      row.style.background = "#ffffff";
+      row.style.color = "#111111";
       const dt = s.updatedAt ? new Date(s.updatedAt).toLocaleString('fr-FR') : "";
       const label = document.createElement("div");
-      label.innerHTML = "<strong>" + String(s.name || "Séjour récent").replace(/</g,'&lt;') + "</strong><div class='help-text'>" + refs.length + " plongeur(s)" + (dt ? (" · " + dt) : "") + "</div>";
+     label.innerHTML =
+  "<div style='font-weight:600;font-size:15px;color:#111'>" +
+  String(s.name || "Séjour récent").replace(/</g,'&lt;') +
+  "</div>" +
+  "<div style='font-size:12px;color:#6b7280'>" +
+  refs.length + " plongeur(s)" +
+  (dt ? (" · " + dt) : "") +
+  "</div>";
       const actions = document.createElement("div");
       actions.style.display = "flex";
       actions.style.gap = "8px";
