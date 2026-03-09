@@ -640,18 +640,63 @@ function clearOutputs() {
 }
 
 function detectDelimiter(text) {
-  // Simple heuristic: count ; , \t on first non-empty line
-  const lines = String(text || "").split(/\r?\n/).filter(l => l.trim().length > 0);
-  const first = lines[0] || "";
-  const counts = {
-    ';': (first.match(/;/g) || []).length,
-    ',': (first.match(/,/g) || []).length,
-    '\t': (first.match(/\t/g) || []).length,
-  };
-  let best = ';';
-  for (const k of Object.keys(counts)) {
-    if (counts[k] > counts[best]) best = k;
+  // Robust heuristic:
+  // - strips UTF-8 BOM
+  // - looks at up to 5 first non-empty lines
+  // - chooses the delimiter that gives the most consistent column count
+  const raw = String(text || "").replace(/^\uFEFF/, "");
+  const lines = raw
+    .split(/\r?\n/)
+    .map(l => String(l || ""))
+    .filter(l => l.trim().length > 0)
+    .slice(0, 5);
+
+  if (!lines.length) return ";";
+
+  const candidates = [";", ",", "\t"];
+
+  function splitCount(line, delim) {
+    let count = 1;
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          i++;
+          continue;
+        }
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (!inQuotes && ch === delim) count++;
+    }
+    return count;
   }
+
+  let best = ";";
+  let bestScore = -Infinity;
+
+  for (const delim of candidates) {
+    const counts = lines.map(line => splitCount(line, delim));
+    const max = Math.max(...counts);
+    const min = Math.min(...counts);
+    const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+
+    // Score:
+    // - prefer >1 columns
+    // - prefer stable counts across lines
+    // - prefer higher average column count
+    const score =
+      (avg > 1 ? 100 : 0) +
+      avg * 10 -
+      (max - min) * 20;
+
+    if (score > bestScore) {
+      best = delim;
+      bestScore = score;
+    }
+  }
+
   return best;
 }
 
@@ -660,8 +705,10 @@ function parseCSV(text, delimiter) {
   // - Supports delimiter ; , or TAB
   // - Supports fields wrapped in double-quotes
   // - Supports escaped quotes as ""
+  // - Strips UTF-8 BOM
   const rows = [];
-  const lines = String(text || '').split(/\r?\n/);
+  const raw = String(text || '').replace(/^\uFEFF/, '');
+  const lines = raw.split(/\r?\n/);
 
   for (const rawLine of lines) {
     const line = String(rawLine ?? '');
@@ -670,11 +717,11 @@ function parseCSV(text, delimiter) {
     const row = [];
     let cur = '';
     let inQuotes = false;
+
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
 
       if (ch === '"') {
-        // escaped quote
         if (inQuotes && line[i + 1] === '"') {
           cur += '"';
           i++;
@@ -685,14 +732,15 @@ function parseCSV(text, delimiter) {
       }
 
       if (!inQuotes && ch === delimiter) {
-        row.push(cur);
+        row.push(cur.trim());
         cur = '';
         continue;
       }
 
       cur += ch;
     }
-    row.push(cur);
+
+    row.push(cur.trim());
     rows.push(row);
   }
 
@@ -1373,14 +1421,29 @@ function runAll() {
   const csvText = document.getElementById('csvText').value || '';
   const hasHeader = document.getElementById('optHasHeader').checked;
   const autoDelim = document.getElementById('optAutoDelimiter').checked;
-  const delim = autoDelim ? detectDelimiter(csvText) : document.getElementById('optDelimiter').value;
 
-  logLine(`delimiter=${delim === '\t' ? 'TAB' : delim}`);
+  let delim = autoDelim ? detectDelimiter(csvText) : document.getElementById('optDelimiter').value;
+  let rows = parseCSV(csvText, delim);
 
-  const rows = parseCSV(csvText, delim);
-  logLine(`rows=${rows.length}`);
+  // Safety net:
+  // if auto mode and parsed header looks like a single merged column,
+  // retry with the other delimiters.
+  if (autoDelim && rows.length && rows[0] && rows[0].length <= 1) {
+    const candidates = [";", ",", "\t"].filter(d => d !== delim);
+    for (const alt of candidates) {
+      const altRows = parseCSV(csvText, alt);
+      if (altRows.length && altRows[0] && altRows[0].length > 1) {
+        delim = alt;
+        rows = altRows;
+        break;
+      }
+    }
+  }
 
-  const divers = extractDivers(rows, hasHeader);
+logLine(`delimiter=${delim === '\t' ? 'TAB' : delim}`);
+logLine(`rows=${rows.length}`);
+
+const divers = extractDivers(rows, hasHeader);
   logLine(`divers_extracted=${divers.length}`);
 
   const exactIndex = buildExactIndexFromTables();
