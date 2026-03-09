@@ -5516,25 +5516,26 @@ function openClientGroupsModal() {
     }
     arr.sort(function(a,b){ return String(a.name||"").localeCompare(String(b.name||""), 'fr'); }).forEach(function(g){
       const row = document.createElement("div");
-      row.style.display = "flex";
-      row.style.gap = "8px";
-      row.style.alignItems = "center";
-      row.style.justifyContent = "space-between";
-    row.style.padding = "14px 16px";
-row.style.border = "1px solid rgba(15,23,42,0.10)";
+     row.style.display = "flex";
+row.style.gap = "8px";
+row.style.alignItems = "center";
+row.style.justifyContent = "space-between";
+row.style.padding = "14px 16px";
+row.style.border = "1px solid rgba(148,163,184,0.18)";
 row.style.borderRadius = "16px";
-row.style.background = "#ffffff";
-row.style.boxShadow = "0 8px 24px rgba(15,23,42,0.06)";
-      row.style.color = "#111111";
-      const refs = Array.isArray(g.memberRefs) ? g.memberRefs : [];
-      const label = document.createElement("div");
-      label.innerHTML =
-     "<div style='font-weight:700;font-size:16px;color:#0f172a;line-height:1.2'>" +
-      String(g.name || "(sans nom)").replace(/</g,'&lt;') +
-      "</div>" +
-     "<div style='font-size:13px;color:#64748b;margin-top:4px'>" +
-      refs.length + " plongeur(s)" +
-      "</div>";
+row.style.background = "#0b1527";
+row.style.boxShadow = "0 8px 24px rgba(0,0,0,0.35)";
+row.style.color = "#ffffff";
+
+const refs = Array.isArray(g.memberRefs) ? g.memberRefs : [];
+const label = document.createElement("div");
+label.innerHTML =
+  "<div style='font-weight:700;font-size:16px;color:#ffffff;line-height:1.2'>" +
+  String(g.name || "(sans nom)").replace(/</g,'&lt;') +
+  "</div>" +
+  "<div style='font-size:13px;color:#9fb4d7;margin-top:4px'>" +
+  refs.length + " plongeur(s)" +
+  "</div>";
       const actions = document.createElement("div");
      actions.style.display = "flex";
 actions.style.flexDirection = "column";
@@ -5633,25 +5634,25 @@ function openRecentStaysModal() {
     arr.sort(function(a,b){ return Number(b && b.updatedAt || 0) - Number(a && a.updatedAt || 0); }).forEach(function(s){
       const refs = Array.isArray(s.diverRefs) ? s.diverRefs : [];
       const row = document.createElement("div");
-      row.style.display = "flex";
-      row.style.gap = "8px";
-      row.style.alignItems = "center";
-      row.style.justifyContent = "space-between";
-     row.style.padding = "14px 16px";
-row.style.border = "1px solid rgba(15,23,42,0.10)";
+    row.style.display = "flex";
+row.style.gap = "8px";
+row.style.alignItems = "center";
+row.style.justifyContent = "space-between";
+row.style.padding = "14px 16px";
+row.style.border = "1px solid rgba(148,163,184,0.18)";
 row.style.borderRadius = "16px";
-row.style.background = "#ffffff";
-row.style.boxShadow = "0 8px 24px rgba(15,23,42,0.06)";
-      row.style.color = "#111111";
-      const dt = s.updatedAt ? new Date(s.updatedAt).toLocaleString('fr-FR') : "";
-      const label = document.createElement("div");
-     label.innerHTML =
-"<div style='font-weight:700;font-size:16px;color:#0f172a;line-height:1.2'>" +
-  String(s.name || "Séjour récent").replace(/</g,'&lt;') +
+row.style.background = "#0b1527";
+row.style.boxShadow = "0 8px 24px rgba(0,0,0,0.35)";
+row.style.color = "#ffffff";
+
+const refs = Array.isArray(g.memberRefs) ? g.memberRefs : [];
+const label = document.createElement("div");
+label.innerHTML =
+  "<div style='font-weight:700;font-size:16px;color:#ffffff;line-height:1.2'>" +
+  String(g.name || "(sans nom)").replace(/</g,'&lt;') +
   "</div>" +
-"<div style='font-size:13px;color:#64748b;margin-top:4px'>" +
+  "<div style='font-size:13px;color:#9fb4d7;margin-top:4px'>" +
   refs.length + " plongeur(s)" +
-  (dt ? (" · " + dt) : "") +
   "</div>";
       const actions = document.createElement("div");
      actions.style.display = "flex";
