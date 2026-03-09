@@ -7600,6 +7600,49 @@ function importDivinglogLibraryPayload(payload) {
       if (instructorLibrary.length > beforeLen) addedInstr++;
     }
 
+    // --- Build client groups from incoming diver rows (d.groups)
+    // CSV tool provides groups at diver level, not necessarily as top-level groupsLibrary.
+    const csvDerivedGroupsMap = new Map();
+
+    for (const d of incomingDivers) {
+      const diverName = String(d && d.name ? d.name : "").trim();
+      if (!diverName) continue;
+
+      const diver = findDiverByLicenceOrName(String(d.licence || ""), diverName);
+      const diverId = diver && diver.id ? diver.id : "";
+
+      const rowGroups = Array.isArray(d && d.groups) ? d.groups : [];
+      rowGroups.forEach(function(g) {
+        const gName = String(g || "").trim();
+        if (!gName) return;
+
+        if (!csvDerivedGroupsMap.has(gName.toLowerCase())) {
+          csvDerivedGroupsMap.set(gName.toLowerCase(), {
+            name: gName,
+            memberRefs: []
+          });
+        }
+
+        const bucket = csvDerivedGroupsMap.get(gName.toLowerCase());
+        const ref = { id: diverId, name: diverName };
+
+        const exists = bucket.memberRefs.some(function(cur) {
+          if (!cur) return false;
+          if (ref.id && cur.id) return String(cur.id) === String(ref.id);
+          return String(cur.name || "").trim().toLowerCase() === String(ref.name || "").trim().toLowerCase();
+        });
+
+        if (!exists) bucket.memberRefs.push(ref);
+      });
+    }
+
+    // If payload.groupsLibrary is absent, enrich incomingGroups from CSV-derived groups
+    if (csvDerivedGroupsMap.size) {
+      for (const [, g] of csvDerivedGroupsMap.entries()) {
+        incomingGroups.push(g);
+      }
+    }
+
     // --- Merge client groups: additive only, never touches operational groupAssignments
     let addedGroups = 0;
     let changedGroups = 0;
