@@ -5795,7 +5795,21 @@ actions.style.minWidth = "150px";
       delBtn.type = "button";
       delBtn.className = "btn";
       delBtn.textContent = "Supprimer";
-      delBtn.onclick = function(){ if (!confirm("Supprimer ce séjour récent ?")) return; recentStays = (recentStays || []).filter(function(x){ return x !== s; }); saveRecentStays(); redraw(); };
+      delBtn.onclick = function(){
+
+        if (!confirm("Supprimer ce séjour récent ?")) return;
+
+        recentStays = (recentStays || []).filter(function(x){
+        return x !== s;
+        });
+
+        saveRecentStays();
+
+        try { recentStaysPushReplaceTotal(true); } catch(_) {}
+
+        redraw();
+
+      };
       actions.appendChild(addBtn);
       actions.appendChild(repBtn);
       actions.appendChild(delBtn);
