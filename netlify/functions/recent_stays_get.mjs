@@ -4,14 +4,13 @@ import { requireValidCenterByKey } from "./_center_auth.mjs";
 const STORE_NAME = "qr";
 
 function json(statusCode, body) {
-  return {
-    statusCode,
+  return new Response(JSON.stringify(body), {
+    status: statusCode,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store"
-    },
-    body: JSON.stringify(body)
-  };
+    }
+  });
 }
 
 function normalizeRecentStays(input) {
