@@ -5428,7 +5428,7 @@ function upsertRecentStaySnapshot(stayName) {
       const name = String(diverName || "").trim();
       if (!name) return;
 
-      const groupNumber = Number(String(groupKey).replace(/^G/, "")) || 0;
+      const groupNumber = Number(String(groupKey).replace(/[^\d]/g, "")) || 0;
       if (!groupNumber) return;
 
       groupAssignmentsSnapshot[name] = groupNumber;
