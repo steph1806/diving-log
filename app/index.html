@@ -5410,7 +5410,8 @@ function loadClientGroupIntoPDJ(groupObj) {
 }
 
 function upsertRecentStaySnapshot(stayName) {
-  const refs = currentStayDiverRefs();
+  const names = Array.isArray(diversDuJour) ? diversDuJour : [];
+  const refs = names.map(function(n){ return { id:"", name:String(n||"").trim() }; }).filter(function(x){ return x.name; });
   if (!refs.length) return false;
   if (!Array.isArray(recentStays)) recentStays = [];
   const inferredName = String(stayName || "").trim() || (document.getElementById("dive_const_site") && document.getElementById("dive_const_site").value ? String(document.getElementById("dive_const_site").value).trim() : "Séjour récent");
