@@ -5429,6 +5429,7 @@ function upsertRecentStaySnapshot(stayName) {
     .sort(function(a,b){ return Number(b && b.updatedAt || 0) - Number(a && a.updatedAt || 0); })
     .slice(0, 12);
   saveRecentStays();
+  try { recentStaysPushReplaceTotal(true); } catch(_) {}
   return true;
 }
 
@@ -5627,7 +5628,7 @@ card.style.flexDirection = "column";
 
   const help = document.createElement("p");
   help.className = "help-text";
-  help.textContent = "Recharger un roster déjà utilisé. Ajouter = fusion sans doublon. Remplacer = recharge uniquement ce séjour.";
+  help.textContent = "les plongeurs du jour peuvent être enregistrés comme des plongeurs récurrents: 12 groupes max sont possibles.";
   card.appendChild(help);
 
   const list = document.createElement("div");
@@ -7435,7 +7436,7 @@ function saveInstructorLibrary() {
 }
 
 // ==========================
-// INSTRUCTORS SYNC (SERVER) — REPLACE TOTAL
+// INSTRUCTORS - RECENTS SYNC (SERVER) — REPLACE TOTAL
 // - Pull: server -> local (remplace localStorage)
 // - Push: local -> server (remplace serveur)
 // Contract: Netlify functions instructors_get / instructors_put
@@ -7522,6 +7523,58 @@ function startInstructorsAutoPullIfJoiner() {
       instructorsPullReplaceTotal();
     } catch (_) {}
   }, 15 * 60 * 1000);
+}
+
+async function recentStaysPullReplaceTotal(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  try {
+    const r = await fetch("/.netlify/functions/recent_stays_get", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ centerKey })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "recent_stays_get_failed");
+
+    recentStays = Array.isArray(j.recentStays) ? j.recentStays : [];
+    saveRecentStays();
+
+    return { ok:true, count: recentStays.length, updatedAt: j.updatedAt || 0 };
+  } catch (e) {
+    if (!silent) {
+      try { toast && toast(`❌ Sync récents impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
+}
+
+async function recentStaysPushReplaceTotal(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  try {
+    const r = await fetch("/.netlify/functions/recent_stays_put", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        centerKey,
+        recentStays: Array.isArray(recentStays) ? recentStays : []
+      })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "recent_stays_put_failed");
+
+    return { ok:true, count: j.count || 0, updatedAt: j.updatedAt || 0 };
+  } catch (e) {
+    if (!silent) {
+      try { toast && toast(`❌ Push récents impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
 }
 
 // ==========================
@@ -12967,12 +13020,11 @@ async function sitesPushSituationMerge(silent) {
 }
 
 async function sitesSyncSituation() {
-  // guard multi-tap
   if (window.__OI_sitesSyncInFlight) return;
   window.__OI_sitesSyncInFlight = true;
 
-  const btnA = document.getElementById("btn_site_sync_situation"); // ancien (si jamais)
-  const btnB = document.getElementById("btn_sync_situation");      // menu (…)
+  const btnA = document.getElementById("btn_site_sync_situation");
+  const btnB = document.getElementById("btn_sync_situation");
   if (btnA) btnA.disabled = true;
   if (btnB) btnB.disabled = true;
 
@@ -12980,18 +13032,16 @@ async function sitesSyncSituation() {
 
   try {
     await sitesPushSituationMerge(true);
+    await recentStaysPushReplaceTotal(true);
+
     await sitesPullSnapshot(true);
+    await recentStaysPullReplaceTotal(true);
 
-    try { toast && toast("✅ Situation sites synchronisée."); } catch(_) {}
-
-    showSyncOverlay(
-      "✅ Situation synchronisée",
-      "Sites et GPS mis à jour sur tous les appareils.",
-      1200
-    );
-
-  } catch(e) {
-
+    if (st) st.textContent = "Synchronisation terminée.";
+    try { toast && toast("✅ Synchronisation terminée."); } catch(_) {}
+  } catch (e) {
+    if (st) st.textContent = "Synchronisation impossible.";
+    try { toast && toast(`❌ Synchronisation impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
   } finally {
     if (btnA) btnA.disabled = false;
     if (btnB) btnB.disabled = false;
@@ -14358,6 +14408,7 @@ async function revalidateCenterByJoin(){
     boatsN: j.boatsN || 1
   });
 
+  try { await recentStaysPullReplaceTotal(true); } catch(_) {}
   return j;
 }
 
