@@ -5423,18 +5423,13 @@ function upsertRecentStaySnapshot(stayName) {
   Object.keys(groupAssignments || {}).forEach(function(groupKey){
     const arr = groupAssignments[groupKey] || [];
 
-    arr.forEach(function(diverId){
+    arr.forEach(function(diverName){
 
-      const d = (plongeursDuJour || []).find(function(x){
-        return x && String(x.id) === String(diverId);
-      });
-
-      if (!d) return;
-
-      const name = String(d.name || "").trim();
+      const name = String(diverName || "").trim();
       if (!name) return;
 
       const groupNumber = Number(String(groupKey).replace(/^G/, "")) || 0;
+      if (!groupNumber) return;
 
       groupAssignmentsSnapshot[name] = groupNumber;
 
