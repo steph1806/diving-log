@@ -42,24 +42,12 @@ function normalizeRecentStays(input) {
       diverRefs.push({ id, name: refName });
     }
 
-    // --- normalize groupAssignments snapshot
-    const rawGroups = (s && typeof s.groupAssignments === "object" && s.groupAssignments)
-      ? s.groupAssignments
-      : {};
+      // --- preserve groupAssignments snapshot exactly as sent by frontend
+      const groupAssignments =
+        (s && typeof s.groupAssignments === "object" && s.groupAssignments)
+          ? JSON.parse(JSON.stringify(s.groupAssignments))
+          : {};
 
-    const groupAssignments = {};
-
-    Object.keys(rawGroups).forEach(function(name){
-
-      const nm = String(name || "").trim();
-      if (!nm) return;
-
-      const grp = Number(rawGroups[name] || 0);
-      if (!grp) return;
-
-      groupAssignments[nm] = grp;
-
-    });
      out.push({
       id: String(s.id || "").trim() || `stay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       name,
