@@ -5503,6 +5503,14 @@ function loadRecentStayIntoPDJ(stayObj, mode) {
   });
   if (!hasAny) return;
 
+  // Ensure all groups present in the snapshot also exist in GROUP_IDS / DOM
+  Object.keys(newAssignments).forEach(function(gid){
+    if (!GROUP_IDS.includes(gid)) {
+      GROUP_IDS.push(gid);
+      try { createGroupColumn(gid); } catch(_) {}
+    }
+  });
+
   // reset current operational grouping, then restore from snapshot
   groupAssignments = {};
   Object.keys(newAssignments).forEach(function(gid){
