@@ -5416,7 +5416,39 @@ function upsertRecentStaySnapshot(stayName) {
   const inferredName = String(stayName || "").trim() || (document.getElementById("dive_const_site") && document.getElementById("dive_const_site").value ? String(document.getElementById("dive_const_site").value).trim() : "Séjour récent");
   const now = Date.now();
   const key = inferredName.toLowerCase();
-  const entry = { id: "stay_" + now, name: inferredName, diverRefs: refs, updatedAt: now, createdAt: now };
+  // --- snapshot current group assignments
+  const groupAssignmentsSnapshot = {};
+
+  Object.keys(groupAssignments || {}).forEach(function(groupKey){
+    const arr = groupAssignments[groupKey] || [];
+
+    arr.forEach(function(diverId){
+
+      const d = (plongeursDuJour || []).find(function(x){
+        return x && String(x.id) === String(diverId);
+      });
+
+      if (!d) return;
+
+      const name = String(d.name || "").trim();
+      if (!name) return;
+
+      const groupNumber = Number(String(groupKey).replace(/^G/, "")) || 0;
+
+      groupAssignmentsSnapshot[name] = groupNumber;
+
+    });
+
+  });
+
+  const entry = {
+    id: "stay_" + now,
+    name: inferredName,
+    diverRefs: refs,
+    groupAssignments: groupAssignmentsSnapshot,
+    updatedAt: now,
+    createdAt: now
+  };
   const idx = recentStays.findIndex(function(s){ return s && String(s.name || "").trim().toLowerCase() === key; });
   if (idx >= 0) {
     entry.id = recentStays[idx].id || entry.id;
@@ -5435,13 +5467,54 @@ function upsertRecentStaySnapshot(stayName) {
 
 function loadRecentStayIntoPDJ(stayObj, mode) {
   if (!stayObj) return;
+
   const names = resolveStoredDiverRefsToNames(stayObj.diverRefs || stayObj.diverIds || []);
   if (!names.length) {
     alert("Aucun plongeur exploitable dans ce séjour récent.");
     return;
   }
+
   if (mode === "replace") replacePDJWithNames(names);
   else mergeDiversIntoPDJ(names);
+
+  // --- restore group assignments snapshot if present
+  const snap = (stayObj && typeof stayObj.groupAssignments === "object" && stayObj.groupAssignments)
+    ? stayObj.groupAssignments
+    : null;
+
+  if (!snap) return;
+
+  const newAssignments = {};
+
+  Object.keys(snap).forEach(function(diverName){
+    const targetNum = Number(snap[diverName] || 0);
+    if (!targetNum) return;
+
+    const gid = "G" + targetNum;
+    if (!Array.isArray(newAssignments[gid])) newAssignments[gid] = [];
+
+    const realName = String(diverName || "").trim();
+    if (!realName) return;
+
+    if (!newAssignments[gid].includes(realName)) {
+      newAssignments[gid].push(realName);
+    }
+  });
+
+  // apply only if snapshot contains something usable
+  const hasAny = Object.keys(newAssignments).some(function(gid){
+    return Array.isArray(newAssignments[gid]) && newAssignments[gid].length > 0;
+  });
+  if (!hasAny) return;
+
+  // reset current operational grouping, then restore from snapshot
+  groupAssignments = {};
+  Object.keys(newAssignments).forEach(function(gid){
+    groupAssignments[gid] = newAssignments[gid].slice();
+  });
+
+  saveGroupAssignments();
+  try { renderGroupAssignments(); } catch(_) {}
 }
 
 function closeManagedOverlayById(id) {
