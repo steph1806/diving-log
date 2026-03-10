@@ -5504,21 +5504,40 @@ function loadRecentStayIntoPDJ(stayObj, mode) {
   if (!hasAny) return;
 
   // Ensure all groups present in the snapshot also exist in GROUP_IDS / DOM
-  Object.keys(newAssignments).forEach(function(gid){
-    if (!GROUP_IDS.includes(gid)) {
+  Object.keys(newAssignments)
+    .map(function(gid){
+      return Number(String(gid || "").replace(/[^\d]/g, "")) || 0;
+    })
+    .filter(function(idx){ return idx > 0; })
+    .sort(function(a,b){ return a - b; })
+    .forEach(function(idx){
+      const gid = "G" + idx;
+      if (GROUP_IDS.includes(gid)) return;
+
+      const row = document.getElementById("group-main-row");
+      if (!row) return;
+
+      const newCol = buildGroupColumnForIndex(idx);
+      if (!newCol) return;
+
       GROUP_IDS.push(gid);
-      try { createGroupColumn(gid); } catch(_) {}
-    }
-  });
+      if (!Array.isArray(groupAssignments[gid])) groupAssignments[gid] = [];
+
+      row.appendChild(newCol);
+    });
 
   // reset current operational grouping, then restore from snapshot
   groupAssignments = {};
-  Object.keys(newAssignments).forEach(function(gid){
-    groupAssignments[gid] = newAssignments[gid].slice();
+  GROUP_IDS.forEach(function(gid){
+    groupAssignments[gid] = Array.isArray(newAssignments[gid]) ? newAssignments[gid].slice() : [];
   });
 
   saveGroupAssignments();
+  try { setupGroupDropZones(); } catch(_) {}
+  try { updateGroupHeadersWithLeaders(); } catch(_) {}
+  try { attachGroupButtonsHandlers(); } catch(_) {}
   try { renderGroupAssignments(); } catch(_) {}
+  try { updateGroupStatus(); } catch(_) {}
 }
 
 function closeManagedOverlayById(id) {
