@@ -1,15 +1,16 @@
 import { getStore } from "@netlify/blobs";
 import { requireValidCenterByKey } from "./_center_auth.mjs";
 
-const STORE_NAME = "qr";
-
-function json(statusCode, body) {
-  return new Response(JSON.stringify(body), {
-    status: statusCode,
+function json(status, obj) {
+  return new Response(JSON.stringify(obj), {
+    status,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store"
-    }
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "cache-control": "no-store",
+    },
   });
 }
 
@@ -46,7 +47,7 @@ function normalizeRecentStays(input) {
       name,
       diverRefs,
       createdAt: Number(s.createdAt || 0) || Date.now(),
-      updatedAt: Number(s.updatedAt || 0) || Date.now()
+      updatedAt: Number(s.updatedAt || 0) || Date.now(),
     });
   }
 
@@ -56,40 +57,43 @@ function normalizeRecentStays(input) {
 }
 
 export default async (req) => {
-  if (req.method !== "POST") {
-    return json(405, { ok: false, error: "method_not_allowed" });
-  }
-
   try {
-    const body = JSON.parse(req.body || "{}");
-    const centerKey = String(body.centerKey || "").trim();
-    if (!centerKey) {
-      return json(400, { ok: false, error: "missing_centerKey" });
-    }
+    if (req.method === "OPTIONS") return json(204, { ok: true });
+    if (req.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
+
+    let body = {};
+    try { body = await req.json(); }
+    catch { return json(400, { ok: false, error: "invalid_json" }); }
+
+    const centerKey = (body.centerKey || "").trim();
+    if (!centerKey) return json(400, { ok: false, error: "missing_centerKey" });
 
     const auth = await requireValidCenterByKey(centerKey);
-    if (!auth || !auth.ok || !auth.centerId) {
-      return json(auth?.status || 401, {
-        ok: false,
-        error: auth?.error || "unauthorized"
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const store = getStore("qr");
+
+    const raw = await store.get(`recentStays/${auth.centerId}`);
+    if (!raw) {
+      return json(200, {
+        ok: true,
+        centerId: auth.centerId,
+        recentStays: [],
+        updatedAt: 0
       });
     }
 
-    const centerId = String(auth.centerId).trim();
-    const store = getStore(STORE_NAME);
-    const saved = await store.get(`recentStays/${centerId}`, { type: "json" });
-
-    const recentStays = normalizeRecentStays(saved && saved.recentStays);
+    const rec = JSON.parse(raw);
+    const recentStays = normalizeRecentStays(rec && rec.body ? JSON.parse(rec.body) : []);
 
     return json(200, {
       ok: true,
+      centerId: auth.centerId,
       recentStays,
-      updatedAt: Number(saved && saved.updatedAt || 0) || 0
+      updatedAt: rec.updatedAt || 0
     });
+
   } catch (e) {
-    return json(500, {
-      ok: false,
-      error: e && e.message ? e.message : "recent_stays_get_failed"
-    });
+    return json(500, { ok: false, error: "internal_error", message: e?.message || String(e) });
   }
 };

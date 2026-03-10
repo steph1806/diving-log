@@ -1,15 +1,16 @@
 import { getStore } from "@netlify/blobs";
 import { requireValidCenterByKey } from "./_center_auth.mjs";
 
-const STORE_NAME = "qr";
-
-function json(statusCode, body) {
-  return new Response(JSON.stringify(body), {
-    status: statusCode,
+function json(status, obj) {
+  return new Response(JSON.stringify(obj), {
+    status,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store"
-    }
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "cache-control": "no-store",
+    },
   });
 }
 
@@ -46,7 +47,7 @@ function normalizeRecentStays(input) {
       name,
       diverRefs,
       createdAt: Number(s.createdAt || 0) || Date.now(),
-      updatedAt: Number(s.updatedAt || 0) || Date.now()
+      updatedAt: Number(s.updatedAt || 0) || Date.now(),
     });
   }
 
@@ -56,45 +57,41 @@ function normalizeRecentStays(input) {
 }
 
 export default async (req) => {
-  if (req.method !== "POST") {
-    return json(405, { ok: false, error: "method_not_allowed" });
-  }
-
   try {
-    const body = JSON.parse(req.body || "{}");
-    const centerKey = String(body.centerKey || "").trim();
-    if (!centerKey) {
-      return json(400, { ok: false, error: "missing_centerKey" });
+    if (req.method === "OPTIONS") return json(204, { ok: true });
+    if (req.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
+
+    let body = {};
+    try { body = await req.json(); }
+    catch { return json(400, { ok: false, error: "invalid_json" }); }
+
+    const centerKey = (body.centerKey || "").trim();
+    if (!centerKey) return json(400, { ok: false, error: "missing_centerKey" });
+
+    const recentStays = normalizeRecentStays(body.recentStays);
+    if (!Array.isArray(body.recentStays)) {
+      return json(400, { ok: false, error: "missing_recentStays" });
     }
 
     const auth = await requireValidCenterByKey(centerKey);
-    if (!auth || !auth.ok || !auth.centerId) {
-      return json(auth?.status || 401, {
-        ok: false,
-        error: auth?.error || "unauthorized"
-      });
-    }
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
-    const recentStays = normalizeRecentStays(body && body.recentStays);
-    const updatedAt = Date.now();
+    const store = getStore("qr");
 
-    const centerId = String(auth.centerId).trim();
-    const store = getStore(STORE_NAME);
+    const record = {
+      updatedAt: Date.now(),
+      body: JSON.stringify(recentStays),
+    };
 
-    await store.setJSON(`recentStays/${centerId}`, {
-      recentStays,
-      updatedAt
-    });
+    await store.set(`recentStays/${auth.centerId}`, JSON.stringify(record));
 
     return json(200, {
       ok: true,
-      count: recentStays.length,
-      updatedAt
+      centerId: auth.centerId,
+      updatedAt: record.updatedAt
     });
+
   } catch (e) {
-    return json(500, {
-      ok: false,
-      error: e && e.message ? e.message : "recent_stays_put_failed"
-    });
+    return json(500, { ok: false, error: "internal_error", message: e?.message || String(e) });
   }
 };
