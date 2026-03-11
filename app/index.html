@@ -247,7 +247,12 @@
       background: linear-gradient(130deg, #0da26f, #2fff7c);
     }
 
-  
+    .btn-before-ready{
+      background: linear-gradient(130deg, #10b981, #39ff88);
+      color: #061110;
+      border-color: rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 14px rgba(57, 255, 136, 0.35);
+    }
 
     .btn-reset {
       background: #150c1b;
@@ -11787,7 +11792,11 @@ function closePdfPreview() {
       });
     });
   }
+
+updateAllBeforeButtonsReadyState();
+
 }
+
   function openBeforeView(groupId) {
   currentGroupId = groupId;
 
@@ -11966,8 +11975,48 @@ function renderBeforeGroupMeta(groupId) {
         });
         afterBtn.dataset.bound = "1";
       }
+        updateBeforeButtonReadyState(gid);
     });
   }
+
+function updateBeforeButtonReadyState(groupId) {
+  if (!groupId) return;
+
+  const index = parseInt(String(groupId).replace(/^G/, ""), 10);
+  if (!index || isNaN(index)) return;
+
+  const btn = document.getElementById("g" + index + "_before");
+  if (!btn) return;
+
+  const rec = getGroupRecord(groupId);
+  const before = (rec && rec.before) ? rec.before : {};
+
+  const groupType = String(before.siteGroup || "").trim();
+  const dtrMax    = String(before.dtrMaxMin ?? "").trim();
+  const depth     = String(before.depthPlanned ?? "").trim();
+  const runtime   = String(before.runtimeGroupPlanned ?? "").trim();
+  const inPlanned = String(before.inPlanned || "").trim();
+  const exitTime  = String(before.exitPlanned || "").trim();
+  const rt1       = String(before.rt1 || "").trim();
+
+  let isReady = false;
+
+  if (groupType === "TRIMIX_CCR") {
+    isReady = !!(groupType && dtrMax && depth && runtime && inPlanned && exitTime && rt1);
+  } else {
+    isReady = !!(groupType && dtrMax && depth && runtime && inPlanned && exitTime);
+  }
+
+  btn.classList.toggle("btn-before-ready", isReady);
+}
+
+function updateAllBeforeButtonsReadyState() {
+  if (!Array.isArray(GROUP_IDS)) return;
+  GROUP_IDS.forEach(function(gid){
+    updateBeforeButtonReadyState(gid);
+  });
+}
+
 
 function populateBeforeForm(groupId) {
   const rec = getGroupRecord(groupId);
@@ -12066,8 +12115,12 @@ function populateBeforeForm(groupId) {
   const exitSpan = document.getElementById("before_md_exit");
   if (exitSpan) exitSpan.textContent = (before.exitPlanned && String(before.exitPlanned).trim()) ? String(before.exitPlanned).trim() : "—";
 
+updateBeforeButtonReadyState(groupId);
 
 }
+
+
+
 
 // --- STEP 3.2/3.3: Avant la plongée AIR vs TRIMIX/CCR (UI + stockage brut MultiDeco) ---
 function beforeGetTypeValue(){
@@ -12836,8 +12889,10 @@ function collectBeforeFormAndSave() {
 
   rec.before = nextBefore;
   saveGroupDetails();
+  updateBeforeButtonReadyState(currentGroupId);
 
   alert("Données AVANT plongée sauvegardées pour " + currentGroupId + ".");
+
 }
 
 function pad2(n){ return String(n).padStart(2,"0"); }
