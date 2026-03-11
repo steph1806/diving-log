@@ -13508,6 +13508,33 @@ document.addEventListener("DOMContentLoaded", function () {
       beforeDtrEl.addEventListener("change", syncDtr);
       syncDtr();
     }
+      const beforeInEl = document.getElementById("group_before_in_planned");
+      const beforeRtEl = document.getElementById("group_before_runtime_group_planned");
+      const beforeTypeEl = document.getElementById("group_before_site_group");
+
+      [beforeInEl, beforeRtEl].forEach(function(el){
+        if (!el) return;
+
+        el.addEventListener("input", function(){
+          updateInScenarios();
+          updateExitPlannedFromInAndRT();
+          if (currentGroupId) updateBeforeButtonReadyState(currentGroupId);
+        });
+
+        el.addEventListener("change", function(){
+          updateInScenarios();
+          updateExitPlannedFromInAndRT();
+          if (currentGroupId) updateBeforeButtonReadyState(currentGroupId);
+        });
+      });
+
+      if (beforeTypeEl) {
+        beforeTypeEl.addEventListener("change", function(){
+          updateBeforeLayoutByType();
+          if (currentGroupId) updateBeforeButtonReadyState(currentGroupId);
+        });
+      }
+
 
     // --- Site library & GPS ---
     try { renderSiteSelect(); } catch(_) {}
