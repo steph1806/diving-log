@@ -13337,7 +13337,24 @@ function captureGPSIntoFields() {
       if (accEl) accEl.value = accuracy != null ? Math.round(accuracy) : "";
       updateGpsNavDisplay();
       if (statusEl) statusEl.textContent = "GPS OK.";
+
+      // Persist fiche
       if (typeof saveFiche === "function") saveFiche();
+
+      // If a site is selected → update site library
+      const sel = document.getElementById("dive_site_select");
+      const siteName = sel ? String(sel.value || "").trim() : "";
+
+      if (siteName) {
+        try {
+          upsertCurrentSite();
+
+          if (typeof toast === "function") {
+            toast("📍 Coordonnées enregistrées pour \"" + siteName + "\"");
+          }
+
+        } catch(_) {}
+      }
     },
     (err) => {
       if (statusEl) statusEl.textContent = "Erreur GPS.";
