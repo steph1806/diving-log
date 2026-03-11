@@ -3951,6 +3951,16 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
     try { renderGroupAssignments(); setupGroupDropZones(); updateGroupHeadersWithLeaders(); initGroupModeUI(); updateGroupStatus(); } catch(e) {}
     try { renderValidationBanner(); } catch(e) {}
     try { updatePlongeursJourStatus(); } catch(e) {}
+    // 8) Recompute Avant readiness indicator (reset colors)
+    try {
+      if (Array.isArray(GROUP_IDS)) {
+        GROUP_IDS.forEach(function(gid){
+          updateBeforeButtonReadyState(gid);
+        });
+      }
+    } catch(e) {
+      console.warn("resetCore updateBeforeButtonReadyState error:", e);
+    }
   }
 
   function clearFiche() {
