@@ -2163,6 +2163,38 @@
 
 <!-- === /PATCH === -->
 
+
+
+/* Toast UI — Ocean Infinity */
+.toast{
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(12px);
+  z-index: 100000;
+
+  padding: 12px 16px;
+  border-radius: 14px;
+
+  background: #000000;
+  color: #ffffff;
+
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.toast.show{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 </style>
  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -4886,12 +4918,12 @@ function getDiverById(diverId) {
   }
 
   function saveDiversDuJour() {
-  try {
-    localStorage.setItem(DIVERS_DU_JOUR_KEY, JSON.stringify(diversDuJour));
-  } catch (e) {
-    console.warn("saveDiversDuJour error:", e);
+    try {
+      localStorage.setItem(DIVERS_DU_JOUR_KEY, JSON.stringify(diversDuJour));
+    } catch (e) {
+      console.warn("saveDiversDuJour error:", e);
+    }
   }
-}
 
 // --- PDJ Units (Bateau 1..N) : day-level mapping (NOT in diverLibrary) ---
 const DIVERS_DU_JOUR_UNITS_KEY = "seaAngel_diversDuJourUnits_v1";
@@ -9695,6 +9727,33 @@ function diverNeedsRT1(diverName) {
     return null;
   }
 
+  /* -------------------------------------------------
+     UI helper — Toast notification (Ocean Infinity)
+  -------------------------------------------------- */
+  function toast(msg, ms) {
+
+    const ttl = Number(ms || 2200);
+
+    let el = document.getElementById("app_toast");
+
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "app_toast";
+      el.className = "toast";
+      document.body.appendChild(el);
+    }
+
+    el.textContent = String(msg || "");
+    el.classList.add("show");
+
+    clearTimeout(el.__toastTimer);
+
+    el.__toastTimer = setTimeout(function(){
+      el.classList.remove("show");
+    }, ttl);
+  }
+
+
   // Helper: returns the "responsable" name for a group based on its practice type.
   // AUTONOME -> Leader (prefer Référent in-group selection, fallback to stored group leader)
   // FORMATION / ENCADREE -> Instructeur (from instructor library selection)
@@ -13271,6 +13330,10 @@ function applySelectedSiteToFields(siteName) {
   if (typeof saveFiche === "function") saveFiche();
 }
 
+
+
+
+
 function upsertCurrentSite() {
   const sel    = document.getElementById("dive_site_select");
   const nameEl = document.getElementById("dive_site_name");
@@ -13336,8 +13399,7 @@ function captureGPSIntoFields() {
       if (lonEl) lonEl.value = longitude != null ? longitude.toFixed(6) : "";
       if (accEl) accEl.value = accuracy != null ? Math.round(accuracy) : "";
       updateGpsNavDisplay();
-      if (statusEl) statusEl.textContent = "GPS OK.";
-
+    
       // Persist fiche
       if (typeof saveFiche === "function") saveFiche();
 
