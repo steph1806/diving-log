@@ -5434,6 +5434,7 @@ function upsertClientGroupFromCurrentSelection(groupName) {
   hit.updatedAt = now;
   if (!hit.createdAt) hit.createdAt = now;
   saveGroupsLibrary();
+  try { groupsPushReplaceTotal(true); } catch(e) { console.error(e); }
   return true;
 }
 
@@ -5698,7 +5699,13 @@ list.style.paddingRight = "4px";
       delBtn.type = "button";
       delBtn.className = "btn";
       delBtn.textContent = "Supprimer";
-      delBtn.onclick = function(){ if (!confirm("Supprimer le groupe client '" + String(g.name||"") + "' ?")) return; groupsLibrary = (groupsLibrary || []).filter(function(x){ return x !== g; }); saveGroupsLibrary(); redraw(); };
+      delBtn.onclick = function(){
+        if (!confirm("Supprimer le groupe client '" + String(g.name||"") + "' ?")) return;
+        groupsLibrary = (groupsLibrary || []).filter(function(x){ return x !== g; });
+        saveGroupsLibrary();
+        try { groupsPushReplaceTotal(true); } catch(e) { console.error(e); }
+        redraw();
+      };
       actions.appendChild(loadBtn);
       actions.appendChild(delBtn);
       row.appendChild(label);
@@ -7584,7 +7591,7 @@ function saveInstructorLibrary() {
 }
 
 // ==========================
-// INSTRUCTORS - RECENTS SYNC (SERVER) — REPLACE TOTAL
+// INSTRUCTORS - RECENTS - GROUPES -SYNC (SERVER) — REPLACE TOTAL
 // - Pull: server -> local (remplace localStorage)
 // - Push: local -> server (remplace serveur)
 // Contract: Netlify functions instructors_get / instructors_put
@@ -7720,6 +7727,58 @@ async function recentStaysPushReplaceTotal(silent) {
   } catch (e) {
     if (!silent) {
       try { toast && toast(`❌ Push récents impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
+}
+
+async function groupsPullReplaceTotal(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  try {
+    const r = await fetch("/.netlify/functions/groups_get", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ centerKey })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "groups_get_failed");
+
+    groupsLibrary = Array.isArray(j.groupsLibrary) ? j.groupsLibrary : [];
+    saveGroupsLibrary();
+
+    return { ok:true, count: groupsLibrary.length, updatedAt: j.updatedAt || 0 };
+  } catch (e) {
+    if (!silent) {
+      try { toast && toast(`❌ Sync groupes impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
+    }
+    return { ok:false, reason:"exception" };
+  }
+}
+
+async function groupsPushReplaceTotal(silent) {
+  const cfg = loadCenterCfg();
+  const centerKey = (cfg && cfg.centerKey) ? String(cfg.centerKey).trim() : "";
+  if (!centerKey) return { ok:false, reason:"missing_centerKey" };
+
+  try {
+    const r = await fetch("/.netlify/functions/groups_put", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        centerKey,
+        groupsLibrary: Array.isArray(groupsLibrary) ? groupsLibrary : []
+      })
+    });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "groups_put_failed");
+
+    return { ok:true, count: j.count || 0, updatedAt: j.updatedAt || 0 };
+  } catch (e) {
+    if (!silent) {
+      try { toast && toast(`❌ Push groupes impossible: ${String(e && e.message ? e.message : e)}`); } catch(_) {}
     }
     return { ok:false, reason:"exception" };
   }
@@ -7957,9 +8016,10 @@ function importDivinglogLibraryPayload(payload) {
       if (groupChanged) changedGroups++;
     }
 
-    if (incomingGroups.length) {
-      try { saveGroupsLibrary(); } catch(e) { console.error(e); }
-    }
+      if (incomingGroups.length) {
+        try { saveGroupsLibrary(); } catch(e) { console.error(e); }
+        try { groupsPushReplaceTotal(true); } catch(e) { console.error(e); }
+      }
 
     // Refresh lists/UI
     try { refreshContextInstructorDatalists(); } catch(_) {}
@@ -13250,9 +13310,10 @@ async function sitesSyncSituation() {
   try {
     await sitesPushSituationMerge(true);
     await recentStaysPushReplaceTotal(true);
-
+   
     await sitesPullSnapshot(true);
     await recentStaysPullReplaceTotal(true);
+
 
     if (st) st.textContent = "Synchronisation terminée.";
     try { toast && toast("✅ Synchronisation terminée."); } catch(_) {}
@@ -14647,6 +14708,7 @@ async function revalidateCenterByJoin(){
   });
 
   try { await recentStaysPullReplaceTotal(true); } catch(_) {}
+  try { await groupsPullReplaceTotal(true); } catch(_) {}
   return j;
 }
 
