@@ -12207,15 +12207,16 @@ function closePdfPreview() {
     const btnSign = document.getElementById("btnSign");
     const btnQuit = document.getElementById("btnQuit");
 
-    if (btnSign && !btnSign.dataset.bound) {
-      btnSign.addEventListener("click", () => {
-        if (pdfState !== "validated") {
-          alert("Veuillez valider le document avant signature.");
-          return;
-        }
-        openPdfSignConfirmModal();
+    if (btnValidate && !btnValidate.dataset.bound) {
+      btnValidate.addEventListener("click", () => {
+        if (pdfState !== "draft") return;
+        pdfState = "validated";
+        pdfValidatedAt = new Date().toLocaleString("fr-FR");
+        updatePdfActionsUi();
+        updateDpSignaturePage();
+        alert("Document validé.");
       });
-      btnSign.dataset.bound = "1";
+      btnValidate.dataset.bound = "1";
     }
 
     if (btnSign && !btnSign.dataset.bound) {
@@ -12224,12 +12225,7 @@ function closePdfPreview() {
           alert("Veuillez valider le document avant signature.");
           return;
         }
-        pdfState = "signed";
-        pdfSignedAt = new Date().toLocaleString("fr-FR");
-        updatePdfActionsUi();
-        updateDpSignaturePage();
-        renderSignedStamp();
-        alert("Document signé électroniquement.");
+        openPdfSignConfirmModal();
       });
       btnSign.dataset.bound = "1";
     }
