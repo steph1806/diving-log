@@ -2419,6 +2419,10 @@
           </button>
           <button type="button" class="lib-menu-item" id="btn_copy_center_key" title="Copier l'ID centre (clé) utilisé dans le PDF">📋 Copier clé centre</button>
 
+          <button type="button" class="lib-menu-item" id="btn_pdf_declaration">
+            📝 Déclaration PDF
+          </button>
+
           <button type="button" class="lib-menu-item" id="btn_subscribe"
                   title="Souscrire (paiement Stripe)">
             💳 Souscrire
@@ -3220,6 +3224,7 @@
   const RECENT_STAYS_KEY    = "seaAngel_recentStays_v1";
 
   const CENTER_CFG_KEY      = "seaAngel_center_cfg_v1";
+  const PDF_DECLARATION_KEY = "seaAngel_pdfDeclaration_v1";
 
 
   // =========================
@@ -3995,6 +4000,184 @@ let groupMetaOpen = {}; // UI-only: details panel open/closed per group
     resetCore({ keepStayStructure: true });
   }
 
+function loadPdfDeclarationConfig() {
+  try {
+    const raw = localStorage.getItem(PDF_DECLARATION_KEY);
+    const cfg = raw ? JSON.parse(raw) : null;
+    if (!cfg || typeof cfg !== "object") {
+      return { mode: "FRANCE_DP", freeText: "" };
+    }
+    return {
+      mode: (cfg.mode === "FREE_TEXT") ? "FREE_TEXT" : "FRANCE_DP",
+      freeText: String(cfg.freeText || "")
+    };
+  } catch (e) {
+    return { mode: "FRANCE_DP", freeText: "" };
+  }
+}
+
+function savePdfDeclarationConfig(cfg) {
+  try {
+    const out = {
+      mode: (cfg && cfg.mode === "FREE_TEXT") ? "FREE_TEXT" : "FRANCE_DP",
+      freeText: String((cfg && cfg.freeText) || "")
+    };
+    localStorage.setItem(PDF_DECLARATION_KEY, JSON.stringify(out));
+    return true;
+  } catch (e) {
+    console.warn("savePdfDeclarationConfig error:", e);
+    return false;
+  }
+}
+
+function getPdfDeclarationTitle() {
+  const cfg = loadPdfDeclarationConfig();
+  return (cfg.mode === "FREE_TEXT") ? "Déclaration PDF" : "Déclaration du DP (France)";
+}
+
+function getPdfDeclarationHtml() {
+  const cfg = loadPdfDeclarationConfig();
+
+  if (cfg.mode === "FREE_TEXT") {
+    const txt = String(cfg.freeText || "").trim();
+    return txt ? esc(txt).replace(/\n/g, "<br>") : "—";
+  }
+
+  return 'Je soussigné(e), Directeur de Plongée, atteste avoir organisé et supervisé les plongées mentionnées dans ce document, conformément aux dispositions du Code du Sport et aux règlements fédéraux en vigueur.<br><br>' +
+         'Les paramètres réalisés, les paliers effectués et les incidents éventuels ont été consignés dans la présente fiche. Les plongeurs ont été informés des consignes de sécurité, et les moyens nécessaires à la sécurité de la plongée ont été mis en œuvre.';
+}
+
+function openPdfDeclarationModal() {
+  closeManagedOverlayById("pdf_declaration_overlay");
+
+  const cfg = loadPdfDeclarationConfig();
+
+  const overlay = document.createElement("div");
+  overlay.id = "pdf_declaration_overlay";
+  overlay.className = "modal-overlay";
+  overlay.style.display = "flex";
+
+  const card = document.createElement("div");
+  card.className = "modal-card";
+  card.style.maxWidth = "680px";
+  card.style.width = "92%";
+  card.style.padding = "16px";
+  card.style.background = "#0b1527";
+  card.style.color = "#ffffff";
+  card.style.border = "1px solid rgba(148,163,184,0.18)";
+  card.style.boxShadow = "0 18px 42px rgba(0,0,0,0.45)";
+
+  const title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Déclaration PDF";
+  card.appendChild(title);
+
+  const modeWrap = document.createElement("div");
+  modeWrap.style.display = "flex";
+  modeWrap.style.flexDirection = "column";
+  modeWrap.style.gap = "8px";
+  modeWrap.style.marginBottom = "12px";
+
+  const frLabel = document.createElement("label");
+  frLabel.style.color = "#fff";
+  frLabel.innerHTML = '<input type="radio" name="pdf_decl_mode" value="FRANCE_DP"> Déclaration du DP (France)';
+
+  const freeLabel = document.createElement("label");
+  freeLabel.style.color = "#fff";
+  freeLabel.innerHTML = '<input type="radio" name="pdf_decl_mode" value="FREE_TEXT"> Texte libre';
+
+  modeWrap.appendChild(frLabel);
+  modeWrap.appendChild(freeLabel);
+  card.appendChild(modeWrap);
+
+  const previewBox = document.createElement("div");
+  previewBox.style.padding = "12px";
+  previewBox.style.borderRadius = "12px";
+  previewBox.style.background = "rgba(255,255,255,0.05)";
+  previewBox.style.border = "1px solid rgba(148,163,184,0.18)";
+  previewBox.style.marginBottom = "12px";
+  previewBox.style.lineHeight = "1.45";
+  card.appendChild(previewBox);
+
+  const textArea = document.createElement("textarea");
+  textArea.rows = 8;
+  textArea.placeholder = "Saisir votre déclaration personnalisée...";
+  textArea.style.display = "none";
+  textArea.value = String(cfg.freeText || "");
+  card.appendChild(textArea);
+
+  const actions = document.createElement("div");
+  actions.style.display = "flex";
+  actions.style.justifyContent = "flex-end";
+  actions.style.gap = "10px";
+  actions.style.marginTop = "14px";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "btn";
+  cancelBtn.textContent = "Annuler";
+  cancelBtn.onclick = function() {
+    closeManagedOverlayById("pdf_declaration_overlay");
+  };
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "btn btn-primary";
+  saveBtn.textContent = "Enregistrer";
+
+  actions.appendChild(cancelBtn);
+  actions.appendChild(saveBtn);
+  card.appendChild(actions);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const radios = overlay.querySelectorAll('input[name="pdf_decl_mode"]');
+  radios.forEach(function(r) {
+    r.checked = (r.value === cfg.mode);
+  });
+
+  function refreshModeUi() {
+    const checked = overlay.querySelector('input[name="pdf_decl_mode"]:checked');
+    const mode = checked ? checked.value : "FRANCE_DP";
+
+    if (mode === "FREE_TEXT") {
+      previewBox.style.display = "none";
+      textArea.style.display = "block";
+    } else {
+      previewBox.style.display = "block";
+      textArea.style.display = "none";
+      previewBox.innerHTML =
+        'Je soussigné(e), Directeur de Plongée, atteste avoir organisé et supervisé les plongées mentionnées dans ce document, conformément aux dispositions du Code du Sport et aux règlements fédéraux en vigueur.<br><br>' +
+        'Les paramètres réalisés, les paliers effectués et les incidents éventuels ont été consignés dans la présente fiche. Les plongeurs ont été informés des consignes de sécurité, et les moyens nécessaires à la sécurité de la plongée ont été mis en œuvre.';
+    }
+  }
+
+  radios.forEach(function(r) {
+    r.addEventListener("change", refreshModeUi);
+  });
+
+  saveBtn.onclick = function() {
+    const checked = overlay.querySelector('input[name="pdf_decl_mode"]:checked');
+    const mode = checked ? checked.value : "FRANCE_DP";
+    const freeText = String(textArea.value || "");
+
+    if (mode === "FREE_TEXT" && !String(freeText).trim()) {
+      alert("Le texte libre ne peut pas être vide.");
+      return;
+    }
+
+    savePdfDeclarationConfig({
+      mode: mode,
+      freeText: freeText
+    });
+
+    closeManagedOverlayById("pdf_declaration_overlay");
+    try { toast && toast("Déclaration PDF enregistrée."); } catch(_) {}
+  };
+
+  refreshModeUi();
+}
 
   // ==========================
   // Storage helper: localStorage + IndexedDB fallback (iOS/PWA persistence)
@@ -6261,6 +6444,17 @@ function initPDJTools() {
         btnCenterRename.disabled = false;
       }
     };
+  }
+
+  const btnPdfDeclaration = document.getElementById("btn_pdf_declaration");
+  if (btnPdfDeclaration) {
+    btnPdfDeclaration.addEventListener("click", function() {
+      try {
+        const menu = document.getElementById("library_menu");
+        if (menu) menu.style.display = "none";
+      } catch(_) {}
+      openPdfDeclarationModal();
+    });
   }
 
   const btnCopyKey = document.getElementById("btn_copy_center_key");
@@ -11472,10 +11666,9 @@ function buildPdfMock() {
     html += '<tr><th>Signé le</th><td id="dpSignedAt">—</td></tr>';
     html += '</tbody></table>';
 
-    html += '<div class="pdf-section-title">Déclaration du DP (France)</div>';
+    html += '<div class="pdf-section-title">' + esc(getPdfDeclarationTitle()) + '</div>';
     html += '<div class="pdf-paragraph">';
-    html += 'Je soussigné(e), Directeur de Plongée, atteste avoir organisé et supervisé les plongées mentionnées dans ce document, conformément aux dispositions du Code du Sport et aux règlements fédéraux en vigueur.<br><br>';
-    html += 'Les paramètres réalisés, les paliers effectués et les incidents éventuels ont été consignés dans la présente fiche. Les plongeurs ont été informés des consignes de sécurité, et les moyens nécessaires à la sécurité de la plongée ont été mis en œuvre.';
+    html += getPdfDeclarationHtml();
     html += '</div>';
 
     // DP identity from Contexte du jour + Library lookup (France)
