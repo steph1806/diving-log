@@ -4497,6 +4497,7 @@ function openPdfSignConfirmModal() {
     pdfSignedAt = new Date().toLocaleString("fr-FR");
     pdfSignedBy = dpName;
     pdfSignatureUsed = profile.signatureDataUrl;
+    pdfLockedDocKey = pdfDocKey;
 
     updatePdfActionsUi();
     updateDpSignaturePage();
@@ -12067,6 +12068,12 @@ function buildPdfMock() {
    const centerIdK = (STATE && STATE.centerId) ? String(STATE.centerId) : "";
    const newKey = [centerIdK, dateFRlocal, ctxSiteK, ctxBoatK, ctxDPK].join("|");
 
+   // IMMUTABILITY: once signed, a different document key cannot silently replace the signed document
+   if (pdfState === "signed" && pdfLockedDocKey && pdfLockedDocKey !== newKey) {
+     alert("Document signé verrouillé. Utilisez RESET / Nouvelle plongée avant de générer un autre document.");
+     return;
+   }
+
    if (pdfDocKey !== newKey) {
      pdfDocKey = newKey;
      resetPdfActionsState();
@@ -12088,6 +12095,7 @@ function buildPdfMock() {
   let pdfDocKey = "";
   let pdfSignedBy = null;
   let pdfSignatureUsed = null;
+  let pdfLockedDocKey = "";
 
  function updateDpSignaturePage() {
     const st = document.getElementById("dpDocStatus");
@@ -12155,6 +12163,7 @@ function buildPdfMock() {
     pdfSignedAt = null;
     pdfSignedBy = null;
     pdfSignatureUsed = null;
+    pdfLockedDocKey = "";
     updateDpSignaturePage();
   }
 
