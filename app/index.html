@@ -2422,6 +2422,9 @@
           <button type="button" class="lib-menu-item" id="btn_pdf_declaration">
             📝 Déclaration PDF
           </button>
+          <button type="button" class="lib-menu-item" id="btn_pdf_signature_profile">
+            ✍️ Signature DP
+          </button>
 
           <button type="button" class="lib-menu-item" id="btn_subscribe"
                   title="Souscrire (paiement Stripe)">
@@ -3225,6 +3228,7 @@
 
   const CENTER_CFG_KEY      = "seaAngel_center_cfg_v1";
   const PDF_DECLARATION_KEY = "seaAngel_pdfDeclaration_v1";
+  const PDF_SIGNATURE_PROFILE_KEY = "seaAngel_pdfSignatureProfile_v1";
 
 
   // =========================
@@ -4177,6 +4181,337 @@ function openPdfDeclarationModal() {
   };
 
   refreshModeUi();
+}
+
+function loadPdfSignatureProfile() {
+  try {
+    const raw = localStorage.getItem(PDF_SIGNATURE_PROFILE_KEY);
+    const cfg = raw ? JSON.parse(raw) : null;
+    if (!cfg || typeof cfg !== "object") {
+      return { signerName: "", signatureDataUrl: "" };
+    }
+    return {
+      signerName: String(cfg.signerName || ""),
+      signatureDataUrl: String(cfg.signatureDataUrl || "")
+    };
+  } catch (e) {
+    return { signerName: "", signatureDataUrl: "" };
+  }
+}
+
+function savePdfSignatureProfile(profile) {
+  try {
+    const out = {
+      signerName: String((profile && profile.signerName) || ""),
+      signatureDataUrl: String((profile && profile.signatureDataUrl) || "")
+    };
+    localStorage.setItem(PDF_SIGNATURE_PROFILE_KEY, JSON.stringify(out));
+    return true;
+  } catch (e) {
+    console.warn("savePdfSignatureProfile error:", e);
+    return false;
+  }
+}
+
+function hasPdfSignatureProfile() {
+  const p = loadPdfSignatureProfile();
+  return !!String(p.signatureDataUrl || "").trim();
+}
+
+function openPdfSignatureProfileModal() {
+  closeManagedOverlayById("pdf_signature_profile_overlay");
+
+  const currentDp = String(document.getElementById("dive_const_dp")?.value || "").trim();
+  const profile = loadPdfSignatureProfile();
+
+  const overlay = document.createElement("div");
+  overlay.id = "pdf_signature_profile_overlay";
+  overlay.className = "modal-overlay";
+  overlay.style.display = "flex";
+
+  const card = document.createElement("div");
+  card.className = "modal-card";
+  card.style.maxWidth = "760px";
+  card.style.width = "92%";
+  card.style.padding = "16px";
+  card.style.background = "#0b1527";
+  card.style.color = "#ffffff";
+  card.style.border = "1px solid rgba(148,163,184,0.18)";
+  card.style.boxShadow = "0 18px 42px rgba(0,0,0,0.45)";
+
+  const title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Signature DP";
+  card.appendChild(title);
+
+  const help = document.createElement("p");
+  help.className = "help-text";
+  help.textContent = currentDp
+    ? ("Signature enregistrée pour le DP actuel : " + currentDp)
+    : "Renseignez d'abord le champ Directeur de plongée, puis enregistrez la signature.";
+  card.appendChild(help);
+
+  const canvasWrap = document.createElement("div");
+  canvasWrap.style.background = "#ffffff";
+  canvasWrap.style.borderRadius = "12px";
+  canvasWrap.style.padding = "10px";
+  canvasWrap.style.marginTop = "10px";
+  canvasWrap.style.marginBottom = "12px";
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 680;
+  canvas.height = 180;
+  canvas.style.width = "100%";
+  canvas.style.height = "180px";
+  canvas.style.display = "block";
+  canvas.style.background = "#ffffff";
+  canvas.style.border = "1px solid #d0d7e2";
+  canvas.style.borderRadius = "8px";
+  canvasWrap.appendChild(canvas);
+  card.appendChild(canvasWrap);
+
+  const actions = document.createElement("div");
+  actions.style.display = "flex";
+  actions.style.justifyContent = "space-between";
+  actions.style.gap = "10px";
+  actions.style.flexWrap = "wrap";
+
+  const leftActions = document.createElement("div");
+  leftActions.style.display = "flex";
+  leftActions.style.gap = "10px";
+
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "btn";
+  clearBtn.textContent = "Effacer";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "btn";
+  cancelBtn.textContent = "Annuler";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "btn btn-primary";
+  saveBtn.textContent = "Enregistrer la signature";
+
+  leftActions.appendChild(clearBtn);
+  leftActions.appendChild(cancelBtn);
+
+  actions.appendChild(leftActions);
+  actions.appendChild(saveBtn);
+  card.appendChild(actions);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const ctx = canvas.getContext("2d");
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "#111111";
+
+  let drawing = false;
+  let hasStroke = false;
+
+  function getPos(ev) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    let clientX = 0;
+    let clientY = 0;
+
+    if (ev.touches && ev.touches.length) {
+      clientX = ev.touches[0].clientX;
+      clientY = ev.touches[0].clientY;
+    } else {
+      clientX = ev.clientX;
+      clientY = ev.clientY;
+    }
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  function startDraw(ev) {
+    ev.preventDefault();
+    const p = getPos(ev);
+    drawing = true;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+
+  function moveDraw(ev) {
+    if (!drawing) return;
+    ev.preventDefault();
+    const p = getPos(ev);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    hasStroke = true;
+  }
+
+  function endDraw(ev) {
+    if (!drawing) return;
+    ev.preventDefault();
+    drawing = false;
+  }
+
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", moveDraw);
+  window.addEventListener("mouseup", endDraw);
+
+  canvas.addEventListener("touchstart", startDraw, { passive: false });
+  canvas.addEventListener("touchmove", moveDraw, { passive: false });
+  window.addEventListener("touchend", endDraw, { passive: false });
+
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasStroke = false;
+  }
+
+  function drawStoredSignature(dataUrl) {
+    if (!dataUrl) return;
+    const img = new Image();
+    img.onload = function() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      hasStroke = true;
+    };
+    img.src = dataUrl;
+  }
+
+  if (profile.signatureDataUrl) {
+    drawStoredSignature(profile.signatureDataUrl);
+  }
+
+  clearBtn.onclick = function() {
+    clearCanvas();
+  };
+
+  cancelBtn.onclick = function() {
+    closeManagedOverlayById("pdf_signature_profile_overlay");
+  };
+
+  saveBtn.onclick = function() {
+    const signerName = String(document.getElementById("dive_const_dp")?.value || "").trim();
+    if (!signerName) {
+      alert("Le champ Directeur de plongée doit être renseigné.");
+      return;
+    }
+    if (!hasStroke) {
+      alert("Aucune signature à enregistrer.");
+      return;
+    }
+
+    const dataUrl = canvas.toDataURL("image/png");
+    savePdfSignatureProfile({
+      signerName: signerName,
+      signatureDataUrl: dataUrl
+    });
+
+    closeManagedOverlayById("pdf_signature_profile_overlay");
+    try { toast && toast("Signature DP enregistrée."); } catch(_) {}
+  };
+}
+
+function openPdfSignConfirmModal() {
+  closeManagedOverlayById("pdf_sign_confirm_overlay");
+
+  const dpName = String(document.getElementById("dive_const_dp")?.value || "").trim();
+  if (!dpName) {
+    alert("Le champ Directeur de plongée doit être renseigné avant signature.");
+    return;
+  }
+
+  const profile = loadPdfSignatureProfile();
+  if (!String(profile.signatureDataUrl || "").trim()) {
+    alert("Aucune signature DP enregistrée. Utilisez d'abord « Signature DP » dans le menu (…).");
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "pdf_sign_confirm_overlay";
+  overlay.className = "modal-overlay";
+  overlay.style.display = "flex";
+
+  const card = document.createElement("div");
+  card.className = "modal-card";
+  card.style.maxWidth = "560px";
+  card.style.width = "92%";
+  card.style.padding = "16px";
+  card.style.background = "#0b1527";
+  card.style.color = "#ffffff";
+  card.style.border = "1px solid rgba(148,163,184,0.18)";
+  card.style.boxShadow = "0 18px 42px rgba(0,0,0,0.45)";
+
+  const title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Confirmation de signature";
+  card.appendChild(title);
+
+  const txt = document.createElement("div");
+  txt.style.lineHeight = "1.45";
+  txt.style.marginBottom = "14px";
+  txt.textContent = "Signer ce document avec la signature enregistrée du DP : " + dpName + " ?";
+  card.appendChild(txt);
+
+  const imgWrap = document.createElement("div");
+  imgWrap.style.background = "#ffffff";
+  imgWrap.style.borderRadius = "12px";
+  imgWrap.style.padding = "10px";
+  imgWrap.style.marginBottom = "14px";
+
+  const img = document.createElement("img");
+  img.src = profile.signatureDataUrl;
+  img.alt = "Signature DP";
+  img.style.maxWidth = "100%";
+  img.style.maxHeight = "120px";
+  img.style.display = "block";
+  img.style.margin = "0 auto";
+  imgWrap.appendChild(img);
+  card.appendChild(imgWrap);
+
+  const actions = document.createElement("div");
+  actions.style.display = "flex";
+  actions.style.justifyContent = "flex-end";
+  actions.style.gap = "10px";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "btn";
+  cancelBtn.textContent = "Annuler";
+  cancelBtn.onclick = function() {
+    closeManagedOverlayById("pdf_sign_confirm_overlay");
+  };
+
+  const signBtn = document.createElement("button");
+  signBtn.type = "button";
+  signBtn.className = "btn btn-primary";
+  signBtn.textContent = "Signer";
+
+  signBtn.onclick = function() {
+    pdfState = "signed";
+    pdfSignedAt = new Date().toLocaleString("fr-FR");
+    pdfSignedBy = dpName;
+    pdfSignatureUsed = profile.signatureDataUrl;
+
+    updatePdfActionsUi();
+    updateDpSignaturePage();
+    renderSignedStamp();
+
+    closeManagedOverlayById("pdf_sign_confirm_overlay");
+    alert("Document signé électroniquement.");
+  };
+
+  actions.appendChild(cancelBtn);
+  actions.appendChild(signBtn);
+  card.appendChild(actions);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
 }
 
   // ==========================
@@ -6454,6 +6789,17 @@ function initPDJTools() {
         if (menu) menu.style.display = "none";
       } catch(_) {}
       openPdfDeclarationModal();
+    });
+  }
+
+  const btnPdfSignatureProfile = document.getElementById("btn_pdf_signature_profile");
+  if (btnPdfSignatureProfile) {
+    btnPdfSignatureProfile.addEventListener("click", function() {
+      try {
+        const menu = document.getElementById("library_menu");
+        if (menu) menu.style.display = "none";
+      } catch(_) {}
+      openPdfSignatureProfileModal();
     });
   }
 
@@ -11686,7 +12032,9 @@ function buildPdfMock() {
     html += `<tr><th>Certification(s)</th><td id="dpSigCert">${esc(dpCertOut)}</td></tr>`;
     html += `<tr><th>N° de licence</th><td id="dpSigLicence">${esc(dpLicOut)}</td></tr>`;
     html += `<tr><th>Lieu et date</th><td id="dpSigLieuDate">${esc(dpLieuDateOut)}</td></tr>`;
-    html += '<tr><th>Signature</th><td style="height:70px;">&nbsp;</td></tr>';
+    html += '<tr><th>Signature</th><td id="dpSigCell" style="height:70px; text-align:center;">' +
+            (pdfSignatureUsed ? ('<img src="' + pdfSignatureUsed + '" alt="Signature" style="max-height:60px; max-  width:100%; object-fit:contain;" />') : '&nbsp;') +
+        '</td></tr>';
     html += '</tbody></table>';
 
     html += '</div></div>'; // pdf-content, pdf-page
@@ -11738,8 +12086,10 @@ function buildPdfMock() {
   let pdfValidatedAt = null;
   let pdfSignedAt = null;
   let pdfDocKey = "";
+  let pdfSignedBy = null;
+  let pdfSignatureUsed = null;
 
-  function updateDpSignaturePage() {
+ function updateDpSignaturePage() {
     const st = document.getElementById("dpDocStatus");
     const vAt = document.getElementById("dpValidatedAt");
     const sAt = document.getElementById("dpSignedAt");
@@ -11758,20 +12108,31 @@ function buildPdfMock() {
     const c = document.getElementById("dpSigCert");
     const l = document.getElementById("dpSigLicence");
     const ld = document.getElementById("dpSigLieuDate");
-    if (n || a || c || l || ld) {
+    const sigCell = document.getElementById("dpSigCell");
+
+   if (n || a || c || l || ld || sigCell) {
       try {
         const dpName = clean(document.getElementById("dive_const_dp")?.value);
         const dpI = getEncadrementInfo(dpName);
+
         if (n) n.textContent = dash(dpName);
         if (a) a.textContent = dash(dpI?.apt);
         if (c) c.textContent = dash(dpI?.cert);
         if (l) l.textContent = dash(dpI?.lic);
+
         if (ld) {
-          const site = clean(document.getElementById("dive_site_name")?.value || document.getElementById("dive_site_select")?.value);
+          const site = clean(document.getElementById("dive_site_name")?.value ||   document.getElementById("dive_site_select")?.value);
           const dateFRlocal = new Date().toLocaleDateString("fr-FR");
           const base = (site ? (site + " — le " + dateFRlocal) : ("— le " + dateFRlocal));
-          // If signed, we also show signed timestamp
-          ld.textContent = (pdfState === "signed" && pdfSignedAt) ? (base + " (signé à " + pdfSignedAt + ")") : base;
+          ld.textContent = (pdfState === "signed" && pdfSignedAt)
+            ? (base + " (signé à " + pdfSignedAt + ")")
+            : base;
+        }
+
+        if (sigCell) {
+          sigCell.innerHTML = pdfSignatureUsed
+            ? ('<img src="' + pdfSignatureUsed + '" alt="Signature" style="max-height:60px; max-width:100%; object-fit:contain;" />')
+          : '&nbsp;';
         }
       } catch(e) {}
     }
@@ -11792,6 +12153,8 @@ function buildPdfMock() {
     pdfState = "draft";
     pdfValidatedAt = null;
     pdfSignedAt = null;
+    pdfSignedBy = null;
+    pdfSignatureUsed = null;
     updateDpSignaturePage();
   }
 
@@ -11844,15 +12207,15 @@ function closePdfPreview() {
     const btnSign = document.getElementById("btnSign");
     const btnQuit = document.getElementById("btnQuit");
 
-    if (btnValidate && !btnValidate.dataset.bound) {
-      btnValidate.addEventListener("click", () => {
-        pdfState = "validated";
-        pdfValidatedAt = new Date().toLocaleString("fr-FR");
-        updatePdfActionsUi();
-        updateDpSignaturePage();
-        alert("Document validé.");
+    if (btnSign && !btnSign.dataset.bound) {
+      btnSign.addEventListener("click", () => {
+        if (pdfState !== "validated") {
+          alert("Veuillez valider le document avant signature.");
+          return;
+        }
+        openPdfSignConfirmModal();
       });
-      btnValidate.dataset.bound = "1";
+      btnSign.dataset.bound = "1";
     }
 
     if (btnSign && !btnSign.dataset.bound) {
