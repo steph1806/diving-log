@@ -4499,9 +4499,17 @@ function openPdfSignConfirmModal() {
     pdfSignatureUsed = profile.signatureDataUrl;
     pdfLockedDocKey = pdfDocKey;
 
+    const preview = document.getElementById("pdf-preview");
+    pdfSignedSnapshotHtml = preview ? String(preview.innerHTML || "") : "";
+
     updatePdfActionsUi();
     updateDpSignaturePage();
     renderSignedStamp();
+
+    // refresh frozen snapshot after stamp/signature fields update
+    if (preview) {
+      pdfSignedSnapshotHtml = String(preview.innerHTML || "");
+    }
 
     closeManagedOverlayById("pdf_sign_confirm_overlay");
     alert("Document signé électroniquement.");
@@ -11334,6 +11342,32 @@ return card;
 
   
 function buildPdfMock() {
+
+  // IMMUTABILITY: once signed, always reuse the frozen signed snapshot
+  if (pdfState === "signed" && pdfSignedSnapshotHtml) {
+    const preview = document.getElementById("pdf-preview");
+    if (preview) {
+      preview.innerHTML = pdfSignedSnapshotHtml;
+      preview.classList.add("preview-fit");
+
+      const page = preview.querySelector(".pdf-page");
+      if (page) {
+        const avail = Math.max(280, preview.clientWidth - 16);
+        const naturalW = page.getBoundingClientRect().width || 1;
+        const s = Math.min(1, avail / naturalW);
+        preview.style.setProperty("--pvScale", String(s));
+      }
+
+      preview.scrollIntoView({ behavior: "smooth", block: "start" });
+      showPdfActionsBar();
+      bindPdfActionsOnce();
+      updatePdfActionsUi();
+      updateDpSignaturePage();
+      renderSignedStamp();
+    }
+    return;
+  }
+
   // ===== PDF v0 (rebuild from scratch) — Phase 2: PAGE 1 only =====
   const centerName = STATE.centerName ? String(STATE.centerName) : "—";
   const centerId = STATE.centerId ? String(STATE.centerId) : "";
@@ -12068,12 +12102,7 @@ function buildPdfMock() {
    const centerIdK = (STATE && STATE.centerId) ? String(STATE.centerId) : "";
    const newKey = [centerIdK, dateFRlocal, ctxSiteK, ctxBoatK, ctxDPK].join("|");
 
-   // IMMUTABILITY: once signed, a different document key cannot silently replace the signed document
-   if (pdfState === "signed" && pdfLockedDocKey && pdfLockedDocKey !== newKey) {
-     alert("Document signé verrouillé. Utilisez RESET / Nouvelle plongée avant de générer un autre document.");
-     return;
-   }
-
+  
    if (pdfDocKey !== newKey) {
      pdfDocKey = newKey;
      resetPdfActionsState();
@@ -12096,6 +12125,7 @@ function buildPdfMock() {
   let pdfSignedBy = null;
   let pdfSignatureUsed = null;
   let pdfLockedDocKey = "";
+  let pdfSignedSnapshotHtml = "";
 
  function updateDpSignaturePage() {
     const st = document.getElementById("dpDocStatus");
@@ -12164,6 +12194,7 @@ function buildPdfMock() {
     pdfSignedBy = null;
     pdfSignatureUsed = null;
     pdfLockedDocKey = "";
+    pdfSignedSnapshotHtml = "";
     updateDpSignaturePage();
   }
 
